@@ -50,7 +50,7 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
     const xBack = mobile ? 0 : -side;
     // Slide across quickly at the start of the turn so the phone never sits behind chapter copy.
     const x = mix(mix(mix(xHero, xBack, seg(p, 0.2, 0.3)), 0, seg(p, 0.45, 0.6)), xHero, settle);
-    const y = mobile ? mix(0.62, 0.55, turn) + Math.sin(t * 1.2) * 0.03 : Math.sin(t * 1.2) * 0.04 - 0.02;
+    const y = mobile ? mix(0.8, 0.75, turn) + Math.sin(t * 1.2) * 0.03 : Math.sin(t * 1.2) * 0.04 - 0.02;
 
     if (phone.current) {
       // One continuous spin across the story: front (-0.35) → back (π+0.35) → side-on exploded (2π-1.2) → front again (2π-0.35).
@@ -60,7 +60,7 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
       phone.current.rotation.z = mix(0.06, -0.12, burst) * (1 - settle) + 0.04 * settle;
       phone.current.position.set(x, y - burst * 0.14, 0);
       // Fit to viewport height (world units at z=0) so short laptop screens don't crop the phone.
-      const fit = Math.min(viewport.height / 2.3, mobile ? 0.82 : 1.1);
+      const fit = Math.min(viewport.height / 2.3, mobile ? 0.68 : 1.1);
       const sc = fit * mix(1, 0.84, burst) * mix(1, 0.96, settle);
       phone.current.scale.setScalar(sc);
     }

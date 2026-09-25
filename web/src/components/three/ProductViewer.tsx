@@ -120,7 +120,7 @@ export default function ProductViewer({ color, modelUrl, textures, sketchfabUid,
 
       <p
         className={cn(
-          "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[7rem] rounded-full bg-navy-950/70 px-4 py-2 text-xs text-white/85 backdrop-blur transition-opacity duration-500",
+          "pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 whitespace-nowrap rounded-full bg-navy-950/70 px-4 py-2 text-xs text-white/85 backdrop-blur transition-opacity duration-500",
           interacted ? "opacity-0" : "opacity-100",
         )}
       >

@@ -87,7 +87,7 @@ export function HeroStory() {
         <div data-ch="1" className="container-pb pointer-events-none absolute inset-0 flex items-end pb-24 pt-[var(--header-h)] md:items-center md:pb-0">
           <div className="pointer-events-auto max-w-xl">
             <p className="eyebrow text-gold">Your phone. Sorted.</p>
-            <h1 className="display mt-5 text-[min(3.4rem,8.5svh)] sm:text-[min(4.5rem,10svh)] lg:text-[min(6.2rem,11.5svh)]">
+            <h1 className="display mt-4 text-[min(2.6rem,6svh)] sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.2rem,11.5svh)]">
               Love your phone.
               <br />
               <span className="text-red">We&apos;ll handle</span>
@@ -95,10 +95,10 @@ export function HeroStory() {
               <span className="text-red">the rest</span>
               <span className="text-gold">.</span>
             </h1>
-            <p className="mt-6 max-w-md text-base leading-relaxed text-white/70 md:text-lg">
+            <p className="mt-6 hidden max-w-md text-base leading-relaxed text-white/70 sm:block md:text-lg">
               A new phone, a second chance for your current one, or the little extras that make it yours. Find it all at PB Mobiles &amp; Repairing Lab.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
               <Link href="/new-phones" className="btn btn-red">
                 Shop new phones <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
@@ -121,12 +121,12 @@ export function HeroStory() {
         <div data-ch="2" className="invisible container-pb pointer-events-none absolute inset-0 flex items-end justify-end pb-24 md:items-center md:pb-0">
           <div className="pointer-events-auto max-w-lg md:text-right">
             <p className="eyebrow text-gold md:flex-row-reverse">01 / Phone shop</p>
-            <h2 className="display mt-5 text-5xl md:text-7xl">
+            <h2 className="display mt-4 text-4xl sm:mt-5 sm:text-5xl md:text-7xl">
               New or pre-loved.
               <br />
               <span className="text-blue-soft">Always checked.</span>
             </h2>
-            <p className="mt-5 text-white/70 md:text-lg">
+            <p className="mt-5 hidden text-white/70 sm:block md:text-lg">
               Brand-new devices with official warranty, and used phones graded A+ to C with battery health, notes and a PB Lab warranty on every one.
             </p>
             <div className="mt-7 flex flex-wrap gap-3 md:justify-end">
@@ -164,7 +164,7 @@ export function HeroStory() {
         <div data-ch="4" className="invisible container-pb pointer-events-none absolute inset-0 flex items-end pb-16 md:items-center md:pb-0">
           <div className="pointer-events-auto w-full max-w-xl">
             <p className="eyebrow text-gold">03 / Everything in one place</p>
-            <h2 className="display mt-4 text-5xl md:text-7xl">
+            <h2 className="display mt-4 text-4xl sm:text-5xl md:text-7xl">
               Everything your
               <br />
               phone <span className="text-gradient-gold">needs.</span>
