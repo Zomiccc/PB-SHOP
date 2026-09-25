@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { PageHero } from "@/components/layout/PageHero";
 import { Catalog } from "@/components/product/Catalog";
 import { listProducts, toCatalogItems } from "@/lib/catalog";
@@ -21,9 +20,7 @@ export default async function AccessoriesPage() {
         accent="the setup."
         intro="Cases, chargers, cables, screen protectors, power banks, earbuds and other essentials. Screen protectors fitted free in store."
       />
-      <Suspense>
         <Catalog items={items} mode="accessories" />
-      </Suspense>
     </>
   );
 }

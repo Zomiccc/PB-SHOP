@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { PageHero } from "@/components/layout/PageHero";
 import { Catalog } from "@/components/product/Catalog";
 import { listProducts, toCatalogItems } from "@/lib/catalog";
@@ -31,9 +30,7 @@ export default async function UsedPhonesPage() {
           ))}
         </div>
       </PageHero>
-      <Suspense>
         <Catalog items={items} mode="used" />
-      </Suspense>
     </>
   );
 }

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { PageHero } from "@/components/layout/PageHero";
 import { Catalog } from "@/components/product/Catalog";
 import { listProducts, toCatalogItems } from "@/lib/catalog";
@@ -21,9 +20,7 @@ export default async function NewPhonesPage() {
         accent="in stock."
         intro="Brand-new devices with official warranty where applicable. Rotate any phone in 3D, compare storage and colours, and pay securely online."
       />
-      <Suspense>
         <Catalog items={items} mode="new" />
-      </Suspense>
     </>
   );
 }

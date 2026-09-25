@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { gsap } from "gsap";
 import { useReducedMotion } from "motion/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -21,14 +21,116 @@ const LAYERS = [
   { label: "Back glass & camera", detail: "Housing, lens & port repair", pos: "right-[6%] top-[56%] md:right-[18%] md:top-[66%]" },
 ];
 
+/** true = desktop/tablet (≥768px), false = phone, null = not known yet (server render). */
+function useIsDesktop() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia("(min-width: 768px)");
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(min-width: 768px)").matches,
+    () => null,
+  );
+}
+
+/**
+ * Home hero. Desktop: pinned scroll story with copy beside the 3D phone.
+ * Phones: the 3D phone gets its own frame and the copy flows underneath — nothing is layered
+ * over the canvas, so text and 3D can never overlap on small screens.
+ */
 export function HeroStory() {
+  const isDesktop = useIsDesktop();
+  return (
+    <>
+      <MobileHero active={isDesktop === false} />
+      <DesktopHero active={isDesktop === true} />
+    </>
+  );
+}
+
+const PHASES = [
+  { until: 0.22, text: "Your phone. Sorted." },
+  { until: 0.45, text: "New & used · lab-checked" },
+  { until: 0.74, text: "Screen · board · battery · back glass" },
+  { until: 1.01, text: "Everything your phone needs" },
+];
+const LOOP_SECONDS = 14;
+
+function MobileHero({ active }: { active: boolean }) {
+  const progress = useRef(0);
+  const reduced = useReducedMotion() ?? false;
+  const [phase, setPhase] = useState(0);
+
+  // Self-playing loop: float → turn → explode into layers → reassemble (p=1 looks identical to p=0).
+  useEffect(() => {
+    if (!active || reduced) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = (((now - start) / 1000) % LOOP_SECONDS) / LOOP_SECONDS;
+      progress.current = p;
+      const i = PHASES.findIndex((ph) => p < ph.until);
+      setPhase((prev) => (prev === i ? prev : i));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, reduced]);
+
+  return (
+    <section aria-label="PB Mobiles — phones and repairs" className="relative -mt-[var(--header-h)] overflow-hidden bg-navy-950 pt-[var(--header-h)] text-white md:hidden">
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#0f3a63_0%,#071a2b_55%,#040f1a_100%)]" />
+      <div className="relative h-[min(50svh,420px)] min-h-[290px]">
+        {active && <HeroCanvas progress={progress} box />}
+        <p className="absolute inset-x-0 bottom-2 flex justify-center" aria-hidden>
+          <span className="rounded-full border border-white/15 bg-navy-950/70 px-3 py-1 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-gold backdrop-blur">
+            {PHASES[phase].text}
+          </span>
+        </p>
+      </div>
+      <div className="container-pb relative pb-12 pt-4">
+        <p className="eyebrow text-gold">Your phone. Sorted.</p>
+        <h1 className="display mt-3 text-[2.55rem] leading-[0.98]">
+          Love your phone. <span className="text-red">We&apos;ll handle the rest</span>
+          <span className="text-gold">.</span>
+        </h1>
+        <p className="mt-4 text-[0.95rem] leading-relaxed text-white/70">
+          New and lab-checked used phones, expert repairs and the little extras — all at PB Mobiles &amp; Repairing Lab.
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-2.5">
+          {[
+            { href: "/new-phones", label: "New phones", icon: "phone" },
+            { href: "/used-phones", label: "Used phones", icon: "shield" },
+            { href: "/repair", label: "Book a repair", icon: "wrench" },
+            { href: "/accessories", label: "Accessories", icon: "bolt" },
+          ].map((c, i) => (
+            <Link
+              key={c.href}
+              href={c.href}
+              className={`flex items-center justify-between gap-2 rounded-2xl p-4 text-sm font-semibold ${i === 0 ? "bg-red" : i === 2 ? "bg-gold text-navy-950" : "border border-white/15 bg-white/[0.04]"}`}
+            >
+              <span className="flex items-center gap-2">
+                <Icon name={c.icon} className="h-4 w-4" />
+                {c.label}
+              </span>
+              <Icon name="arrow-up-right" className="h-4 w-4 shrink-0" />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DesktopHero({ active }: { active: boolean }) {
   const section = useRef<HTMLElement>(null);
   const progress = useRef(0);
   const bar = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion() ?? false;
 
   useIsoLayout(() => {
-    if (reduced || !section.current) return;
+    if (!active || reduced || !section.current) return;
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
         defaults: { ease: "power2.out" },
@@ -64,13 +166,13 @@ export function HeroStory() {
       }
     }, section);
     return () => ctx.revert();
-  }, [reduced]);
+  }, [active, reduced]);
 
   return (
     <section
       ref={section}
       aria-label="PB Mobiles — phones and repairs"
-      className="relative -mt-[var(--header-h)] bg-navy-950 text-white"
+      className="relative -mt-[var(--header-h)] hidden bg-navy-950 text-white md:block"
       style={{ height: reduced ? "100svh" : "460svh" }}
     >
       <div className="sticky top-0 h-[100svh] overflow-hidden">
@@ -81,7 +183,7 @@ export function HeroStory() {
           PB LAB
         </p>
 
-        <HeroCanvas progress={progress} />
+        {active && <HeroCanvas progress={progress} />}
 
         {/* Chapter 1 — hero */}
         <div data-ch="1" className="container-pb pointer-events-none absolute inset-0 flex items-end pb-24 pt-[var(--header-h)] md:items-center md:pb-0">

@@ -7,8 +7,10 @@ const ease = [0.2, 0.8, 0.2, 1] as const;
 /**
  * Subtle entrance animation (brief §11: subtle hover/scroll/entrance animations).
  * `immediate` animates on mount — use it for above-the-fold content so it never waits on an observer.
+ * The slide distance stays below the smallest gap between stacked blocks (≈12–20px), so a block that is
+ * still animating in can never pass over its neighbour on small screens.
  */
-export function Reveal({ delay = 0, y = 28, immediate = false, children, ...rest }: HTMLMotionProps<"div"> & { delay?: number; y?: number; immediate?: boolean }) {
+export function Reveal({ delay = 0, y = 10, immediate = false, children, ...rest }: HTMLMotionProps<"div"> & { delay?: number; y?: number; immediate?: boolean }) {
   const target = { opacity: 1, y: 0 };
   return (
     <motion.div

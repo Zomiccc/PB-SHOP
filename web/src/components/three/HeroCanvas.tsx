@@ -19,21 +19,23 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
  *  0.45–0.72  explodes into layers (repair lab chapter)
  *  0.72–1.00  reassembles and settles (CTA chapter)
  */
-function Scene({ progress }: { progress: React.RefObject<number> }) {
+function Scene({ progress, box }: { progress: React.RefObject<number>; box: boolean }) {
   const phone = useRef<THREE.Group>(null);
   const rig = useRef<THREE.Group>(null);
   const swooshA = useRef<THREE.Mesh>(null);
   const swooshB = useRef<THREE.Mesh>(null);
   const explode = useRef(0);
   const { viewport, pointer } = useThree();
-  const mobile = viewport.aspect < 0.9;
+  // "box" = phones: the canvas sits in its own frame above the text, so the phone stays centred in it.
+  const mobile = box || viewport.aspect < 0.9;
 
   const smooth = useRef({ p: 0, mx: 0, my: 0 });
 
   useFrame((state, dt) => {
     const s = smooth.current;
     const target = progress.current ?? 0;
-    s.p = (window as unknown as { __pbStoryForced?: boolean }).__pbStoryForced ? target : THREE.MathUtils.damp(s.p, target, 5, dt);
+    // Box mode is driven by a smooth auto-loop (1 wraps to 0 seamlessly), so no damping there.
+    s.p = box || (window as unknown as { __pbStoryForced?: boolean }).__pbStoryForced ? target : THREE.MathUtils.damp(s.p, target, 5, dt);
     s.mx = THREE.MathUtils.damp(s.mx, pointer.x, 3, dt);
     s.my = THREE.MathUtils.damp(s.my, pointer.y, 3, dt);
     const p = s.p;
@@ -50,7 +52,7 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
     const xBack = mobile ? 0 : -side;
     // Slide across quickly at the start of the turn so the phone never sits behind chapter copy.
     const x = mix(mix(mix(xHero, xBack, seg(p, 0.2, 0.3)), 0, seg(p, 0.45, 0.6)), xHero, settle);
-    const y = mobile ? mix(0.8, 0.75, turn) + Math.sin(t * 1.2) * 0.03 : Math.sin(t * 1.2) * 0.04 - 0.02;
+    const y = box ? Math.sin(t * 1.2) * 0.03 : mobile ? mix(0.8, 0.75, turn) + Math.sin(t * 1.2) * 0.03 : Math.sin(t * 1.2) * 0.04 - 0.02;
 
     if (phone.current) {
       // One continuous spin across the story: front (-0.35) → back (π+0.35) → side-on exploded (2π-1.2) → front again (2π-0.35).
@@ -60,7 +62,7 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
       phone.current.rotation.z = mix(0.06, -0.12, burst) * (1 - settle) + 0.04 * settle;
       phone.current.position.set(x, y - burst * 0.14, 0);
       // Fit to viewport height (world units at z=0) so short laptop screens don't crop the phone.
-      const fit = Math.min(viewport.height / 2.3, mobile ? 0.68 : 1.1);
+      const fit = box ? Math.min(viewport.height / 2.05, viewport.width / 1.35) : Math.min(viewport.height / 2.3, mobile ? 0.68 : 1.1);
       const sc = fit * mix(1, 0.84, burst) * mix(1, 0.96, settle);
       phone.current.scale.setScalar(sc);
     }
@@ -75,7 +77,7 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
       swooshB.current.rotation.x = 1.3 + Math.cos(t * 0.45) * 0.08;
       (swooshB.current.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - burst * 0.7);
     }
-    state.camera.position.z = mix(mobile ? 5.2 : 4.4, mobile ? 5.6 : 4.8, burst);
+    state.camera.position.z = box ? mix(4.6, 5.3, burst) : mix(mobile ? 5.2 : 4.4, mobile ? 5.6 : 4.8, burst);
     state.camera.lookAt(0, 0, 0);
   });
 
@@ -92,11 +94,11 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
       {/* Blue + red orbit swooshes echoing the PB logo */}
       <group ref={rig} position={[0, 0, -0.4]}>
         <mesh ref={swooshA}>
-          <torusGeometry args={[mobile ? 1.05 : 1.35, 0.012, 16, 160, Math.PI * 1.35]} />
+          <torusGeometry args={[box ? 0.95 : mobile ? 1.05 : 1.35, 0.012, 16, 160, Math.PI * 1.35]} />
           <meshBasicMaterial color="#0077d9" transparent toneMapped={false} />
         </mesh>
         <mesh ref={swooshB}>
-          <torusGeometry args={[mobile ? 1.12 : 1.45, 0.009, 16, 160, Math.PI * 1.1]} />
+          <torusGeometry args={[box ? 1.02 : mobile ? 1.12 : 1.45, 0.009, 16, 160, Math.PI * 1.1]} />
           <meshBasicMaterial color="#d71920" transparent toneMapped={false} />
         </mesh>
       </group>
@@ -114,7 +116,7 @@ function Scene({ progress }: { progress: React.RefObject<number> }) {
   );
 }
 
-export default function HeroCanvas({ progress }: { progress: React.RefObject<number> }) {
+export default function HeroCanvas({ progress, box = false }: { progress: React.RefObject<number>; box?: boolean }) {
   const dpr = useMemo<[number, number]>(() => [1, typeof window !== "undefined" && window.innerWidth < 768 ? 1.5 : 2], []);
   return (
     <Canvas
@@ -124,7 +126,7 @@ export default function HeroCanvas({ progress }: { progress: React.RefObject<num
       style={{ position: "absolute", inset: 0 }}
       aria-hidden
     >
-      <Scene progress={progress} />
+      <Scene progress={progress} box={box} />
     </Canvas>
   );
 }
