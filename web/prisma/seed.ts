@@ -127,6 +127,11 @@ const ACCESSORIES: P[] = [
 ].map((p) => ({ ...p, type: "ACCESSORY" as const, condition: "NEW" as const }));
 
 async function main() {
+  // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
+  if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
+    console.log("Database already has data — skipping seed.");
+    return;
+  }
   console.log("Resetting demo data…");
   // Order matters for FK constraints.
   await db.$transaction([

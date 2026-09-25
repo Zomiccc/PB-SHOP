@@ -3,7 +3,7 @@ import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { nextRepairRef } from "@/lib/orders";
-import { saveUpload, UploadError } from "@/lib/storage";
+import { saveUpload, StorageUnavailableError, UploadError } from "@/lib/storage";
 import { REPAIR_CATEGORIES, DROP_OFF } from "@/lib/constants";
 import { getCurrentCustomer } from "@/lib/auth";
 import { notify, notifyStaff } from "@/lib/notify";
@@ -48,8 +48,10 @@ export async function POST(req: Request) {
   try {
     for (const f of files) photos.push(await saveUpload(f, "repairs"));
   } catch (e) {
-    if (e instanceof UploadError) return NextResponse.json({ error: e.message, fields: { photos: [e.message] } }, { status: 422 });
-    throw e;
+    // Demo servers without storage still accept the repair — just without photos.
+    if (e instanceof StorageUnavailableError) photos.length = 0;
+    else if (e instanceof UploadError) return NextResponse.json({ error: e.message, fields: { photos: [e.message] } }, { status: 422 });
+    else throw e;
   }
 
   const customer = await getCurrentCustomer();

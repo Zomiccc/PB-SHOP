@@ -12,7 +12,8 @@
     "db:studio": "prisma studio",
     "test": "vitest run",
     "backup": "node scripts/backup.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "vercel-build": "node scripts/use-postgres.mjs && prisma generate && prisma db push --skip-generate && SEED_ONLY_IF_EMPTY=1 prisma db seed && next build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1140.0",

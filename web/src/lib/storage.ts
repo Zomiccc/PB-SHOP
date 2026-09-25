@@ -13,6 +13,8 @@ import crypto from "node:crypto";
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
 export class UploadError extends Error {}
+/** No object storage configured and the server disk is read-only (e.g. a Vercel demo). */
+export class StorageUnavailableError extends UploadError {}
 
 export async function saveUpload(file: File, folder: string, opts: { maxBytes?: number; types?: string[] } = {}) {
   const maxBytes = opts.maxBytes ?? 8 * 1024 * 1024;
@@ -38,7 +40,15 @@ export async function saveUpload(file: File, folder: string, opts: { maxBytes?: 
   }
 
   const dir = path.join(process.cwd(), "public", "uploads", safeFolder);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), body);
+  try {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, name), body);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "EROFS" || code === "EACCES" || code === "EPERM" || code === "ENOENT") {
+      throw new StorageUnavailableError("File uploads aren't enabled on this server yet (object storage not configured)");
+    }
+    throw e;
+  }
   return `/uploads/${safeFolder}/${name}`;
 }
