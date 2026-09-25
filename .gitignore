@@ -1,0 +1,22 @@
+# Secrets & local data — never commit
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+web/public/uploads/
+web/backups/
+
+# Build / deps
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Client-supplied brief, logo & reference (kept private)
+docs/reference/

@@ -1,0 +1,471 @@
+// PB Mobiles & Repairing Lab — database schema
+//
+// Per the brief's "Developer Priority" note, inventory/barcode, audit logs, employee notes,
+// Care Cards, roles and 6-photo 3D generation are modelled from day one, not bolted on later.
+//
+// Dev uses SQLite so the project runs with zero setup. Production should switch the
+// provider to "postgresql" (Neon / Supabase / RDS). Enum-like columns are plain strings
+// validated in src/lib/constants.ts so the schema works on both providers unchanged.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Staff & auth (§16) ───────────────────────────────
+
+/// 7 individual accounts: 6 ADMIN (employees) + 1 SUPER_ADMIN (owner). No shared logins.
+model Staff {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("ADMIN") // ADMIN | SUPER_ADMIN
+  active       Boolean  @default(true)
+  mustChangePassword Boolean @default(true) // forced reset on first login
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  loginEvents     StaffLoginEvent[]
+  auditLogs       AuditLog[]
+  notes           Note[]
+  stockMovements  StockMovement[]
+  ordersHandled   Order[]              @relation("OrderStaff")
+  repairsAssigned RepairRequest[]      @relation("RepairAssignee")
+  repairChanges   RepairStatusChange[]
+  careRedemptions CareCardRedemption[]
+  loyaltyTx       LoyaltyTransaction[]
+  modelJobs       Model3DJob[]
+}
+
+model StaffLoginEvent {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  type      String // LOGIN | LOGOUT | LOGIN_FAILED
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([staffId, createdAt])
+}
+
+/// Super-admin audit trail: timestamp, user, action, affected record, before/after (§16, §10).
+model AuditLog {
+  id          String   @id @default(cuid())
+  staffId     String?
+  staff       Staff?   @relation(fields: [staffId], references: [id])
+  action      String // e.g. PRODUCT_PRICE_CHANGED, STOCK_ADJUSTED, SALE_COMPLETED, CARE_SERVICE_CHANGED
+  entityType  String // PRODUCT | VARIANT | ORDER | REPAIR | CUSTOMER | CARE_CARD | CARE_SERVICE | SETTING | LOYALTY
+  entityId    String?
+  recordLabel String? // human label: "iPhone 13 / SKU PB-013", "Repair #1042"
+  before      String? // JSON snapshot
+  after       String? // JSON snapshot
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([staffId, createdAt])
+  @@index([entityType, entityId])
+}
+
+// ─────────────────────────────── Customers & loyalty (§7, PB Phone Passport) ───────────────────────────────
+
+model Customer {
+  id            String   @id @default(cuid())
+  name          String
+  phone         String   @unique
+  email         String?  @unique
+  passwordHash  String? // null for walk-in / guest customers created at POS
+  passportNo    String   @unique // PB Phone Passport number shown to customer
+  loyaltyPoints Int      @default(0)
+  marketingOptIn Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders       Order[]
+  repairs      RepairRequest[]
+  loyaltyTx    LoyaltyTransaction[]
+  careCards    CareCard[]
+  redemptions  CareCardRedemption[]
+  notes        Note[]
+}
+
+model LoyaltyTransaction {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  type       String // EARN | REDEEM | ADJUST | EXPIRE | PROMO
+  points     Int // positive = earned, negative = spent/expired
+  reason     String?
+  orderId    String?
+  order      Order?    @relation(fields: [orderId], references: [id])
+  repairId   String?
+  repair     RepairRequest? @relation(fields: [repairId], references: [id])
+  rewardId   String?
+  reward     Reward?   @relation(fields: [rewardId], references: [id])
+  staffId    String?
+  staff      Staff?    @relation(fields: [staffId], references: [id])
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([customerId, createdAt])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  pointsCost  Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  transactions LoyaltyTransaction[]
+}
+
+// ─────────────────────────────── Care Card (§18) ───────────────────────────────
+
+/// Visit definitions 1–5. Only SUPER_ADMIN may create/edit/reorder/activate these.
+/// Visit 5 ships as a configurable placeholder — the brief deliberately leaves it undefined.
+model CareCardService {
+  id          String   @id @default(cuid())
+  visitNumber Int      @unique // 1..5
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  configured  Boolean  @default(true) // false = placeholder awaiting owner definition
+  updatedAt   DateTime @updatedAt
+
+  redemptions CareCardRedemption[]
+}
+
+model CareCard {
+  id         String   @id @default(cuid())
+  number     String   @unique // e.g. PBC-000123
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  orderId    String?  @unique
+  order      Order?   @relation(fields: [orderId], references: [id])
+  maxUses    Int      @default(5)
+  status     String   @default("ACTIVE") // ACTIVE | EXHAUSTED | VOID
+  issuedAt   DateTime @default(now())
+
+  redemptions CareCardRedemption[]
+}
+
+model CareCardRedemption {
+  id          String          @id @default(cuid())
+  careCardId  String
+  careCard    CareCard        @relation(fields: [careCardId], references: [id])
+  serviceId   String
+  service     CareCardService @relation(fields: [serviceId], references: [id])
+  customerId  String
+  customer    Customer        @relation(fields: [customerId], references: [id])
+  staffId     String
+  staff       Staff           @relation(fields: [staffId], references: [id])
+  repairId    String?
+  repair      RepairRequest?  @relation(fields: [repairId], references: [id])
+  note        String?
+  createdAt   DateTime        @default(now())
+
+  /// "Once per card" is enforced in app logic (src/lib/care-card.ts) so the super admin can relax it via settings.
+  @@index([careCardId])
+}
+
+// ─────────────────────────────── Catalogue & inventory (§5, §6, §19) ───────────────────────────────
+
+model Product {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  brand           String
+  type            String // PHONE | ACCESSORY
+  condition       String   @default("NEW") // NEW | USED  (accessories are NEW)
+  accessoryType   String? // CASE | CHARGER | CABLE | SCREEN_PROTECTOR | POWER_BANK | EARBUDS | OTHER
+  description     String
+  specs           String   @default("{}") // JSON key/value spec sheet
+  images          String   @default("[]") // JSON array of image URLs
+  finishHex       String? // colour used to tint the procedural 3D phone when no GLB exists
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true) // deactivate instead of hard delete
+  careCardEligible Boolean @default(false)
+  loyaltyEligible Boolean  @default(true)
+
+  // 3D (§4, §14)
+  model3dUrl      String? // approved GLB/GLTF shown in customer viewer
+  model3dKind     String? // GLB | TEXTURED (6-photo textured parametric model)
+  model3dTextures String? // JSON {front,back,left,right,top,bottom} for TEXTURED
+  sketchfabUid    String? // optional licensed Sketchfab embed
+
+  // SEO (§10 editable metadata)
+  metaTitle       String?
+  metaDescription String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  variants  Variant[]
+  modelJobs Model3DJob[]
+
+  @@index([type, condition, active])
+  @@index([brand])
+}
+
+/// Sellable unit. Every variant has a unique SKU and barcode (§6).
+/// Used phones are usually one physical device per variant (stock 1) with its own grade/battery data.
+model Variant {
+  id                String   @id @default(cuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  sku               String   @unique
+  barcode           String   @unique
+  storage           String?
+  color             String?
+  colorHex          String?
+  price             Int // PKR, whole rupees
+  salePrice         Int?
+  stockQty          Int      @default(0)
+  lowStockThreshold Int      @default(2)
+  allowBackorder    Boolean  @default(false) // zero-stock exception, set only by authorised admin
+
+  // Used-device fields (§2 Used Phones)
+  grade             String? // A+ | A | B | C
+  batteryHealth     Int? // %
+  conditionNotes    String?
+  warrantyInfo      String?
+  returnInfo        String?
+
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  movements  StockMovement[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
+/// Every stock change: additions, sales, returns, cancellations, manual adjustments (§6, §19).
+model StockMovement {
+  id        String   @id @default(cuid())
+  variantId String
+  variant   Variant  @relation(fields: [variantId], references: [id])
+  type      String // RECEIVED | SALE | RETURN | CANCEL | ADJUST
+  qtyChange Int
+  qtyAfter  Int
+  reason    String?
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  staffId   String? // null only for automated online sales
+  staff     Staff?   @relation(fields: [staffId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([variantId, createdAt])
+}
+
+/// Automatic 6-photo → 3D pipeline (§14). Photos are kept so the model can be regenerated.
+model Model3DJob {
+  id            String    @id @default(cuid())
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id])
+  status        String    @default("PROCESSING") // PROCESSING | READY | FAILED | NEEDS_REVIEW | APPROVED
+  pipeline      String    @default("TEXTURED") // TEXTURED (parametric, instant) | AI (image-to-3D provider)
+  provider      String // TEXTURED | MESHY | TRIPO | SELF_HOSTED
+  providerJobId String?
+  photoFront    String
+  photoBack     String
+  photoLeft     String
+  photoRight    String
+  photoTop      String
+  photoBottom   String
+  resultUrl     String?
+  error         String?
+  createdById   String
+  createdBy     Staff     @relation(fields: [createdById], references: [id])
+  approvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([productId, createdAt])
+}
+
+// ─────────────────────────────── Orders & payments (§3) ───────────────────────────────
+
+model Order {
+  id               String   @id @default(cuid())
+  number           String   @unique // PB-100001
+  channel          String // ONLINE | POS
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  customerName     String
+  customerPhone    String
+  customerEmail    String?
+  shippingAddress  String?
+  city             String?
+  fulfilment       String   @default("DELIVERY") // DELIVERY | PICKUP | IN_STORE
+  subtotal         Int
+  discount         Int      @default(0)
+  shippingFee      Int      @default(0)
+  total            Int
+  paymentStatus    String   @default("PENDING") // PENDING | PAID | FAILED | REFUNDED | CANCELLED
+  fulfilmentStatus String   @default("NEW") // NEW | PROCESSING | READY | SHIPPED | COMPLETED | CANCELLED | RETURNED
+  staffId          String? // employee who processed a POS sale
+  staff            Staff?   @relation("OrderStaff", fields: [staffId], references: [id])
+  stockCommitted   Boolean  @default(false) // true once inventory was decremented
+  socialProofLabel String? // privacy-safe label, e.g. "Ali K. from Lahore" (§15)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  items      OrderItem[]
+  payments   Payment[]
+  notes      Note[]
+  movements  StockMovement[]
+  careCard   CareCard?
+  loyaltyTx  LoyaltyTransaction[]
+
+  @@index([createdAt])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  variantId String
+  variant   Variant @relation(fields: [variantId], references: [id])
+  name      String
+  sku       String
+  unitPrice Int
+  qty       Int
+}
+
+/// Gateway transaction. Never stores card/bank credentials — only references and status.
+model Payment {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  provider    String // JAZZCASH | EASYPAISA | PAYFAST | SAFEPAY | CASH | SANDBOX
+  method      String? // MOBILE_WALLET | DIRECT_DEBIT | CARD | OTC | CASH
+  providerRef String? // gateway transaction reference
+  amount      Int
+  status      String   @default("PENDING") // PENDING | SUCCESS | FAILED
+  rawResponse String? // verified gateway payload for reconciliation
+  verifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([providerRef])
+}
+
+// ─────────────────────────────── Repairs (§8) ───────────────────────────────
+
+model RepairRequest {
+  id            String    @id @default(cuid())
+  ref           String    @unique // PBR-1042
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  name          String
+  phone         String
+  email         String?
+  brand         String
+  model         String
+  category      String // SCREEN | BATTERY | CHARGING | CAMERA | WATER | SOFTWARE | SPEAKER_MIC | OTHER
+  description   String
+  photos        String    @default("[]") // JSON array of uploaded photo URLs
+  preferredAt   DateTime?
+  dropOff       String    @default("WALK_IN") // WALK_IN | APPOINTMENT | PICKUP
+  status        String    @default("NEW") // NEW | RECEIVED | DIAGNOSING | AWAITING | REPAIRING | READY | COMPLETED | CANCELLED
+  quote         Int?
+  finalPrice    Int?
+  assignedToId  String?
+  assignedTo    Staff?    @relation("RepairAssignee", fields: [assignedToId], references: [id])
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  statusChanges   RepairStatusChange[]
+  notes           Note[]
+  careRedemptions CareCardRedemption[]
+  loyaltyTx       LoyaltyTransaction[]
+
+  @@index([status, createdAt])
+}
+
+model RepairStatusChange {
+  id        String        @id @default(cuid())
+  repairId  String
+  repair    RepairRequest @relation(fields: [repairId], references: [id])
+  from      String?
+  to        String
+  staffId   String?
+  staff     Staff?        @relation(fields: [staffId], references: [id])
+  createdAt DateTime      @default(now())
+}
+
+// ─────────────────────────────── Employee notes (§17) ───────────────────────────────
+
+model Note {
+  id         String         @id @default(cuid())
+  kind       String // SALE | REPAIR | CUSTOMER
+  body       String
+  important  Boolean        @default(false)
+  // Repair notes may be structured: reported issue, findings, work done, parts used
+  meta       String? // JSON
+  authorId   String
+  author     Staff          @relation(fields: [authorId], references: [id])
+  orderId    String?
+  order      Order?         @relation(fields: [orderId], references: [id])
+  repairId   String?
+  repair     RepairRequest? @relation(fields: [repairId], references: [id])
+  customerId String?
+  customer   Customer?      @relation(fields: [customerId], references: [id])
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+// ─────────────────────────────── Site: contact, chat, settings ───────────────────────────────
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  subject   String?
+  message   String
+  status    String   @default("NEW") // NEW | REPLIED | CLOSED
+  createdAt DateTime @default(now())
+}
+
+model ChatConversation {
+  id        String        @id @default(cuid())
+  visitorId String
+  name      String?
+  phone     String?
+  status    String        @default("OPEN") // OPEN | HANDED_OFF | CLOSED
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+
+  @@index([visitorId])
+}
+
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id])
+  from           String // VISITOR | BOT | STAFF
+  body           String
+  createdAt      DateTime         @default(now())
+}
+
+/// Key/value config: social-proof toggle/frequency, loyalty earn rates, expiry, shipping fee, etc.
+model Setting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
