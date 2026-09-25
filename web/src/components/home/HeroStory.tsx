@@ -49,10 +49,11 @@ export function HeroStory() {
   );
 }
 
+// Caption windows match what the phone is visibly doing (the layers are apart roughly 0.53–0.8).
 const PHASES = [
-  { until: 0.22, text: "Your phone. Sorted." },
-  { until: 0.45, text: "New & used · lab-checked" },
-  { until: 0.74, text: "Screen · board · battery · back glass" },
+  { until: 0.24, text: "Your phone. Sorted." },
+  { until: 0.53, text: "New & used · lab-checked" },
+  { until: 0.8, text: "Screen · board · battery · back glass" },
   { until: 1.01, text: "Everything your phone needs" },
 ];
 const LOOP_SECONDS = 14;
