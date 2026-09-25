@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "./db";
 import { STAFF_COOKIE, signSession, verifySession } from "./auth";
 import type { StaffRole } from "./constants";
+import { isDemoMode } from "./demo";
 
 /**
  * Staff sessions (§16): one individual login per person, no shared credentials.
@@ -39,7 +40,7 @@ export async function getStaff(): Promise<StaffUser | null> {
   if (!session || session.kind !== "staff") return null;
   const s = await db.staff.findUnique({ where: { id: session.sub } });
   if (!s || !s.active) return null;
-  return { id: s.id, name: s.name, email: s.email, role: s.role as StaffRole, mustChangePassword: s.mustChangePassword };
+  return { id: s.id, name: s.name, email: s.email, role: s.role as StaffRole, mustChangePassword: s.mustChangePassword && !isDemoMode() };
 }
 
 /** For admin pages: redirects to login, or to the password page if a reset is pending. */

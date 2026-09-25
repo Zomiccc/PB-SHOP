@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getStaff } from "@/lib/staff";
+import { isDemoMode } from "@/lib/demo";
 import { loginAction } from "../_actions/auth";
 import { ActionForm, Submit } from "@/components/admin/ui";
 
@@ -23,6 +24,16 @@ export default async function LoginPage() {
       <div className="grid place-items-center p-6">
         <ActionForm action={loginAction} className="w-full max-w-sm space-y-4">
           <h2 className="display text-3xl">Staff sign in</h2>
+          {isDemoMode() && (
+            <div className="rounded-2xl bg-gold/15 p-4 text-sm ring-1 ring-gold/40">
+              <p className="font-semibold">Demo mode — no password needed</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <a href="/api/admin/demo-login?role=owner" className="btn btn-red !py-2.5 !text-sm">Enter as Owner</a>
+                <a href="/api/admin/demo-login?role=employee" className="btn btn-primary !py-2.5 !text-sm">Enter as Employee</a>
+              </div>
+              <p className="mt-2 text-xs text-muted">Owner sees everything incl. audit log &amp; settings; Employee sees the normal staff view.</p>
+            </div>
+          )}
           <label className="block"><span className="label">Email</span><input name="email" type="email" autoComplete="username" required className="field" /></label>
           <label className="block"><span className="label">Password</span><input name="password" type="password" autoComplete="current-password" required className="field" /></label>
           <Submit variant="red" className="w-full">Sign in</Submit>
