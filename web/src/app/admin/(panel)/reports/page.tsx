@@ -45,8 +45,8 @@ export default async function ReportsPage(props: PageProps<"/admin/reports">) {
     <>
       <PageTitle title="Reports" sub={`Last ${days} days`}>
         {Object.keys(RANGES).map((r) => <FilterLink key={r} href={`/admin/reports?range=${r}`} active={range === r}>{r} days</FilterLink>)}
-        <Link href={`/api/admin/export?type=orders&days=${days}`} className="btn btn-ghost !py-2 !text-sm text-navy-950"><span>Export orders CSV</span></Link>
-        <Link href="/api/admin/export?type=inventory" className="btn btn-ghost !py-2 !text-sm text-navy-950"><span>Export inventory CSV</span></Link>
+        <Link href={`/api/admin/export?type=orders&days=${days}`} className="btn btn-ghost !py-2 !text-sm text-ink"><span>Export orders CSV</span></Link>
+        <Link href="/api/admin/export?type=inventory" className="btn btn-ghost !py-2 !text-sm text-ink"><span>Export inventory CSV</span></Link>
       </PageTitle>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Paid revenue" value={pkr(revenue)} />

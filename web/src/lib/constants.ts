@@ -23,6 +23,7 @@ export const NAV = [
   { href: "/", label: "Home" },
   { href: "/new-phones", label: "New Phones" },
   { href: "/used-phones", label: "Used Phones" },
+  { href: "/tablets", label: "Tablets" },
   { href: "/accessories", label: "Accessories" },
   { href: "/repair", label: "Repair" },
   { href: "/about", label: "About" },

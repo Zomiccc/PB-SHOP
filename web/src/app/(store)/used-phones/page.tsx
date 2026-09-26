@@ -23,8 +23,8 @@ export default async function UsedPhonesPage() {
       >
         <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4">
           {Object.entries(USED_GRADES).map(([g, d]) => (
-            <div key={g} className="rounded-2xl bg-white p-4 shadow-[var(--shadow-card)]">
-              <p className="display text-2xl text-navy-950">Grade {g}</p>
+            <div key={g} className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+              <p className="display text-2xl text-ink">Grade {g}</p>
               <p className="mt-1 text-sm text-muted">{d}</p>
             </div>
           ))}

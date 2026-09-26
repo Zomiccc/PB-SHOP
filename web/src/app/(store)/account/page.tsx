@@ -112,7 +112,7 @@ export default async function AccountPage() {
             {rewards.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-3 text-sm">
                 <span>{r.name}</span>
-                <span className={customer.loyaltyPoints >= r.pointsCost ? "font-semibold text-emerald-700" : "text-muted"}>{r.pointsCost} pts</span>
+                <span className={customer.loyaltyPoints >= r.pointsCost ? "font-semibold text-emerald-400" : "text-muted"}>{r.pointsCost} pts</span>
               </li>
             ))}
           </ul>
@@ -175,7 +175,7 @@ export default async function AccountPage() {
                       {t.expiresAt && ` · expires ${t.expiresAt.toLocaleDateString("en-PK")}`}
                     </span>
                   </span>
-                  <b className={t.points >= 0 ? "text-emerald-700" : "text-red"}>{t.points > 0 ? `+${t.points}` : t.points}</b>
+                  <b className={t.points >= 0 ? "text-emerald-400" : "text-red"}>{t.points > 0 ? `+${t.points}` : t.points}</b>
                 </li>
               ))}
             </ul>

@@ -92,7 +92,7 @@ export function CartDrawer() {
                     </li>
                   ))}
                 </ul>
-                <div className="border-t border-ink/10 bg-white px-6 py-5">
+                <div className="border-t border-ink/10 bg-card px-6 py-5">
                   <div className="flex justify-between text-sm text-muted">
                     <span>Subtotal</span>
                     <span className="text-lg font-bold text-ink">{pkr(subtotal)}</span>

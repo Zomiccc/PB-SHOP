@@ -10,7 +10,7 @@ export default async function ProductsPage(props: PageProps<"/admin/products">) 
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const view = typeof sp.view === "string" ? sp.view : "all";
   const where =
-    view === "new" ? { type: "PHONE", condition: "NEW" } : view === "used" ? { type: "PHONE", condition: "USED" } : view === "accessories" ? { type: "ACCESSORY" } : view === "hidden" ? { active: false } : {};
+    view === "new" ? { type: "PHONE", condition: "NEW" } : view === "used" ? { type: "PHONE", condition: "USED" } : view === "tablets" ? { type: "TABLET" } : view === "accessories" ? { type: "ACCESSORY" } : view === "hidden" ? { active: false } : {};
   const products = await db.product.findMany({ where, include: { variants: true }, orderBy: [{ active: "desc" }, { updatedAt: "desc" }] });
   const needle = q.toLowerCase();
   const list = needle
@@ -20,7 +20,7 @@ export default async function ProductsPage(props: PageProps<"/admin/products">) 
   return (
     <>
       <PageTitle title="Products" sub={`${products.length} products`}>
-        <Link href="/admin/labels" className="btn btn-ghost !py-2.5 !text-sm text-navy-950"><span>Print barcode labels</span></Link>
+        <Link href="/admin/labels" className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>Print barcode labels</span></Link>
         <Link href="/admin/products/new" className="btn btn-red !py-2.5 !text-sm">Add product</Link>
       </PageTitle>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -28,6 +28,7 @@ export default async function ProductsPage(props: PageProps<"/admin/products">) 
           ["all", "All"],
           ["new", "New phones"],
           ["used", "Used phones"],
+          ["tablets", "Tablets"],
           ["accessories", "Accessories"],
           ["hidden", "Hidden"],
         ].map(([k, l]) => (
@@ -50,7 +51,7 @@ export default async function ProductsPage(props: PageProps<"/admin/products">) 
                   <Link href={`/admin/products/${p.id}`} className="font-semibold hover:text-blue">{p.name}</Link>
                   <span className="block text-xs text-muted">{p.brand}</span>
                 </Td>
-                <Td>{p.type === "ACCESSORY" ? p.accessoryType?.replace("_", " ").toLowerCase() : p.condition === "USED" ? "Used phone" : "New phone"}</Td>
+                <Td>{p.type === "ACCESSORY" ? p.accessoryType?.replace("_", " ").toLowerCase() : `${p.condition === "USED" ? "Used" : "New"} ${p.type === "TABLET" ? "tablet" : "phone"}`}</Td>
                 <Td className="font-mono text-xs">{p.variants.map((v) => v.sku).join(", ") || "—"}</Td>
                 <Td>{prices.length ? pkr(Math.min(...prices)) : "—"}</Td>
                 <Td><Badge tone={stock <= 0 ? "red" : low ? "gold" : "green"}>{stock}</Badge></Td>

@@ -22,7 +22,7 @@ export default async function SandboxGateway(props: PageProps<"/checkout/sandbox
 
   return (
     <div className="container-pb grid min-h-[70vh] place-items-center py-16">
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-lift)]">
+      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-lift)]">
         <div className="bg-[repeating-linear-gradient(45deg,#d9a62e,#d9a62e_10px,#071a2b_10px,#071a2b_20px)] px-6 py-2 text-center font-mono text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white">
           Sandbox — no real money moves
         </div>

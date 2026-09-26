@@ -184,7 +184,7 @@ model Product {
   slug            String   @unique
   name            String
   brand           String
-  type            String // PHONE | ACCESSORY
+  type            String // PHONE | TABLET | ACCESSORY
   condition       String   @default("NEW") // NEW | USED  (accessories are NEW)
   accessoryType   String? // CASE | CHARGER | CABLE | SCREEN_PROTECTOR | POWER_BANK | EARBUDS | OTHER
   description     String
@@ -211,6 +211,7 @@ model Product {
 
   variants  Variant[]
   modelJobs Model3DJob[]
+  reviews   Review[]
 
   @@index([type, condition, active])
   @@index([brand])
@@ -225,6 +226,7 @@ model Variant {
   sku               String   @unique
   barcode           String   @unique
   storage           String?
+  ram               String? // tablets / phones where applicable, e.g. "8GB"
   color             String?
   colorHex          String?
   price             Int // PKR, whole rupees
@@ -233,8 +235,8 @@ model Variant {
   lowStockThreshold Int      @default(2)
   allowBackorder    Boolean  @default(false) // zero-stock exception, set only by authorised admin
 
-  // Used-device fields (§2 Used Phones)
-  grade             String? // A+ | A | B | C
+  // Used-device fields (§2 Used Phones). ONE grade per SKU — enforced in src/lib/grade.ts (master brief §8).
+  grade             String? // A+ | A | B | C (used devices only; null for new)
   batteryHealth     Int? // %
   conditionNotes    String?
   warrantyInfo      String?
@@ -340,6 +342,7 @@ model OrderItem {
   variant   Variant @relation(fields: [variantId], references: [id])
   name      String
   sku       String
+  grade     String? // snapshot of the SKU's single grade at sale time (receipts/invoices)
   unitPrice Int
   qty       Int
 }
@@ -374,6 +377,7 @@ model RepairRequest {
   email         String?
   brand         String
   model         String
+  imei          String? // IMEI or serial number, recorded at intake
   category      String // SCREEN | BATTERY | CHARGING | CAMERA | WATER | SOFTWARE | SPEAKER_MIC | OTHER
   description   String
   photos        String    @default("[]") // JSON array of uploaded photo URLs
@@ -468,4 +472,26 @@ model Setting {
   key       String   @id
   value     String // JSON
   updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────── Reviews (master brief §3, §17) ───────────────────────────────
+
+/// Customer reviews. Only APPROVED reviews are shown publicly; staff moderate in Admin → Reviews.
+model Review {
+  id           String    @id @default(cuid())
+  productId    String? // null = review of the shop / repair service
+  product      Product?  @relation(fields: [productId], references: [id])
+  customerName String
+  phone        String? // private — used to mark verified purchases, never displayed
+  rating       Int // 1–5
+  title        String?
+  body         String
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  verified     Boolean   @default(false) // reviewer has a paid order / repair with us
+  moderatedBy  String?
+  moderatedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([productId, status])
 }

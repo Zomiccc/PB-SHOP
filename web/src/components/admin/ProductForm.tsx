@@ -21,10 +21,11 @@ export function ProductForm({ product }: { product?: Product }) {
         <Field label="Type">
           <select name="type" defaultValue={product?.type ?? "PHONE"} className="field">
             <option value="PHONE">Phone</option>
+            <option value="TABLET">Tablet</option>
             <option value="ACCESSORY">Accessory</option>
           </select>
         </Field>
-        <Field label="Condition (phones)" hint="New and used are separate catalogues with separate fields.">
+        <Field label="Condition (phones & tablets)" hint="Used devices need exactly one grade per SKU.">
           <select name="condition" defaultValue={product?.condition ?? "NEW"} className="field">
             <option value="NEW">New</option>
             <option value="USED">Used</option>

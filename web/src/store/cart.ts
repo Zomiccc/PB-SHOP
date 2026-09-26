@@ -13,7 +13,7 @@ export type CartItem = {
   qty: number;
   maxQty: number;
   colorHex?: string | null;
-  kind: "PHONE" | "ACCESSORY";
+  kind: "PHONE" | "TABLET" | "ACCESSORY";
   accessoryType?: string | null;
 };
 

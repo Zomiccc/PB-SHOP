@@ -32,9 +32,9 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
       </PageTitle>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-2xl bg-navy-950 p-5 text-white"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-white/50">Points</p><p className="display mt-2 text-3xl text-gold">{c.loyaltyPoints}</p></div>
-        <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">Lifetime spend</p><p className="display mt-2 text-3xl">{pkr(spent)}</p></div>
-        <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">Orders</p><p className="display mt-2 text-3xl">{c.orders.length}</p></div>
-        <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">Repairs</p><p className="display mt-2 text-3xl">{c.repairs.length}</p></div>
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">Lifetime spend</p><p className="display mt-2 text-3xl">{pkr(spent)}</p></div>
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">Orders</p><p className="display mt-2 text-3xl">{c.orders.length}</p></div>
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"><p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">Repairs</p><p className="display mt-2 text-3xl">{c.repairs.length}</p></div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">

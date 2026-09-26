@@ -48,7 +48,7 @@ export function ActionForm({
           </p>
         )}
         {state?.ok && state.message && (
-          <p role="status" className="mt-3 rounded-lg bg-emerald-600/10 px-3 py-2 text-sm text-emerald-700">
+          <p role="status" className="mt-3 rounded-lg bg-emerald-600/10 px-3 py-2 text-sm text-emerald-400">
             {state.message}
           </p>
         )}

@@ -70,7 +70,7 @@ export function RepairForm({ defaults }: { defaults: { device?: string; issue?: 
   }
 
   return (
-    <form onSubmit={submit} noValidate className="rounded-[1.75rem] bg-white p-6 shadow-[var(--shadow-card)] md:p-10">
+    <form onSubmit={submit} noValidate className="rounded-[1.75rem] bg-card p-6 shadow-[var(--shadow-card)] md:p-10">
       <AnimatePresence>
         {formError && (
           <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0 }} role="alert" className="mb-6 rounded-xl bg-red/10 px-4 py-3 text-sm text-red">
@@ -105,6 +105,9 @@ export function RepairForm({ defaults }: { defaults: { device?: string; issue?: 
           </Field>
           <Field id="model" label="Model" error={err("model")}>
             <input id="rf-model" name="model" defaultValue={guessedModel || defaults.device} placeholder="e.g. iPhone 13 / Galaxy A54" required className="field" aria-invalid={!!err("model")} />
+          </Field>
+          <Field id="imei" label="IMEI / serial (optional)" error={err("imei")} className="sm:col-span-2">
+            <input id="rf-imei" name="imei" inputMode="numeric" placeholder="Dial *#06# to see your IMEI" className="field" aria-invalid={!!err("imei")} />
           </Field>
         </div>
       </Section>

@@ -28,7 +28,7 @@ export default async function ReceiptPage(props: PageProps<"/admin/orders/[id]/r
           <div key={i.id} className="mb-1">
             <p>{i.name}</p>
             <p className="flex justify-between"><span>{i.qty} x {pkr(i.unitPrice)}</span><span>{pkr(i.qty * i.unitPrice)}</span></p>
-            <p className="text-[10px]">SKU {i.sku}</p>
+            <p className="text-[10px]">SKU {i.sku}{i.grade ? ` · Grade ${i.grade}` : ""}</p>
           </div>
         ))}
         <p className="my-2 border-t border-dashed border-black" />

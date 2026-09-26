@@ -15,7 +15,7 @@ export function PageTitle({ title, sub, children }: { title: string; sub?: strin
 
 export function Panel({ title, action, children, className }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] md:p-6", className)}>
+    <section className={cn("rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] md:p-6", className)}>
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between gap-3">
           {title && <h2 className="font-semibold">{title}</h2>}
@@ -28,9 +28,9 @@ export function Panel({ title, action, children, className }: { title?: string; 
 }
 
 const TONES: Record<string, string> = {
-  green: "bg-emerald-600/10 text-emerald-700",
+  green: "bg-emerald-600/10 text-emerald-400",
   red: "bg-red/10 text-red",
-  gold: "bg-gold/20 text-[#7a570c]",
+  gold: "bg-gold/20 text-gold-soft",
   blue: "bg-blue/10 text-blue",
   gray: "bg-ink/5 text-muted",
   navy: "bg-navy-950 text-white",
@@ -50,9 +50,9 @@ export function statusTone(s: string) {
 
 export function Stat({ label, value, hint, tone }: { label: string; value: React.ReactNode; hint?: string; tone?: "red" | "gold" }) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]">
+    <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
       <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">{label}</p>
-      <p className={cn("display mt-2 text-3xl", tone === "red" ? "text-red" : tone === "gold" ? "text-[#a87a14]" : "text-navy-950")}>{value}</p>
+      <p className={cn("display mt-2 text-3xl", tone === "red" ? "text-red" : tone === "gold" ? "text-gold-soft" : "text-ink")}>{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
@@ -86,7 +86,7 @@ export const Td = ({ children, className }: { children?: React.ReactNode; classN
 
 export function FilterLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
-    <Link href={href} className={cn("rounded-full px-3 py-1.5 text-sm transition", active ? "bg-navy-950 text-white" : "bg-white text-muted shadow-[var(--shadow-card)] hover:text-ink")}>
+    <Link href={href} className={cn("rounded-full px-3 py-1.5 text-sm transition", active ? "bg-navy-950 text-white" : "bg-card text-muted shadow-[var(--shadow-card)] hover:text-ink")}>
       {children}
     </Link>
   );

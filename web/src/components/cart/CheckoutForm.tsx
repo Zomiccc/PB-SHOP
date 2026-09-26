@@ -88,7 +88,7 @@ export function CheckoutForm({ shipping, pointsPerRupees, defaults }: Props) {
         <p className="mt-4 text-lg font-semibold">Your bag is empty.</p>
         <div className="mt-6 flex gap-3">
           <Link href="/new-phones" className="btn btn-primary">Shop phones</Link>
-          <Link href="/accessories" className="btn btn-ghost text-navy-950"><span>Accessories</span></Link>
+          <Link href="/accessories" className="btn btn-ghost text-ink"><span>Accessories</span></Link>
         </div>
       </div>
     );
@@ -161,7 +161,7 @@ export function CheckoutForm({ shipping, pointsPerRupees, defaults }: Props) {
                   className={cn("flex items-start gap-3 rounded-xl border p-4 text-left transition", method === m ? "border-blue bg-blue/5 ring-1 ring-blue" : "border-ink/15 hover:border-ink/40")}
                 >
                   <span className={cn("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border", method === m ? "border-blue bg-blue" : "border-ink/30")}>
-                    {method === m && <span className="h-2 w-2 rounded-full bg-white" />}
+                    {method === m && <span className="h-2 w-2 rounded-full bg-card" />}
                   </span>
                   <span>
                     <span className="block font-semibold">{PAYMENT_METHODS[m].label}</span>

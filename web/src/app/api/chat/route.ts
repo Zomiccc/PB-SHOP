@@ -43,6 +43,9 @@ async function answer(raw: string): Promise<Reply> {
   if (/passport|loyal|point|reward|care card/.test(m)) {
     return { reply: "The PB Phone Passport earns points on purchases and repairs. Eligible phones also come with a PB Care Card of up to 5 free service visits.", links: [{ label: "PB Phone Passport", href: "/loyalty" }] };
   }
+  if (/tablet|ipad|galaxy tab|\bpad\b/.test(m)) {
+    return { reply: "We stock new and lab-checked used tablets — iPad, Galaxy Tab, Xiaomi Pad and more.", links: [{ label: "Tablets", href: "/tablets" }] };
+  }
   if (/access|case|charger|cable|protector|power ?bank|earbud|airpod/.test(m)) {
     return { reply: "We stock cases, chargers, cables, screen protectors, power banks and earbuds.", links: [{ label: "Accessories", href: "/accessories" }] };
   }

@@ -60,7 +60,7 @@ export function Header() {
       <header
         className={cn(
           "sticky top-0 z-50 transition-[background-color,box-shadow,backdrop-filter] duration-500",
-          dark ? "bg-transparent" : "bg-cream/85 shadow-[0_1px_0_rgb(7_26_43/0.08)] backdrop-blur-xl",
+          dark ? "bg-transparent" : "bg-cream/85 shadow-[0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-xl",
         )}
       >
         <div className="container-pb flex h-[var(--header-h)] items-center justify-between gap-6">
@@ -143,7 +143,7 @@ export function Header() {
                   </motion.div>
                 ))}
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <Link href="/account" className="btn btn-ghost text-navy-950"><span>Account</span></Link>
+                  <Link href="/account" className="btn btn-ghost text-ink"><span>Account</span></Link>
                   <Link href="/loyalty" className="btn btn-gold">Passport</Link>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { gsap } from "gsap";
 import { useReducedMotion } from "motion/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -49,30 +49,21 @@ export function HeroStory() {
   );
 }
 
-// Caption windows match what the phone is visibly doing (the layers are apart roughly 0.53–0.8).
-const PHASES = [
-  { until: 0.24, text: "Your phone. Sorted." },
-  { until: 0.53, text: "New & used · lab-checked" },
-  { until: 0.8, text: "Screen · board · battery · back glass" },
-  { until: 1.01, text: "Everything your phone needs" },
-];
-const LOOP_SECONDS = 14;
+/** Phones: gentle float and slow turn (front → back → front); subtle motion per the master brief. */
+const TURN_SECONDS = 16;
 
 function MobileHero({ active }: { active: boolean }) {
   const progress = useRef(0);
   const reduced = useReducedMotion() ?? false;
-  const [phase, setPhase] = useState(0);
 
-  // Self-playing loop: float → turn → explode into layers → reassemble (p=1 looks identical to p=0).
   useEffect(() => {
     if (!active || reduced) return;
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
-      const p = (((now - start) / 1000) % LOOP_SECONDS) / LOOP_SECONDS;
-      progress.current = p;
-      const i = PHASES.findIndex((ph) => p < ph.until);
-      setPhase((prev) => (prev === i ? prev : i));
+      // Ping-pong between the front view (0) and the back view (0.42) of the story timeline.
+      const t = ((now - start) / 1000 / TURN_SECONDS) * Math.PI * 2;
+      progress.current = 0.21 - Math.cos(t) * 0.21;
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -80,44 +71,34 @@ function MobileHero({ active }: { active: boolean }) {
   }, [active, reduced]);
 
   return (
-    <section aria-label="PB Mobiles — phones and repairs" className="relative -mt-[var(--header-h)] overflow-hidden bg-navy-950 pt-[var(--header-h)] text-white md:hidden">
-      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#0f3a63_0%,#071a2b_55%,#040f1a_100%)]" />
-      <div className="relative h-[min(50svh,420px)] min-h-[290px]">
-        {active && <HeroCanvas progress={progress} box />}
-        <p className="absolute inset-x-0 bottom-2 flex justify-center" aria-hidden>
-          <span className="rounded-full border border-white/15 bg-navy-950/70 px-3 py-1 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-gold backdrop-blur">
-            {PHASES[phase].text}
-          </span>
-        </p>
-      </div>
-      <div className="container-pb relative pb-12 pt-4">
-        <p className="eyebrow text-gold">Your phone. Sorted.</p>
-        <h1 className="display mt-3 text-[2.55rem] leading-[0.98]">
-          Love your phone. <span className="text-red">We&apos;ll handle the rest</span>
-          <span className="text-gold">.</span>
-        </h1>
-        <p className="mt-4 text-[0.95rem] leading-relaxed text-white/70">
-          New and lab-checked used phones, expert repairs and the little extras — all at PB Mobiles &amp; Repairing Lab.
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-2.5">
-          {[
-            { href: "/new-phones", label: "New phones", icon: "phone" },
-            { href: "/used-phones", label: "Used phones", icon: "shield" },
-            { href: "/repair", label: "Book a repair", icon: "wrench" },
-            { href: "/accessories", label: "Accessories", icon: "bolt" },
-          ].map((c, i) => (
-            <Link
-              key={c.href}
-              href={c.href}
-              className={`flex items-center justify-between gap-2 rounded-2xl p-4 text-sm font-semibold ${i === 0 ? "bg-red" : i === 2 ? "bg-gold text-navy-950" : "border border-white/15 bg-white/[0.04]"}`}
-            >
-              <span className="flex items-center gap-2">
-                <Icon name={c.icon} className="h-4 w-4" />
-                {c.label}
-              </span>
-              <Icon name="arrow-up-right" className="h-4 w-4 shrink-0" />
-            </Link>
-          ))}
+    <section aria-label="PB Mobiles — phones and repairs" className="relative -mt-[var(--header-h)] overflow-hidden bg-black pt-[var(--header-h)] text-white md:hidden">
+      {/* Blue / red light trails behind the phone, echoing the PB logo */}
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_45%_at_85%_40%,rgba(0,119,217,0.55),transparent_70%),radial-gradient(55%_40%_at_95%_75%,rgba(215,25,32,0.5),transparent_70%),radial-gradient(40%_30%_at_10%_10%,rgba(217,166,46,0.08),transparent_70%)]" />
+      <div aria-hidden className="absolute -right-10 top-24 h-[2px] w-[80%] rotate-[-28deg] bg-gradient-to-r from-transparent via-blue to-transparent opacity-70 blur-[1px]" />
+      <div aria-hidden className="absolute -right-6 top-56 h-[2px] w-[70%] rotate-[-18deg] bg-gradient-to-r from-transparent via-red to-transparent opacity-70 blur-[1px]" />
+      <div className="relative min-h-[440px]">
+        <div className="absolute -right-[8%] top-0 h-full w-[62%]">{active && <HeroCanvas progress={progress} box />}</div>
+        <div className="container-pb relative z-10 pb-10 pt-8">
+          <div className="max-w-[58%]">
+            <h1 className="display text-[2.5rem] leading-[0.98]">
+              Phones.
+              <br />
+              Repairs.
+              <br />
+              Sorted<span className="text-gold">.</span>
+            </h1>
+            <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">Quality devices and expert repairs, all in one place.</p>
+            <div className="mt-6 grid gap-2.5">
+              <Link href="/repair" className="btn btn-gold !justify-between !px-4">
+                <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> Book a repair</span>
+                <Icon name="arrow-right" className="h-4 w-4" />
+              </Link>
+              <Link href="/new-phones" className="btn !justify-between border border-gold/70 !px-4 text-white hover:bg-gold/10">
+                <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> Shop phones</span>
+                <Icon name="arrow-right" className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -189,24 +170,23 @@ function DesktopHero({ active }: { active: boolean }) {
         {/* Chapter 1 — hero */}
         <div data-ch="1" className="container-pb pointer-events-none absolute inset-0 flex items-end pb-24 pt-[var(--header-h)] md:items-center md:pb-0">
           <div className="pointer-events-auto max-w-xl">
-            <p className="eyebrow text-gold">Your phone. Sorted.</p>
-            <h1 className="display mt-4 text-[min(2.6rem,6svh)] sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.2rem,11.5svh)]">
-              Love your phone.
+            <p className="eyebrow text-gold">PB Mobiles &amp; Repairing Lab</p>
+            <h1 className="display mt-4 text-[min(2.6rem,6svh)] sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.4rem,12svh)]">
+              Phones.
               <br />
-              <span className="text-red">We&apos;ll handle</span>
+              Repairs.
               <br />
-              <span className="text-red">the rest</span>
-              <span className="text-gold">.</span>
+              Sorted<span className="text-gold">.</span>
             </h1>
             <p className="mt-6 hidden max-w-md text-base leading-relaxed text-white/70 sm:block md:text-lg">
-              A new phone, a second chance for your current one, or the little extras that make it yours. Find it all at PB Mobiles &amp; Repairing Lab.
+              Quality devices and expert repairs, all in one place — new and lab-checked used phones, tablets, accessories and a repair lab you can trust.
             </p>
             <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
-              <Link href="/new-phones" className="btn btn-red">
-                Shop new phones <Icon name="arrow-right" className="h-4 w-4" />
+              <Link href="/repair" className="btn btn-gold">
+                <Icon name="wrench" className="h-4 w-4" /> Book a repair <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
-              <Link href="/repair" className="btn btn-ghost-light">
-                Book a repair <Icon name="arrow-up-right" className="h-4 w-4" />
+              <Link href="/new-phones" className="btn border border-gold/70 text-white hover:bg-gold/10">
+                <Icon name="bag" className="h-4 w-4" /> Shop phones <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
             </div>
             <div className="mt-8 hidden items-center gap-3 text-sm text-white/60 sm:flex">

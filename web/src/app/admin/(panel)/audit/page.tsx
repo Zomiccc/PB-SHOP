@@ -50,7 +50,7 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
   return (
     <>
       <PageTitle title="Audit log" sub="Who did what, when — with before and after values. Owner only.">
-        <Link href="/api/admin/export?type=audit" className="btn btn-ghost !py-2 !text-sm text-navy-950"><span>Export CSV</span></Link>
+        <Link href="/api/admin/export?type=audit" className="btn btn-ghost !py-2 !text-sm text-ink"><span>Export CSV</span></Link>
       </PageTitle>
       <div className="mb-4 flex flex-wrap gap-2">
         {Object.entries(GROUPS).map(([k, v]) => <FilterLink key={k} href={qs({ group: k })} active={group === k}>{v.label}</FilterLink>)}
@@ -109,7 +109,7 @@ function Diff({ before, after }: { before: string | null; after: string | null }
     <ul className="space-y-0.5">
       {keys.slice(0, 8).map((k) => (
         <li key={k}>
-          <b>{k}</b>: {k in b && <span className="text-red line-through">{fmt(b[k])}</span>} {k in b && k in a && "→"} {k in a && <span className="text-emerald-700">{fmt(a[k])}</span>}
+          <b>{k}</b>: {k in b && <span className="text-red line-through">{fmt(b[k])}</span>} {k in b && k in a && "→"} {k in a && <span className="text-emerald-400">{fmt(a[k])}</span>}
         </li>
       ))}
     </ul>

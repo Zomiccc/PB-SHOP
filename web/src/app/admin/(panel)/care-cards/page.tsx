@@ -35,7 +35,7 @@ export default async function CareCardsPage(props: PageProps<"/admin/care-cards"
         </form>
       </Panel>
 
-      {q && cards.length === 0 && <p className="mb-6 rounded-xl bg-white p-6 text-center text-muted shadow-[var(--shadow-card)]">No Care Card found for “{q}”.</p>}
+      {q && cards.length === 0 && <p className="mb-6 rounded-xl bg-card p-6 text-center text-muted shadow-[var(--shadow-card)]">No Care Card found for “{q}”.</p>}
 
       <div className="grid gap-6 xl:grid-cols-2">
         {cards.map((card) => {

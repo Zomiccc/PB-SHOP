@@ -31,6 +31,9 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
   return (
     <>
       <PageTitle title={`Repair ${r.ref}`} sub={`${r.brand} ${r.model} · ${REPAIR_CATEGORIES[r.category as keyof typeof REPAIR_CATEGORIES] ?? r.category}`}>
+        <Link href={`/admin/repairs/${r.id}/print`} target="_blank" className="btn btn-gold !py-2.5 !text-sm">
+          Print repair information
+        </Link>
         <Link href="/admin/repairs" className="text-sm text-blue">← Repair board</Link>
       </PageTitle>
 
@@ -38,7 +41,7 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
       <Panel className="mb-6">
         <ol className="flex flex-wrap gap-2">
           {REPAIR_STATUSES.map((s, i) => (
-            <li key={s.key} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${i < idx ? "bg-emerald-600/10 text-emerald-700" : i === idx ? "bg-navy-950 text-white" : "bg-cream text-muted"}`}>
+            <li key={s.key} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${i < idx ? "bg-emerald-600/10 text-emerald-400" : i === idx ? "bg-navy-950 text-white" : "bg-cream text-muted"}`}>
               {i + 1}. {s.label}
             </li>
           ))}
@@ -114,6 +117,7 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
           <Panel title="Customer">
             <p className="font-semibold">{r.name}</p>
             <p className="text-sm">{r.phone}{r.email ? ` · ${r.email}` : ""}</p>
+            {r.imei && <p className="mt-1 font-mono text-xs text-muted">IMEI/serial: {r.imei}</p>}
             <p className="mt-2 text-xs text-muted">{DROP_OFF[r.dropOff as keyof typeof DROP_OFF]}{r.preferredAt ? ` · preferred ${dt(r.preferredAt)}` : ""}</p>
             {r.customer && <Link href={`/admin/customers/${r.customer.id}`} className="mt-3 inline-block text-sm text-blue">Passport {r.customer.passportNo} · {r.customer.loyaltyPoints} pts →</Link>}
           </Panel>
@@ -125,6 +129,7 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
                 <Field label="Quote (PKR)"><input name="quote" type="number" defaultValue={r.quote ?? ""} className="field" /></Field>
                 <Field label="Final price"><input name="finalPrice" type="number" defaultValue={r.finalPrice ?? ""} className="field" /></Field>
               </div>
+              <Field label="IMEI / serial"><input name="imei" defaultValue={r.imei ?? ""} className="field" /></Field>
               <Field label="Assigned technician">
                 <select name="assignedToId" defaultValue={r.assignedToId ?? ""} className="field">
                   <option value="">Unassigned</option>

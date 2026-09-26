@@ -24,15 +24,17 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
     item.type === "ACCESSORY"
       ? ACCESSORY_TYPES[(item.accessoryType ?? "OTHER") as AccessoryType]
       : item.condition === "USED"
-        ? `Used${item.grades.length ? ` · Grade ${item.grades.join("/")}` : ""}`
-        : "New";
+        ? `${item.type === "TABLET" ? "Used tablet" : "Used"} · Grade ${item.grade ?? "—"}`
+        : item.type === "TABLET"
+          ? "New tablet"
+          : "New";
 
   return (
     <motion.div style={{ perspective: 900 }} className="h-full">
       <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }} className="h-full">
         <Link
           ref={ref}
-          href={`/product/${item.slug}`}
+          href={item.href}
           onPointerMove={(e) => {
             if (e.pointerType !== "mouse" || !ref.current) return;
             const r = ref.current.getBoundingClientRect();
@@ -45,7 +47,7 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
           }}
           className={cn(
             "group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] transition-shadow duration-500",
-            dark ? "bg-navy-900/70 ring-1 ring-white/10 hover:ring-gold/40" : "bg-white shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-lift)]",
+            dark ? "bg-navy-900/70 ring-1 ring-white/10 hover:ring-gold/40" : "bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-lift)]",
           )}
         >
           <div className={cn("relative aspect-[5/5.2] overflow-hidden", dark ? "bg-gradient-to-b from-navy-800 to-navy-950" : "bg-gradient-to-b from-cream to-cream-200")}>
@@ -58,12 +60,12 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
               <ProductArt kind={item.type} accessoryType={item.accessoryType} colorHex={item.finishHex} brand={item.brand} name={item.name} />
             </motion.div>
             <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-              <span className={cn("rounded-full px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em]", dark ? "bg-white/10 text-white/80" : "bg-white/90 text-ink/70")}>
+              <span className={cn("rounded-full px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em]", dark ? "bg-white/10 text-white/80" : "bg-black/60 text-white/85 backdrop-blur")}>
                 {tag}
               </span>
               {item.onSale && <span className="rounded-full bg-red px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-white">Offer</span>}
             </div>
-            {item.type === "PHONE" && (
+            {(item.type === "PHONE" || item.type === "TABLET") && (
               <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-navy-950/80 text-gold opacity-0 transition-opacity group-hover:opacity-100" title="3D view available">
                 <Icon name="rotate" className="h-4 w-4" />
               </span>
@@ -73,9 +75,9 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
           <div className="flex flex-1 flex-col gap-1 p-5">
             <p className={cn("font-mono text-[0.62rem] uppercase tracking-[0.2em]", dark ? "text-gold" : "text-blue")}>{item.brand}</p>
             <h3 className={cn("text-[1.05rem] font-semibold leading-snug", dark ? "text-white" : "text-ink")}>{item.name}</h3>
-            {(item.storages.length > 0 || item.bestBattery) && (
+            {(item.storages.length > 0 || item.rams.length > 0 || item.bestBattery) && (
               <p className={cn("text-xs", dark ? "text-white/50" : "text-muted")}>
-                {item.storages.join(" · ")}
+                {[...item.storages, ...item.rams.map((r) => `${r} RAM`)].join(" · ")}
                 {item.bestBattery ? ` · Battery ${item.bestBattery}%` : ""}
               </p>
             )}
@@ -88,13 +90,13 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
             )}
             <div className="mt-auto flex items-end justify-between pt-4">
               <div>
-                <p className={cn("text-[0.7rem]", dark ? "text-white/40" : "text-muted")}>{item.storages.length > 1 || item.grades.length > 1 ? "From" : "Price"}</p>
-                <p className={cn("text-lg font-bold", dark ? "text-white" : "text-navy-950")}>{pkr(item.fromPrice)}</p>
+                <p className={cn("text-[0.7rem]", dark ? "text-white/40" : "text-muted")}>{item.storages.length > 1 || item.colors.length > 1 ? "From" : "Price"}</p>
+                <p className={cn("text-lg font-bold", dark ? "text-white" : "text-ink")}>{pkr(item.fromPrice)}</p>
               </div>
               <span
                 className={cn(
                   "rounded-full px-2.5 py-1 text-[0.68rem] font-semibold",
-                  out ? "bg-ink/10 text-muted" : low ? "bg-gold/20 text-[#8a6410]" : "bg-emerald-500/10 text-emerald-700",
+                  out ? "bg-ink/10 text-muted" : low ? "bg-gold/20 text-gold-soft" : "bg-emerald-500/10 text-emerald-400",
                   dark && !out && !low && "text-emerald-300",
                 )}
               >

@@ -42,7 +42,7 @@ export async function createPosSale(input: PosSaleInput, staff: { id: string; ro
     const v = variants.find((x) => x.id === i.variantId);
     if (!v) throw new PosError("Item not found");
     const label = [v.storage, v.color, v.grade ? `Grade ${v.grade}` : null].filter(Boolean).join(" · ");
-    return { variantId: v.id, name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}${label ? ` — ${label}` : ""}`, sku: v.sku, unitPrice: v.salePrice ?? v.price, qty: i.qty };
+    return { variantId: v.id, name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}${label ? ` — ${label}` : ""}`, sku: v.sku, grade: v.grade, unitPrice: v.salePrice ?? v.price, qty: i.qty };
   });
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const discount = Math.max(0, Math.min(input.discount ?? 0, subtotal));

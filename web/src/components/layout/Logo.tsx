@@ -1,31 +1,24 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/format";
 
 /**
- * Typographic lockup derived from the supplied PB logo (blue P, red B, gold MOBILES).
- * Swap for the client's vector logo file once supplied — see REQUIREMENTS.md.
+ * PB Mobiles logo (cut out of the client-supplied artwork; transparent background for the dark theme).
+ * `variant="stacked"` shows the full stacked logo (footer / hero); default is the horizontal header lockup.
+ * Replace /public/brand/pb-logo*.png with the client's vector logo when supplied.
  */
-export function Logo({ dark = false, className }: { dark?: boolean; className?: string }) {
+export function Logo({ className, variant = "horizontal" }: { dark?: boolean; className?: string; variant?: "horizontal" | "stacked" }) {
+  const stacked = variant === "stacked";
   return (
-    <Link href="/" aria-label="PB Mobiles & Repairing Lab — home" className={cn("group flex items-center gap-2.5", className)}>
-      <span
-        aria-hidden
-        className="relative grid h-10 w-10 place-items-center rounded-[10px] bg-navy-950 ring-1 ring-gold/60 transition-transform duration-500 group-hover:rotate-[-6deg]"
-      >
-        <span className="display text-[1.15rem] italic leading-none tracking-[-0.08em]">
-          <span className="text-blue">P</span>
-          <span className="text-red">B</span>
-        </span>
-        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-gold" />
-      </span>
-      <span className="flex flex-col whitespace-nowrap leading-none">
-        <span className={cn("display text-[1.05rem] tracking-[-0.03em]", dark ? "text-white" : "text-navy-950")}>
-          PB <span className={dark ? "text-gold" : "text-navy-950"}>MOBILES</span>
-        </span>
-        <span className={cn("mt-1 font-mono text-[0.55rem] uppercase tracking-[0.28em]", dark ? "text-white/55" : "text-muted")}>
-          &amp; Repairing Lab
-        </span>
-      </span>
+    <Link href="/" aria-label="PB Mobiles & Repairing Lab — home" className={cn("inline-flex shrink-0 items-center", className)}>
+      <Image
+        src={stacked ? "/brand/pb-logo.webp" : "/brand/pb-logo-horizontal.webp"}
+        alt="PB Mobiles & Repairing Lab"
+        width={stacked ? 720 : 1007}
+        height={stacked ? 469 : 200}
+        priority={!stacked}
+        className={stacked ? "h-auto w-44" : "h-9 w-auto sm:h-10"}
+      />
     </Link>
   );
 }

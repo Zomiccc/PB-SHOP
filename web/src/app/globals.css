@@ -2,28 +2,31 @@
 
 /* PB Mobiles brand palette (brief §1) */
 @theme {
-  --color-navy-950: #071a2b;
-  --color-navy-900: #0a2c4e;
-  --color-navy-800: #0f3a63;
-  --color-navy-700: #1a4b7a;
+  --color-navy-950: #07090d;
+  --color-navy-900: #0d1118;
+  --color-navy-800: #151b26;
+  --color-navy-700: #1f2735;
   --color-blue: #0077d9;
   --color-blue-soft: #3b9bea;
   --color-red: #d71920;
   --color-red-deep: #b0141a;
   --color-gold: #d9a62e;
   --color-gold-soft: #e9c56d;
-  --color-cream: #f5f2e9;
-  --color-cream-200: #ebe6d8;
-  --color-ink: #0b1622;
-  --color-muted: #5b6776;
+  /* Theme override (master brief): dark, logo-based. "cream"/"cream-200" are now the dark page surfaces. */
+  --color-cream: #0a0c10;
+  --color-cream-200: #161a22;
+  --color-card: #11151c;
+  --color-card-2: #181d27;
+  --color-ink: #eef0f3;
+  --color-muted: #9aa4b1;
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-inter-tight);
   --font-mono: var(--font-mono-face);
 
   --radius-card: 1.5rem;
-  --shadow-card: 0 1px 2px rgb(7 26 43 / 0.06), 0 12px 32px -12px rgb(7 26 43 / 0.18);
-  --shadow-lift: 0 2px 4px rgb(7 26 43 / 0.08), 0 28px 60px -20px rgb(7 26 43 / 0.35);
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.07), 0 14px 34px -14px rgb(0 0 0 / 0.7);
+  --shadow-lift: 0 0 0 1px rgb(217 166 46 / 0.35), 0 28px 60px -20px rgb(0 0 0 / 0.85);
 
   --animate-marquee: marquee 38s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
@@ -37,7 +40,7 @@
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   --header-h: 72px;
 }
 
@@ -115,11 +118,11 @@ html.lenis, html.lenis body { height: auto; }
     white-space: nowrap;
   }
   .btn:active { transform: scale(0.97); }
-  .btn-primary { background: var(--color-navy-950); color: white; }
-  .btn-primary:hover { background: var(--color-blue); box-shadow: 0 12px 30px -10px rgb(0 119 217 / 0.6); }
+  .btn-primary { background: var(--color-blue); color: white; }
+  .btn-primary:hover { background: var(--color-blue-soft); box-shadow: 0 12px 30px -10px rgb(0 119 217 / 0.6); }
   .btn-red { background: var(--color-red); color: white; }
   .btn-red:hover { background: var(--color-red-deep); box-shadow: 0 12px 30px -10px rgb(215 25 32 / 0.6); }
-  .btn-gold { background: var(--color-gold); color: var(--color-navy-950); }
+  .btn-gold { background: linear-gradient(180deg, #f0cf72 0%, var(--color-gold) 55%, #b98a1c 100%); color: #120d02; }
   .btn-gold:hover { background: var(--color-gold-soft); box-shadow: 0 12px 30px -10px rgb(217 166 46 / 0.6); }
   .btn-ghost { border: 1px solid currentColor; }
   .btn-ghost:hover { background: currentColor; }
@@ -128,7 +131,7 @@ html.lenis, html.lenis body { height: auto; }
   .btn-ghost-light:hover { border-color: white; background: rgb(255 255 255 / 0.08); }
 
   .card {
-    background: white;
+    background: var(--color-card);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
   }
@@ -136,12 +139,15 @@ html.lenis, html.lenis body { height: auto; }
   .field {
     width: 100%;
     border-radius: 0.6rem;
-    border: 1px solid rgb(11 22 34 / 0.14);
-    background: white;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: var(--color-card-2);
+    color: var(--color-ink);
     padding: 0.85rem 1rem;
     font-size: 0.95rem;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
+  .field::placeholder { color: rgb(238 240 243 / 0.38); }
+  .field option { background: var(--color-card-2); color: var(--color-ink); }
   .field:focus { outline: none; border-color: var(--color-blue); box-shadow: 0 0 0 4px rgb(0 119 217 / 0.15); }
   .field[aria-invalid="true"] { border-color: var(--color-red); box-shadow: 0 0 0 4px rgb(215 25 32 / 0.1); }
   .field-dark {
@@ -189,9 +195,9 @@ html.lenis, html.lenis body { height: auto; }
     background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
   }
 
-  .prose-pb h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; margin: 2.5rem 0 0.75rem; color: var(--color-navy-950); }
-  .prose-pb h3 { font-weight: 700; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--color-navy-900); }
-  .prose-pb p, .prose-pb li { color: #334152; line-height: 1.75; }
+  .prose-pb h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; margin: 2.5rem 0 0.75rem; color: var(--color-ink); }
+  .prose-pb h3 { font-weight: 700; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--color-gold-soft); }
+  .prose-pb p, .prose-pb li { color: #c4cad3; line-height: 1.75; }
   .prose-pb ul { list-style: disc; padding-left: 1.25rem; margin: 0.5rem 0 1rem; }
   .prose-pb li { margin: 0.3rem 0; }
 }

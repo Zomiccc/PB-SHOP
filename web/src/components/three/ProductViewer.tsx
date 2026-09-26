@@ -10,13 +10,15 @@ import { designFor } from "@/lib/phone-designs";
 import { TexturedPhone, type SixTextures } from "./TexturedPhone";
 import { Icon } from "../ui/Icon";
 import { cn } from "@/lib/format";
+import { PRODUCT_LIGHTING as L } from "@/lib/product-lighting";
 
 /**
  * Customer 3D viewer (§4): drag/swipe to rotate, pinch/scroll to zoom, fullscreen.
  * Priority: approved GLB (uploaded or AI-generated) → 6-photo textured model (§14) → licensed Sketchfab embed → procedural model.
+ * Lighting follows the strict colour-protection rule (src/lib/product-lighting.ts): white light only, no tone mapping.
  */
-export default function ProductViewer({ color, modelUrl, textures, sketchfabUid, name, brand }: { color: string; modelUrl?: string | null; textures?: Record<string, string> | null; sketchfabUid?: string | null; name: string; brand?: string }) {
-  const design = designFor(brand, name);
+export default function ProductViewer({ color, modelUrl, textures, sketchfabUid, name, brand, type }: { color: string; modelUrl?: string | null; textures?: Record<string, string> | null; sketchfabUid?: string | null; name: string; brand?: string; type?: string }) {
+  const design = designFor(brand, name, type);
   const wrap = useRef<HTMLDivElement>(null);
   const controls = useRef<OrbitControlsImpl>(null);
   const [inside, setInside] = useState(0);
@@ -58,11 +60,11 @@ export default function ProductViewer({ color, modelUrl, textures, sketchfabUid,
       )}
       onPointerDown={() => setInteracted(true)}
     >
-      <Canvas dpr={[1, 2]} camera={{ position: [0, 0, 4.2], fov: 32 }} gl={{ antialias: true }} className="touch-none">
-        <ambientLight intensity={0.35} />
-        <spotLight position={[3, 5, 4]} angle={0.45} penumbra={1} intensity={50} />
-        <pointLight position={[-3, 0, 2]} intensity={10} color="#0077d9" />
-        <pointLight position={[3, -1, 2]} intensity={8} color="#d71920" />
+      {/* flat = no tone mapping / auto-exposure; fixed exposure so colours never drift (§6). */}
+      <Canvas flat dpr={[1, 2]} camera={{ position: [0, 0, design.w > 1 ? 4.8 : 4.2], fov: 32 }} gl={{ antialias: true, toneMappingExposure: L.exposure }} className="touch-none">
+        <ambientLight color={L.ambient.color} intensity={L.ambient.intensity} />
+        <directionalLight color={L.key.color} intensity={L.key.intensity} position={L.key.position} />
+        <directionalLight color={L.fill.color} intensity={L.fill.intensity} position={L.fill.position} />
         <Suspense fallback={null}>
           {modelUrl ? (
             <Bounds fit clip observe margin={1.3}>
@@ -72,19 +74,20 @@ export default function ProductViewer({ color, modelUrl, textures, sketchfabUid,
             </Bounds>
           ) : textures ? (
             <Idle paused={interacted}>
-              <TexturedPhone textures={textures as SixTextures} />
+              <TexturedPhone textures={textures as SixTextures} height={design.h} />
             </Idle>
           ) : (
             <Idle paused={interacted}>
-              <PhoneModel color={color} design={design} title={name} explode={inside} />
+              <PhoneModel color={color} design={design} title={name} explode={inside} accurate />
             </Idle>
           )}
         </Suspense>
         <ContactShadows position={[0, -1.1, 0]} opacity={0.5} scale={6} blur={2.4} far={2.5} />
+        {/* Neutral (white-only) reflections — no brand-coloured light ever reaches the product. */}
         <Environment resolution={256}>
-          <Lightformer form="rect" intensity={3} position={[0, 3, 2]} scale={[6, 1, 1]} rotation-x={Math.PI / 2} />
-          <Lightformer form="rect" intensity={2} color="#5ab0ff" position={[-4, 0, 1]} scale={[1, 5, 1]} rotation-y={Math.PI / 2} />
-          <Lightformer form="rect" intensity={1.6} color="#ff5c63" position={[4, 0, 1]} scale={[1, 5, 1]} rotation-y={-Math.PI / 2} />
+          {L.reflections.map((r, i) => (
+            <Lightformer key={i} form="rect" color={r.color} intensity={r.intensity} position={r.position} scale={r.scale} rotation-x={r.rotationX ?? 0} rotation-y={r.rotationY ?? 0} />
+          ))}
         </Environment>
         <OrbitControls ref={controls} enablePan={false} minDistance={2.2} maxDistance={7} enableDamping dampingFactor={0.08} makeDefault />
       </Canvas>

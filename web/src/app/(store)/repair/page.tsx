@@ -62,7 +62,7 @@ export default async function RepairPage(props: PageProps<"/repair">) {
           <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
             {REPAIR_STATUSES.map((s, i) => (
               <Reveal key={s.key} delay={i * 0.05}>
-                <li className="relative h-full rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]">
+                <li className="relative h-full rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
                   <span className="font-mono text-xs text-red">{String(i + 1).padStart(2, "0")}</span>
                   <p className="mt-3 font-semibold leading-tight">{s.label}</p>
                 </li>

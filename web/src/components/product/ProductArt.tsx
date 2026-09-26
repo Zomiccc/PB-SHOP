@@ -22,12 +22,12 @@ export function ProductArt({
 }) {
   const id = useId().replace(/:/g, "");
   const c = colorHex ?? "#3b4b5c";
-  if (kind === "PHONE") return <PhoneArt id={id} color={c} compact={compact} brand={brand} name={name} />;
+  if (kind === "PHONE" || kind === "TABLET") return <PhoneArt id={id} color={c} compact={compact} brand={brand} name={name} type={kind} />;
   return <AccessoryArt id={id} type={accessoryType ?? "OTHER"} color={c} />;
 }
 
-function PhoneArt({ id, color, compact, brand, name }: { id: string; color: string; compact: boolean; brand?: string; name?: string }) {
-  const d = designFor(brand, name);
+function PhoneArt({ id, color, compact, brand, name, type }: { id: string; color: string; compact: boolean; brand?: string; name?: string; type?: string }) {
+  const d = designFor(brand, name, type);
   // Model units → SVG: device drawn 92 wide, height from the real aspect ratio.
   const W = 92;
   const H = Math.min(190, (W * d.h) / d.w);

@@ -83,7 +83,7 @@ export default async function LoyaltyPage() {
           <div>
             <p className="eyebrow text-red">Rewards</p>
             <h2 className="display mt-4 text-4xl md:text-5xl">What points get you.</h2>
-            <ul className="mt-8 divide-y divide-ink/10 overflow-hidden rounded-2xl bg-white shadow-[var(--shadow-card)]">
+            <ul className="mt-8 divide-y divide-ink/10 overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]">
               {rewards.map((r) => (
                 <li key={r.id} className="flex items-center justify-between px-5 py-4">
                   <span className="font-medium">{r.name}</span>

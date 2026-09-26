@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import type { ProductDTO } from "@/lib/catalog";
+import { isDevice, type ProductDTO } from "@/lib/catalog";
 import { ACCESSORY_TYPES, USED_GRADES, type AccessoryType } from "@/lib/constants";
 import { cn, pkr } from "@/lib/format";
 import { useCart } from "@/store/cart";
@@ -19,11 +19,15 @@ const ProductViewer = dynamic(() => import("../three/ProductViewer"), {
   loading: () => <div className="aspect-square animate-pulse rounded-[var(--radius-card)] bg-navy-900" />,
 });
 
-export function ProductDetail({ product, pointsPerRupees, financing }: { product: ProductDTO; pointsPerRupees: number; financing: FinancingConfig }) {
+export function ProductDetail({ product, pointsPerRupees, financing, initialVariantId }: { product: ProductDTO; pointsPerRupees: number; financing: FinancingConfig; initialVariantId?: string }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
-  const isPhone = product.type === "PHONE";
-  const [variantId, setVariantId] = useState(() => (product.variants.find((v) => v.stockQty > 0) ?? product.variants[0])?.id);
+  // Phones and tablets share device features (3D viewer, installments, grades).
+  const isPhone = isDevice(product.type);
+  const used = product.condition === "USED";
+  const [variantId, setVariantId] = useState(
+    () => (product.variants.find((v) => v.id === initialVariantId) ?? product.variants.find((v) => v.stockQty > 0) ?? product.variants[0])?.id,
+  );
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
   const [qty, setQty] = useState(1);
   const [view, setView] = useState<"3d" | "photos">(isPhone ? "3d" : "photos");
@@ -48,7 +52,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
   const out = variant.stockQty <= 0;
   const low = !out && variant.stockQty <= Math.max(variant.lowStockThreshold, 2);
   const points = Math.floor((price * qty) / pointsPerRupees);
-  const label = [variant.storage, variant.color, variant.grade ? `Grade ${variant.grade}` : null].filter(Boolean).join(" · ") || "Standard";
+  const label = [variant.storage, variant.ram ? `${variant.ram} RAM` : null, variant.color, variant.grade ? `Grade ${variant.grade}` : null].filter(Boolean).join(" · ") || "Standard";
 
   const toCart = (buyNow = false) => {
     add({
@@ -78,7 +82,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
       {/* Gallery / 3D */}
       <div className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
         {isPhone && (
-          <div className="mb-4 inline-flex rounded-full bg-white p-1 shadow-[var(--shadow-card)]" role="tablist">
+          <div className="mb-4 inline-flex rounded-full bg-card p-1 shadow-[var(--shadow-card)]" role="tablist">
             {(["3d", "photos"] as const).map((v) => (
               <button
                 key={v}
@@ -93,10 +97,10 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
           </div>
         )}
         {view === "3d" && isPhone ? (
-          <ProductViewer color={variant.colorHex ?? product.finishHex ?? "#1c3552"} modelUrl={product.model3dUrl} textures={product.model3dTextures} sketchfabUid={product.sketchfabUid} name={product.name} brand={product.brand} />
+          <ProductViewer color={variant.colorHex ?? product.finishHex ?? "#1c3552"} modelUrl={product.model3dUrl} textures={product.model3dTextures} sketchfabUid={product.sketchfabUid} name={product.name} brand={product.brand} type={product.type} />
         ) : (
           <div className="grid gap-3">
-            <div className="relative aspect-square overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-white to-cream-200">
+            <div className="relative aspect-square overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-card to-cream-200">
               {product.images[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={product.images[0]} alt={product.name} className="h-full w-full object-contain p-8" />
@@ -110,7 +114,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
               <div className="grid grid-cols-4 gap-3">
                 {product.images.slice(1, 5).map((src) => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={src} src={src} alt="" className="aspect-square rounded-xl bg-white object-contain p-2" />
+                  <img key={src} src={src} alt="" className="aspect-square rounded-xl bg-card object-contain p-2" />
                 ))}
               </div>
             )}
@@ -122,28 +126,61 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
       <div>
         <nav aria-label="Breadcrumb" className="mb-4 font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted">
           <Link href="/" className="hover:text-ink">Home</Link> /{" "}
-          <Link href={isPhone ? (product.condition === "USED" ? "/used-phones" : "/new-phones") : "/accessories"} className="hover:text-ink">
-            {isPhone ? (product.condition === "USED" ? "Used phones" : "New phones") : "Accessories"}
+          <Link href={product.type === "TABLET" ? "/tablets" : isPhone ? (used ? "/used-phones" : "/new-phones") : "/accessories"} className="hover:text-ink">
+            {product.type === "TABLET" ? "Tablets" : isPhone ? (used ? "Used phones" : "New phones") : "Accessories"}
           </Link>
         </nav>
         <p className="font-mono text-xs uppercase tracking-[0.22em] text-blue">{product.brand}</p>
         <h1 className="display mt-2 text-4xl md:text-6xl">{product.name}</h1>
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", product.condition === "USED" ? "bg-gold/20 text-[#7a570c]" : "bg-blue/10 text-blue")}>
-            {isPhone ? (product.condition === "USED" ? "Used · lab tested" : "Brand new") : ACCESSORY_TYPES[(product.accessoryType ?? "OTHER") as AccessoryType]}
+          <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", product.condition === "USED" ? "bg-gold/20 text-gold-soft" : "bg-blue/10 text-blue")}>
+            {isPhone ? (used ? `Used · Grade ${variant.grade ?? "—"}` : "Brand new") : ACCESSORY_TYPES[(product.accessoryType ?? "OTHER") as AccessoryType]}
           </span>
           {product.careCardEligible && <span className="rounded-full bg-navy-950 px-3 py-1 text-xs font-semibold text-gold">Includes PB Care Card</span>}
         </div>
         <p className="mt-5 text-lg text-muted">{product.description}</p>
 
         <div className="mt-6 flex items-end gap-3">
-          <p className="display text-4xl text-navy-950">{pkr(price)}</p>
+          <p className="display text-4xl text-ink">{pkr(price)}</p>
           {variant.salePrice && <p className="pb-1 text-lg text-muted line-through">{pkr(variant.price)}</p>}
         </div>
         <p className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">SKU {variant.sku}</p>
 
         {/* Variant pickers */}
-        {storages.length > 0 && (
+        {used && product.variants.length > 1 && (
+          <fieldset className="mt-8">
+            <legend className="label">Choose a device — each is individually graded</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {product.variants.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    setVariantId(v.id);
+                    setQty(1);
+                  }}
+                  aria-pressed={variant.id === v.id}
+                  disabled={v.stockQty <= 0}
+                  className={cn(
+                    "rounded-xl border p-3 text-left text-sm transition disabled:opacity-40",
+                    variant.id === v.id ? "border-gold bg-gold/10 ring-1 ring-gold" : "border-ink/15 bg-card hover:border-ink/40",
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <b>Grade {v.grade ?? "—"}</b>
+                    <span className="font-semibold">{pkr(v.salePrice ?? v.price)}</span>
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {[v.storage, v.color, v.batteryHealth != null ? `Battery ${v.batteryHealth}%` : null].filter(Boolean).join(" · ")}
+                    {v.stockQty <= 0 ? " · sold" : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        {!used && storages.length > 0 && (
           <fieldset className="mt-8">
             <legend className="label">Storage</legend>
             <div className="flex flex-wrap gap-2">
@@ -156,7 +193,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
                     aria-pressed={variant.storage === s}
                     className={cn(
                       "rounded-xl border px-4 py-3 text-left text-sm transition",
-                      variant.storage === s ? "border-navy-950 bg-navy-950 text-white" : "border-ink/15 bg-white hover:border-ink/40",
+                      variant.storage === s ? "border-gold bg-gold text-[#120d02]" : "border-ink/15 bg-card hover:border-ink/40",
                     )}
                   >
                     <span className="block font-semibold">{s}</span>
@@ -167,7 +204,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
             </div>
           </fieldset>
         )}
-        {colors.length > 0 && (
+        {!used && colors.length > 0 && (
           <fieldset className="mt-6">
             <legend className="label">Colour — {variant.color}</legend>
             <div className="flex flex-wrap gap-3">
@@ -194,7 +231,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
             <Info label="Warranty" value={variant.warrantyInfo ?? "—"} />
             <Info label="Returns" value={variant.returnInfo ?? "—"} />
             {variant.conditionNotes && (
-              <div className="col-span-2 bg-white p-4">
+              <div className="col-span-2 bg-card p-4">
                 <p className="label !mb-1">Lab notes</p>
                 <p className="text-sm">{variant.conditionNotes}</p>
               </div>
@@ -209,7 +246,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <div className="flex items-center rounded-xl border border-ink/15 bg-white">
+          <div className="flex items-center rounded-xl border border-ink/15 bg-card">
             <button aria-label="Decrease quantity" disabled={qty <= 1} onClick={() => setQty((q) => q - 1)} className="grid h-[52px] w-12 place-items-center disabled:opacity-30">
               <Icon name="minus" className="h-4 w-4" />
             </button>
@@ -243,7 +280,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
           const low = lowestInstallment(price, financing);
           if (!low) return null;
           return (
-            <details className="group mt-6 rounded-2xl bg-white shadow-[var(--shadow-card)] open:shadow-[var(--shadow-lift)]">
+            <details className="group mt-6 rounded-2xl bg-card shadow-[var(--shadow-card)] open:shadow-[var(--shadow-lift)]">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
                 <span>
                   <span className="block text-xs text-muted">Or pay in installments</span>
@@ -268,7 +305,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
         {Object.keys(product.specs).length > 0 && (
           <div className="mt-10">
             <h2 className="display text-2xl">Specifications</h2>
-            <dl className="mt-4 divide-y divide-ink/10 overflow-hidden rounded-2xl bg-white shadow-[var(--shadow-card)]">
+            <dl className="mt-4 divide-y divide-ink/10 overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]">
               {Object.entries(product.specs).map(([k, v]) => (
                 <div key={k} className="grid grid-cols-[140px_1fr] gap-4 px-5 py-3.5 text-sm">
                   <dt className="text-muted">{k}</dt>
@@ -285,7 +322,7 @@ export function ProductDetail({ product, pointsPerRupees, financing }: { product
 
 function Info({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="bg-white p-4">
+    <div className="bg-card p-4">
       <p className="label !mb-1">{label}</p>
       <p className="text-sm font-semibold">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}

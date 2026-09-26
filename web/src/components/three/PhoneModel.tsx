@@ -191,6 +191,11 @@ export type PhoneModelProps = {
   design?: PhoneDesign;
   /** Product name shown on the lock screen. */
   title?: string;
+  /**
+   * Colour-accurate materials for the customer product viewer (master brief §6): matte, non-metallic
+   * body so the product colour is the base colour, not a reflection of the environment.
+   */
+  accurate?: boolean;
   /** 0 = assembled, 1 = fully exploded. Pass a ref for per-frame animation without re-renders. */
   explode?: number;
   explodeRef?: React.RefObject<number>;
@@ -198,7 +203,7 @@ export type PhoneModelProps = {
 } & React.ComponentProps<"group">;
 
 export const PhoneModel = forwardRef<THREE.Group, PhoneModelProps>(function PhoneModel(
-  { color = "#1a2a3c", design = PB_DESIGN, title, explode = 0, explodeRef, screenOn = true, ...props },
+  { color = "#1a2a3c", design = PB_DESIGN, title, accurate = false, explode = 0, explodeRef, screenOn = true, ...props },
   ref,
 ) {
   const { w, h, d, r } = design;
@@ -230,14 +235,18 @@ export const PhoneModel = forwardRef<THREE.Group, PhoneModelProps>(function Phon
     const c = new THREE.Color(color);
     const roughness = design.frame === "polished" ? 0.14 : design.frame === "satin" ? 0.34 : 0.26;
     return {
-      frame: new THREE.MeshStandardMaterial({ color: c.clone().lerp(new THREE.Color("#c9ced6"), 0.35), metalness: 1, roughness }),
-      back: new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.2, roughness: design.frame === "satin" ? 0.45 : 0.25, clearcoat: 1, clearcoatRoughness: design.frame === "satin" ? 0.4 : 0.08 }),
+      frame: accurate
+        ? new THREE.MeshStandardMaterial({ color: c, metalness: 0.25, roughness: 0.45 })
+        : new THREE.MeshStandardMaterial({ color: c.clone().lerp(new THREE.Color("#c9ced6"), 0.35), metalness: 1, roughness }),
+      back: accurate
+        ? new THREE.MeshStandardMaterial({ color: c, metalness: 0, roughness: 0.55 })
+        : new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.2, roughness: design.frame === "satin" ? 0.45 : 0.25, clearcoat: 1, clearcoatRoughness: design.frame === "satin" ? 0.4 : 0.08 }),
       glass: new THREE.MeshPhysicalMaterial({ color: "#05080c", metalness: 0.1, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02 }),
       lensRing: new THREE.MeshStandardMaterial({ color: c.clone().lerp(new THREE.Color("#e6e9ee"), 0.5), metalness: 1, roughness: 0.18 }),
       lens: new THREE.MeshPhysicalMaterial({ color: "#060a12", metalness: 0.4, roughness: 0.02, clearcoat: 1, iridescence: 0.7, iridescenceIOR: 1.6 }),
-      islandBody: new THREE.MeshPhysicalMaterial({ color: c.clone().multiplyScalar(0.92), metalness: 0.25, roughness: 0.35, clearcoat: 0.8 }),
+      islandBody: accurate ? new THREE.MeshStandardMaterial({ color: c, metalness: 0, roughness: 0.5 }) : new THREE.MeshPhysicalMaterial({ color: c.clone().multiplyScalar(0.92), metalness: 0.25, roughness: 0.35, clearcoat: 0.8 }),
       islandDark: new THREE.MeshPhysicalMaterial({ color: "#0d1117", metalness: 0.5, roughness: 0.3, clearcoat: 0.7 }),
-      islandGlass: new THREE.MeshPhysicalMaterial({ color: c.clone().multiplyScalar(0.75), metalness: 0.3, roughness: 0.12, clearcoat: 1 }),
+      islandGlass: accurate ? new THREE.MeshStandardMaterial({ color: c, metalness: 0, roughness: 0.35 }) : new THREE.MeshPhysicalMaterial({ color: c.clone().multiplyScalar(0.75), metalness: 0.3, roughness: 0.12, clearcoat: 1 }),
       board: new THREE.MeshStandardMaterial({ color: "#0b2a3f", metalness: 0.3, roughness: 0.55 }),
       chip: new THREE.MeshStandardMaterial({ color: "#111418", metalness: 0.6, roughness: 0.35 }),
       gold: new THREE.MeshStandardMaterial({ color: "#d9a62e", metalness: 1, roughness: 0.25, emissive: "#d9a62e", emissiveIntensity: 0.15 }),
@@ -246,7 +255,7 @@ export const PhoneModel = forwardRef<THREE.Group, PhoneModelProps>(function Phon
       flash: new THREE.MeshStandardMaterial({ color: "#fff4d6", emissive: "#fff1c9", emissiveIntensity: 0.4 }),
       logo: logoTex ? new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, depthWrite: false }) : null,
     };
-  }, [color, design, logoTex]);
+  }, [color, design, logoTex, accurate]);
 
   const displayMat = useMemo(() => new THREE.MeshBasicMaterial({ map: screenTex ?? undefined, color: screenOn ? "#ffffff" : "#050709", toneMapped: false }), [screenTex, screenOn]);
 

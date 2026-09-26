@@ -10,6 +10,8 @@ export type SixTextures = { front: string; back: string; left: string; right: st
  * Parametric phone body wrapped with the six product photos (§14 "Textured" pipeline).
  * Proportions come from the front photo; the depth from the edge photo. Front/back faces get a
  * rounded-corner alpha mask so photo backgrounds never show at the corners.
+ * Rendered UNLIT (MeshBasicMaterial, no tone mapping) so the photographed product colour is
+ * reproduced exactly — lighting can never shift it (master brief §6).
  */
 export function TexturedPhone({ textures, height = 1.58 }: { textures: SixTextures; height?: number }) {
   const maps = useTexture([textures.right, textures.left, textures.top, textures.bottom, textures.front, textures.back]);
@@ -28,8 +30,8 @@ export function TexturedPhone({ textures, height = 1.58 }: { textures: SixTextur
     const d = THREE.MathUtils.clamp((edge.width / edge.height) * height, 0.05, 0.14);
 
     const alpha = roundedAlpha(aspect);
-    const faceMat = (map: THREE.Texture) => new THREE.MeshPhysicalMaterial({ map, alphaMap: alpha, alphaTest: 0.5, roughness: 0.25, clearcoat: 0.8, clearcoatRoughness: 0.1 });
-    const edgeMat = (map: THREE.Texture) => new THREE.MeshStandardMaterial({ map, roughness: 0.35, metalness: 0.4 });
+    const faceMat = (map: THREE.Texture) => new THREE.MeshBasicMaterial({ map, alphaMap: alpha, alphaTest: 0.5, toneMapped: false });
+    const edgeMat = (map: THREE.Texture) => new THREE.MeshBasicMaterial({ map, toneMapped: false });
     // BoxGeometry face order: +x, -x, +y, -y, +z, -z
     const materials = [edgeMat(right), edgeMat(left), edgeMat(top), edgeMat(bottom), faceMat(front), faceMat(back)];
     const geo = new THREE.BoxGeometry(w * 0.985, height * 0.985, d, 1, 1, 1);

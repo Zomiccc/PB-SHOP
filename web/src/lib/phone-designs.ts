@@ -108,6 +108,31 @@ const D: Record<string, PhoneDesign> = {
     lenses: [{ x: -0.13, y: 0.63, r: 0.058 }, { x: -0.23, y: 0.46, r: 0.058 }, { x: -0.03, y: 0.46, r: 0.058 }],
     flash: [{ x: 0.13, y: 0.6, r: 0.016 }],
   },
+  // Tablets (master brief §9)
+  "ipad": {
+    ...base, key: "ipad", w: 1.12, h: 1.6, d: 0.07, r: 0.09, frame: "satin", front: "punch", logo: "apple",
+    islands: [{ x: -0.46, y: 0.69, w: 0.14, h: 0.14, r: 0.07, tone: "glass" }],
+    lenses: [{ x: -0.46, y: 0.69, r: 0.045 }],
+    flash: [],
+  },
+  "ipad-pro": {
+    ...base, key: "ipad-pro", w: 1.12, h: 1.6, d: 0.065, r: 0.08, frame: "satin", front: "punch", logo: "apple",
+    islands: [{ x: -0.42, y: 0.65, w: 0.22, h: 0.22, r: 0.06, tone: "glass" }],
+    lenses: [{ x: -0.46, y: 0.69, r: 0.045 }, { x: -0.38, y: 0.61, r: 0.04 }],
+    flash: [{ x: -0.38, y: 0.69, r: 0.014 }],
+  },
+  "galaxy-tab": {
+    ...base, key: "galaxy-tab", w: 1.08, h: 1.62, d: 0.07, r: 0.07, frame: "flat", front: "punch", ringed: true, logoText: "SAMSUNG",
+    islands: [],
+    lenses: [{ x: -0.44, y: 0.7, r: 0.045 }, { x: -0.44, y: 0.58, r: 0.04 }],
+    flash: [{ x: -0.34, y: 0.7, r: 0.014 }],
+  },
+  "android-tablet": {
+    ...base, key: "android-tablet", w: 1.1, h: 1.6, d: 0.072, r: 0.08, frame: "satin", front: "punch", logoText: "",
+    islands: [{ x: -0.42, y: 0.66, w: 0.2, h: 0.2, r: 0.1, tone: "dark" }],
+    lenses: [{ x: -0.42, y: 0.66, r: 0.05 }],
+    flash: [{ x: -0.3, y: 0.7, r: 0.014 }],
+  },
   "android-rect": {
     ...base, key: "android-rect", w: 0.76, h: 1.6, d: 0.088, r: 0.1, frame: "satin", front: "punch", logoText: "",
     islands: [{ x: -0.18, y: 0.55, w: 0.34, h: 0.34, r: 0.08, tone: "dark" }],
@@ -116,10 +141,15 @@ const D: Record<string, PhoneDesign> = {
   },
 };
 
-/** Picks the closest real-world layout from brand + model name. */
-export function designFor(brand?: string | null, name?: string | null): PhoneDesign {
+/** Picks the closest real-world layout from brand + model name (and product type for tablets). */
+export function designFor(brand?: string | null, name?: string | null, type?: string | null): PhoneDesign {
   const b = (brand ?? "").toLowerCase();
   const n = (name ?? "").toLowerCase();
+  if (type === "TABLET" || /\bipad\b|galaxy tab|\bpad\b|\btab\b/.test(n)) {
+    if (n.includes("ipad")) return n.includes("pro") ? D["ipad-pro"] : D["ipad"];
+    if (b === "samsung" || n.includes("galaxy")) return D["galaxy-tab"];
+    return { ...D["android-tablet"], logoText: brand ?? "" };
+  }
   if (b === "apple" || n.includes("iphone")) {
     if (n.includes("pro")) return D["iphone-pro"];
     const num = Number(n.match(/iphone\s*(\d+)/)?.[1] ?? 0);

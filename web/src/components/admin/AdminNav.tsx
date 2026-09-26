@@ -8,7 +8,7 @@ import { Icon } from "../ui/Icon";
 
 type Item = { href: string; label: string; icon: string; badge?: number; superOnly?: boolean };
 
-export function AdminNav({ role, name, counts, logout }: { role: string; name: string; counts: { lowStock: number; newRepairs: number; inbox: number; onHold: number }; logout: () => Promise<void> }) {
+export function AdminNav({ role, name, counts, logout }: { role: string; name: string; counts: { lowStock: number; newRepairs: number; inbox: number; onHold: number; reviews: number }; logout: () => Promise<void> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isSuper = role === "SUPER_ADMIN";
@@ -31,6 +31,7 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
         { href: "/admin/inventory", label: "Inventory", icon: "filter", badge: counts.lowStock },
         { href: "/admin/customers", label: "Customers & loyalty", icon: "user" },
         { href: "/admin/inbox", label: "Inbox", icon: "chat", badge: counts.inbox },
+        { href: "/admin/reviews", label: "Reviews", icon: "star", badge: counts.reviews },
         { href: "/admin/reports", label: "Reports", icon: "star" },
       ],
     },

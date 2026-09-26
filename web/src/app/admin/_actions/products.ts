@@ -9,10 +9,12 @@ import { adjustStock } from "@/lib/inventory";
 import { saveUpload } from "@/lib/storage";
 import { slugify, parseJson } from "@/lib/format";
 import type { FormState } from "./auth";
+import { assertVariantGrade } from "@/lib/grade";
 import { bool, diff, int, optStr, run, str } from "./util";
 
 function productData(f: FormData) {
-  const type = str(f, "type") === "ACCESSORY" ? "ACCESSORY" : "PHONE";
+  const t = str(f, "type");
+  const type = t === "ACCESSORY" ? "ACCESSORY" : t === "TABLET" ? "TABLET" : "PHONE";
   const specsText = str(f, "specs");
   const specs: Record<string, string> = {};
   for (const line of specsText.split("\n")) {
@@ -48,8 +50,15 @@ export async function saveProductAction(_: FormState, f: FormData): Promise<Form
   const res = await run(async () => {
     const data = productData(f);
     if (id) {
-      const before = await db.product.findUniqueOrThrow({ where: { id } });
-      const d = diff(before as unknown as Record<string, unknown>, data);
+      const before = await db.product.findUniqueOrThrow({ where: { id }, include: { variants: true } });
+      if (before.condition !== data.condition && before.variants.length) {
+        // Keep every SKU's single grade valid for the new condition (master brief §8).
+        const bad = before.variants.filter((v) => (data.condition === "USED" ? !v.grade : !!v.grade));
+        if (bad.length) throw new Error(`Change blocked: ${bad.map((v) => v.sku).join(", ")} ${data.condition === "USED" ? "need a grade" : "have a grade"} — edit those SKUs first`);
+      }
+      const { variants: _variants, ...beforeProduct } = before;
+      void _variants;
+      const d = diff(beforeProduct as unknown as Record<string, unknown>, data);
       if (!d.changed) return "No changes";
       await db.$transaction(async (tx) => {
         await tx.product.update({ where: { id }, data });
@@ -97,6 +106,9 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
     const salePrice = int(f, "salePrice");
     if (salePrice != null && salePrice >= price) throw new Error("Sale price must be lower than the price");
     const existing = id ? await db.variant.findUnique({ where: { id } }) : null;
+    const product = await db.product.findUniqueOrThrow({ where: { id: productId } });
+    // One grade per SKU, used devices only (master brief §8) — throws on "A/B", missing or invalid grades.
+    const grade = assertVariantGrade(product.condition, optStr(f, "grade"));
     // Zero-stock selling is an owner-only switch; employees' edits keep whatever the owner set.
     const allowBackorder = staff.role === "SUPER_ADMIN" ? bool(f, "allowBackorder") : (existing?.allowBackorder ?? false);
 
@@ -109,7 +121,8 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       price,
       salePrice,
       lowStockThreshold: int(f, "lowStockThreshold") ?? 2,
-      grade: optStr(f, "grade"),
+      ram: optStr(f, "ram"),
+      grade,
       batteryHealth: int(f, "batteryHealth"),
       conditionNotes: optStr(f, "conditionNotes"),
       warrantyInfo: optStr(f, "warrantyInfo"),
@@ -120,7 +133,6 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
     const clash = await db.variant.findFirst({ where: { OR: [{ sku }, { barcode }], NOT: id ? { id } : undefined } });
     if (clash) throw new Error(clash.sku === sku ? `SKU ${sku} is already used` : `Barcode ${barcode} is already used`);
 
-    const product = await db.product.findUniqueOrThrow({ where: { id: productId } });
     if (id) {
       const before = await db.variant.findUniqueOrThrow({ where: { id } });
       const d = diff(before as unknown as Record<string, unknown>, data);

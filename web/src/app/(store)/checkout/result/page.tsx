@@ -53,7 +53,7 @@ export default async function ResultPage(props: PageProps<"/checkout/result">) {
       <Shell tone="green" icon="check" title={cod ? "Order placed!" : "Payment successful!"} body={`Thank you, ${order.customerName.split(" ")[0]}. We've received your order and will confirm on ${order.customerPhone}.`}>
         <ClearCart />
         {order.fulfilmentStatus === "ON_HOLD" && (
-          <p className="mt-6 rounded-xl bg-gold/15 p-3 text-sm text-[#7a570c]">One item sold out while you were paying. Our team will call you to arrange a substitute or full refund.</p>
+          <p className="mt-6 rounded-xl bg-gold/15 p-3 text-sm text-gold-soft">One item sold out while you were paying. Our team will call you to arrange a substitute or full refund.</p>
         )}
         {order.careCard && (
           <p className="mt-6 flex items-center gap-2 rounded-xl bg-navy-950 p-3 text-sm text-gold">
@@ -63,7 +63,7 @@ export default async function ResultPage(props: PageProps<"/checkout/result">) {
         {details}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link href="/account" className="btn btn-primary">View my Passport</Link>
-          <Link href="/" className="btn btn-ghost text-navy-950"><span>Keep shopping</span></Link>
+          <Link href="/" className="btn btn-ghost text-ink"><span>Keep shopping</span></Link>
         </div>
       </Shell>
     );
@@ -83,7 +83,7 @@ export default async function ResultPage(props: PageProps<"/checkout/result">) {
       {details}
       <div className="mt-8 flex justify-center gap-3">
         <Link href="/checkout" className="btn btn-red">Try again</Link>
-        <Link href="/contact" className="btn btn-ghost text-navy-950"><span>Get help</span></Link>
+        <Link href="/contact" className="btn btn-ghost text-ink"><span>Get help</span></Link>
       </div>
     </Shell>
   );
@@ -93,7 +93,7 @@ function Shell({ tone, icon, title, body, children }: { tone: "green" | "gold" |
   const color = tone === "green" ? "bg-emerald-600" : tone === "gold" ? "bg-gold" : "bg-red";
   return (
     <div className="container-pb grid min-h-[70vh] place-items-center py-16">
-      <div className="flex w-full max-w-lg flex-col items-center rounded-3xl bg-white p-8 text-center shadow-[var(--shadow-lift)] md:p-12">
+      <div className="flex w-full max-w-lg flex-col items-center rounded-3xl bg-card p-8 text-center shadow-[var(--shadow-lift)] md:p-12">
         <span className={`grid h-16 w-16 place-items-center rounded-full text-white ${color}`}>
           <Icon name={icon} className="h-8 w-8" strokeWidth={2.5} />
         </span>

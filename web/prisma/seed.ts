@@ -5,14 +5,15 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import { assertVariantGrade } from "../src/lib/grade";
 
 const db = new PrismaClient();
 
-type V = { storage?: string; color?: string; colorHex?: string; price: number; salePrice?: number; stock: number; grade?: string; battery?: number; notes?: string };
+type V = { storage?: string; ram?: string; color?: string; colorHex?: string; price: number; salePrice?: number; stock: number; grade?: string; battery?: number; notes?: string };
 type P = {
   name: string;
   brand: string;
-  type: "PHONE" | "ACCESSORY";
+  type: "PHONE" | "TABLET" | "ACCESSORY";
   condition?: "NEW" | "USED";
   accessoryType?: string;
   finishHex?: string;
@@ -126,16 +127,85 @@ const ACCESSORIES: P[] = [
   { name: "Galaxy Buds3", brand: "Samsung", accessoryType: "EARBUDS", finishHex: "#c9ccd1", description: "Open-type earbuds with Galaxy AI features.", variants: [{ price: 34999, stock: 1 }] },
 ].map((p) => ({ ...p, type: "ACCESSORY" as const, condition: "NEW" as const }));
 
+// Tablets (master brief §9) — each used tablet is its own SKU with exactly one grade.
+const TABLETS: P[] = [
+  { name: "iPad Air 11-inch (M2)", brand: "Apple", type: "TABLET", condition: "NEW", finishHex: "#8fa7c4", featured: true, description: "Thin, light and powerful with the M2 chip and Apple Pencil Pro support.", specs: { Display: '11" Liquid Retina', Chip: "Apple M2", Camera: "12MP Wide", "Operating system": "iPadOS" }, variants: [{ storage: "128GB", ram: "8GB", color: "Blue", colorHex: "#8fa7c4", price: 219999, stock: 4 }, { storage: "256GB", ram: "8GB", color: "Space Grey", colorHex: "#4a4d52", price: 254999, stock: 2 }] },
+  { name: "iPad (10th generation)", brand: "Apple", type: "TABLET", condition: "NEW", finishHex: "#e6c65c", description: "All-screen design with a 10.9-inch display — great for school and home.", specs: { Display: '10.9" Liquid Retina', Chip: "A14 Bionic", "Operating system": "iPadOS" }, variants: [{ storage: "64GB", ram: "4GB", color: "Yellow", colorHex: "#e6c65c", price: 119999, stock: 5 }] },
+  { name: "Galaxy Tab S9 FE", brand: "Samsung", type: "TABLET", condition: "NEW", finishHex: "#b9c9b1", featured: true, description: "IP68 water resistance, S Pen in the box and a vivid 10.9-inch screen.", specs: { Display: '10.9" TFT 90Hz', Battery: "8000mAh", "Operating system": "Android" }, variants: [{ storage: "128GB", ram: "6GB", color: "Mint", colorHex: "#b9c9b1", price: 134999, stock: 3 }] },
+  { name: "Galaxy Tab A9+", brand: "Samsung", type: "TABLET", condition: "NEW", finishHex: "#5b5e63", description: "Big-screen entertainment with quad speakers at a friendly price.", specs: { Display: '11" 90Hz', Battery: "7040mAh", "Operating system": "Android" }, variants: [{ storage: "64GB", ram: "4GB", color: "Graphite", colorHex: "#5b5e63", price: 64999, stock: 6 }] },
+  { name: "Xiaomi Pad 6", brand: "Xiaomi", type: "TABLET", condition: "NEW", finishHex: "#c9d6e3", description: "144Hz 2.8K display and Snapdragon power for work and play.", specs: { Display: '11" 144Hz 2.8K', Battery: "8840mAh", "Operating system": "Android" }, variants: [{ storage: "256GB", ram: "8GB", color: "Mist Blue", colorHex: "#c9d6e3", price: 104999, stock: 2 }] },
+  { name: "iPad Pro 11-inch (M1)", brand: "Apple", type: "TABLET", condition: "USED", finishHex: "#9ea3a8", description: "Pro performance and ProMotion display, tested by the PB Lab.", variants: [{ storage: "128GB", ram: "8GB", color: "Silver", colorHex: "#c4c7cb", price: 149999, stock: 1, grade: "A", battery: 89, notes: "Minor scuff on the back edge." }, { storage: "256GB", ram: "8GB", color: "Space Grey", colorHex: "#4a4d52", price: 144999, stock: 1, grade: "B", battery: 84, notes: "Light scratches on the back." }] },
+];
+
+async function createProducts(list: P[], firstSeq: number, barcodePrefix: string) {
+  let skuSeq = firstSeq;
+  for (const p of list) {
+    const isUsed = p.condition === "USED";
+    const product = await db.product.create({
+      data: {
+        slug: slug(`${p.name}${isUsed ? "-used" : ""}`),
+        name: p.name,
+        brand: p.brand,
+        type: p.type,
+        condition: p.condition ?? "NEW",
+        accessoryType: p.accessoryType,
+        description: p.description,
+        specs: JSON.stringify(p.specs ?? {}),
+        finishHex: p.finishHex,
+        featured: !!p.featured,
+        careCardEligible: p.type !== "ACCESSORY",
+        metaTitle: `${p.name}${isUsed ? " (Used)" : ""} | PB Mobiles`,
+        metaDescription: p.description,
+      },
+    });
+    for (const v of p.variants) {
+      const code = `PB-${String(skuSeq).padStart(4, "0")}`;
+      const variant = await db.variant.create({
+        data: {
+          productId: product.id,
+          sku: code,
+          barcode: `${barcodePrefix}${String(100000000 + skuSeq).slice(-10)}`, // internal EAN-style barcode; replace with manufacturer EAN where available
+          storage: v.storage,
+          ram: v.ram,
+          color: v.color,
+          colorHex: v.colorHex,
+          price: v.price,
+          salePrice: v.salePrice,
+          stockQty: v.stock,
+          lowStockThreshold: isUsed ? 0 : p.type === "ACCESSORY" ? 5 : 2,
+          grade: assertVariantGrade(p.condition ?? "NEW", v.grade), // single grade per SKU (§8)
+          batteryHealth: v.battery,
+          conditionNotes: v.notes,
+          warrantyInfo: isUsed ? "30-day PB Lab hardware warranty" : p.type === "ACCESSORY" ? "7-day replacement for manufacturing faults" : "Official brand warranty where applicable",
+          returnInfo: isUsed ? "7-day return if the device does not match its listed grade" : "Unopened items returnable within 7 days",
+        },
+      });
+      if (v.stock > 0) {
+        await db.stockMovement.create({ data: { variantId: variant.id, type: "RECEIVED", qtyChange: v.stock, qtyAfter: v.stock, reason: "Opening stock (seed)" } });
+      }
+      skuSeq++;
+    }
+  }
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
   if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
-    console.log("Database already has data — skipping seed.");
+    // Existing databases still get the demo tablet category once (added in the master brief).
+    if ((await db.product.count({ where: { type: "TABLET" } })) === 0) {
+      const skus = await db.variant.findMany({ select: { sku: true } });
+      const next = Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
+      await createProducts(TABLETS, next, "22");
+      console.log(`Added ${TABLETS.length} demo tablets.`);
+    } else {
+      console.log("Database already has data — skipping seed.");
+    }
     return;
   }
   console.log("Resetting demo data…");
   // Order matters for FK constraints.
   await db.$transaction([
-    db.careCardRedemption.deleteMany(), db.careCard.deleteMany(), db.loyaltyTransaction.deleteMany(), db.note.deleteMany(),
+    db.review.deleteMany(), db.careCardRedemption.deleteMany(), db.careCard.deleteMany(), db.loyaltyTransaction.deleteMany(), db.note.deleteMany(),
     db.stockMovement.deleteMany(), db.payment.deleteMany(), db.orderItem.deleteMany(), db.order.deleteMany(),
     db.repairStatusChange.deleteMany(), db.repairRequest.deleteMany(), db.model3DJob.deleteMany(), db.variant.deleteMany(),
     db.product.deleteMany(), db.reward.deleteMany(), db.careCardService.deleteMany(), db.auditLog.deleteMany(),
@@ -170,53 +240,7 @@ async function main() {
     ],
   });
 
-  let skuSeq = 1;
-  for (const p of [...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...ACCESSORIES]) {
-    const isUsed = p.condition === "USED";
-    const product = await db.product.create({
-      data: {
-        slug: slug(`${p.name}${isUsed ? "-used" : ""}`),
-        name: p.name,
-        brand: p.brand,
-        type: p.type,
-        condition: p.condition ?? "NEW",
-        accessoryType: p.accessoryType,
-        description: p.description,
-        specs: JSON.stringify(p.specs ?? {}),
-        finishHex: p.finishHex,
-        featured: !!p.featured,
-        careCardEligible: p.type === "PHONE",
-        metaTitle: `${p.name}${isUsed ? " (Used)" : ""} | PB Mobiles`,
-        metaDescription: p.description,
-      },
-    });
-    for (const v of p.variants) {
-      const code = `PB-${String(skuSeq).padStart(4, "0")}`;
-      const variant = await db.variant.create({
-        data: {
-          productId: product.id,
-          sku: code,
-          barcode: `20${String(100000000 + skuSeq).slice(-10)}`, // internal EAN-style barcode; replace with manufacturer EAN where available
-          storage: v.storage,
-          color: v.color,
-          colorHex: v.colorHex,
-          price: v.price,
-          salePrice: v.salePrice,
-          stockQty: v.stock,
-          lowStockThreshold: isUsed ? 0 : p.type === "PHONE" ? 2 : 5,
-          grade: v.grade,
-          batteryHealth: v.battery,
-          conditionNotes: v.notes,
-          warrantyInfo: isUsed ? "30-day PB Lab hardware warranty" : p.type === "PHONE" ? "Official brand warranty where applicable" : "7-day replacement for manufacturing faults",
-          returnInfo: isUsed ? "7-day return if the device does not match its listed grade" : "Unopened items returnable within 7 days",
-        },
-      });
-      if (v.stock > 0) {
-        await db.stockMovement.create({ data: { variantId: variant.id, type: "RECEIVED", qtyChange: v.stock, qtyAfter: v.stock, reason: "Opening stock (seed)" } });
-      }
-      skuSeq++;
-    }
-  }
+  await createProducts([...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES], 1, "20");
 
   const count = await db.product.count();
   console.log(`Seeded ${count} products, 7 staff accounts, 5 Care Card visit slots.`);

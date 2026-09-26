@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     include: { product: true },
   });
 
-  const lines: { variantId: string; name: string; sku: string; unitPrice: number; qty: number }[] = [];
+  const lines: { variantId: string; name: string; sku: string; grade: string | null; unitPrice: number; qty: number }[] = [];
   for (const item of d.items) {
     const v = variants.find((x) => x.id === item.variantId);
     if (!v) return NextResponse.json({ error: "An item in your bag is no longer available. Please review your bag." }, { status: 409 });
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `${v.product.name} (${[v.storage, v.color].filter(Boolean).join(" ")}) has only ${v.stockQty} left.` }, { status: 409 });
     }
     const label = [v.storage, v.color, v.grade ? `Grade ${v.grade}` : null].filter(Boolean).join(" · ");
-    lines.push({ variantId: v.id, name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}${label ? ` — ${label}` : ""}`, sku: v.sku, unitPrice: v.salePrice ?? v.price, qty: item.qty });
+    lines.push({ variantId: v.id, name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}${label ? ` — ${label}` : ""}`, sku: v.sku, grade: v.grade, unitPrice: v.salePrice ?? v.price, qty: item.qty });
   }
 
   const shipping = await getSetting("shipping");

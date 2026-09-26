@@ -31,10 +31,10 @@ export default async function RepairsPage(props: PageProps<"/admin/repairs">) {
         <form className="flex gap-2">
           <input name="q" defaultValue={q} placeholder="Ref, name, phone, model…" className="field !w-56 !rounded-full !py-2" />
         </form>
-        <Link href={showDone ? "/admin/repairs" : "/admin/repairs?done=1"} className="btn btn-ghost !py-2.5 !text-sm text-navy-950"><span>{showDone ? "Hide closed" : "Show all history"}</span></Link>
+        <Link href={showDone ? "/admin/repairs" : "/admin/repairs?done=1"} className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>{showDone ? "Hide closed" : "Show all history"}</span></Link>
       </PageTitle>
 
-      <details className="mb-6 rounded-2xl bg-white shadow-[var(--shadow-card)]" open={sp.new === "1"}>
+      <details className="mb-6 rounded-2xl bg-card shadow-[var(--shadow-card)]" open={sp.new === "1"}>
         <summary className="cursor-pointer p-5 font-semibold text-blue">+ Book a walk-in repair at the counter</summary>
         <ActionForm action={createWalkInRepairAction} resetOnSuccess className="grid gap-3 border-t border-ink/10 p-5 md:grid-cols-3">
           <Field label="Customer name"><input name="name" required className="field" /></Field>
@@ -43,6 +43,7 @@ export default async function RepairsPage(props: PageProps<"/admin/repairs">) {
             <select name="brand" required className="field">{PHONE_BRANDS.map((b) => <option key={b}>{b}</option>)}</select>
           </Field>
           <Field label="Model"><input name="model" required className="field" /></Field>
+          <Field label="IMEI / serial"><input name="imei" className="field" /></Field>
           <Field label="Issue category">
             <select name="category" required className="field">{Object.entries(REPAIR_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </Field>
@@ -63,7 +64,7 @@ export default async function RepairsPage(props: PageProps<"/admin/repairs">) {
               </div>
               <div className="space-y-2">
                 {items.map((r) => (
-                  <Link key={r.id} href={`/admin/repairs/${r.id}`} className="block rounded-xl bg-white p-3 shadow-[var(--shadow-card)] transition hover:shadow-[var(--shadow-lift)]">
+                  <Link key={r.id} href={`/admin/repairs/${r.id}`} className="block rounded-xl bg-card p-3 shadow-[var(--shadow-card)] transition hover:shadow-[var(--shadow-lift)]">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs font-semibold text-red">{r.ref}</span>
                       <span className="text-[0.65rem] text-muted">{dt(r.createdAt)}</span>

@@ -31,7 +31,7 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
   return (
     <>
       <PageTitle title={`Order ${o.number}`} sub={`${o.channel === "POS" ? "In-store sale" : "Online order"} · ${dt(o.createdAt)}${o.staff ? ` · by ${o.staff.name}` : ""}`}>
-        <Link href={`/admin/orders/${o.id}/receipt`} target="_blank" className="btn btn-ghost !py-2.5 !text-sm text-navy-950"><span>Print receipt</span></Link>
+        <Link href={`/admin/orders/${o.id}/receipt`} target="_blank" className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>Print receipt</span></Link>
         <Link href="/admin/orders" className="text-sm text-blue">← Orders</Link>
       </PageTitle>
 

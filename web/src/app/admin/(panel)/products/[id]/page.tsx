@@ -34,16 +34,16 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
 
   return (
     <>
-      <PageTitle title={product.name} sub={`${product.brand} · ${product.type === "PHONE" ? (product.condition === "USED" ? "Used phone" : "New phone") : "Accessory"}`}>
-        <Link href={`/product/${product.slug}`} target="_blank" className="btn btn-ghost !py-2.5 !text-sm text-navy-950"><span>View in shop</span></Link>
-        <Link href={`/admin/labels?product=${product.id}`} className="btn btn-ghost !py-2.5 !text-sm text-navy-950"><span>Print labels</span></Link>
+      <PageTitle title={product.name} sub={`${product.brand} · ${product.type === "ACCESSORY" ? "Accessory" : `${product.condition === "USED" ? "Used" : "New"} ${product.type === "TABLET" ? "tablet" : "phone"}`}`}>
+        <Link href={`/product/${product.slug}`} target="_blank" className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>View in shop</span></Link>
+        <Link href={`/admin/labels?product=${product.id}`} className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>Print labels</span></Link>
         <ActionForm action={toggleProductActiveAction} confirm={product.active ? "Hide this product from the shop?" : undefined}>
           <input type="hidden" name="id" value={product.id} />
           <Submit variant={product.active ? "ghost" : "gold"}>{product.active ? "Deactivate" : "Activate"}</Submit>
         </ActionForm>
       </PageTitle>
-      {created && <p className="mb-6 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-700">Product created. Now add at least one variant with its SKU, barcode, price and stock.</p>}
-      {!product.active && <p className="mb-6 rounded-xl bg-gold/15 px-4 py-3 text-sm text-[#7a570c]">This product is hidden from customers.</p>}
+      {created && <p className="mb-6 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-400">Product created. Now add at least one variant with its SKU, barcode, price and stock.</p>}
+      {!product.active && <p className="mb-6 rounded-xl bg-gold/15 px-4 py-3 text-sm text-gold-soft">This product is hidden from customers.</p>}
 
       <div className="grid gap-6 2xl:grid-cols-[1fr_1fr]">
         <Panel title="Details"><ProductForm product={product} /></Panel>
@@ -62,7 +62,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
                   </summary>
                   <div className="space-y-5 border-t border-ink/10 p-4">
                     <VariantForm productId={product.id} v={v} isSuper={staff.role === "SUPER_ADMIN"} used={product.condition === "USED"} />
-                    <ActionForm action={adjustStockAction} resetOnSuccess className="rounded-xl bg-white p-4">
+                    <ActionForm action={adjustStockAction} resetOnSuccess className="rounded-xl bg-card p-4">
                       <p className="mb-3 text-sm font-semibold">Adjust stock</p>
                       <input type="hidden" name="variantId" value={v.id} />
                       <div className="grid gap-3 sm:grid-cols-[120px_1fr_auto]">
@@ -124,7 +124,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
         </div>
       </div>
 
-      {product.type === "PHONE" && (
+      {(product.type === "PHONE" || product.type === "TABLET") && (
         <Panel title="3D model (§4, §14)" className="mt-6">
           <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
             <div>
@@ -225,14 +225,15 @@ function VariantForm({ productId, v, suggested, isSuper, used }: { productId: st
         <Field label="Sale price (optional)"><input name="salePrice" type="number" min={1} defaultValue={v?.salePrice ?? ""} className="field" /></Field>
         {!v && <Field label="Opening stock"><input name="openingStock" type="number" min={0} defaultValue={used ? 1 : 0} className="field" /></Field>}
         <Field label="Storage"><input name="storage" defaultValue={v?.storage ?? ""} placeholder="128GB" className="field" /></Field>
+        <Field label="RAM (optional)"><input name="ram" defaultValue={v?.ram ?? ""} placeholder="8GB" className="field" /></Field>
         <Field label="Colour name"><input name="color" defaultValue={v?.color ?? ""} className="field" /></Field>
         <Field label="Colour hex"><input name="colorHex" defaultValue={v?.colorHex ?? ""} placeholder="#2b2b2e" className="field" /></Field>
       </div>
       {used && (
         <div className="grid gap-3 rounded-xl bg-gold/10 p-3 sm:grid-cols-3">
-          <Field label="Grade">
-            <select name="grade" defaultValue={v?.grade ?? ""} className="field">
-              <option value="">—</option>
+          <Field label="Grade (exactly one)" hint="A different grade = a separate SKU">
+            <select name="grade" defaultValue={v?.grade ?? ""} required className="field">
+              <option value="">Choose grade</option>
               {Object.keys(USED_GRADES).map((g) => <option key={g}>{g}</option>)}
             </select>
           </Field>

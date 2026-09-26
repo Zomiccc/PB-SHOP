@@ -8,17 +8,18 @@ export const dynamic = "force-dynamic";
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaffPage();
-  const [variants, newRepairs, inbox, onHold] = await Promise.all([
+  const [variants, newRepairs, inbox, onHold, reviews] = await Promise.all([
     db.variant.findMany({ where: { active: true, product: { active: true } }, select: { stockQty: true, lowStockThreshold: true } }),
     db.repairRequest.count({ where: { status: "NEW" } }),
     db.contactMessage.count({ where: { status: "NEW" } }),
     db.order.count({ where: { fulfilmentStatus: "ON_HOLD" } }),
+    db.review.count({ where: { status: "PENDING" } }),
   ]);
   const lowStock = variants.filter((v) => v.stockQty <= v.lowStockThreshold).length;
 
   return (
     <div className="lg:flex">
-      <AdminNav role={staff.role} name={staff.name} counts={{ lowStock, newRepairs, inbox, onHold }} logout={logoutAction} />
+      <AdminNav role={staff.role} name={staff.name} counts={{ lowStock, newRepairs, inbox, onHold, reviews }} logout={logoutAction} />
       <main className="min-w-0 flex-1 px-4 py-8 md:px-8 lg:px-10">
         {isDemoMode() && (
           <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl bg-gold/15 px-4 py-3 text-sm ring-1 ring-gold/40">

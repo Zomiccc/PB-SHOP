@@ -120,7 +120,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
 
   if (done) {
     return (
-      <div className="mx-auto max-w-lg rounded-3xl bg-white p-10 text-center shadow-[var(--shadow-lift)]">
+      <div className="mx-auto max-w-lg rounded-3xl bg-card p-10 text-center shadow-[var(--shadow-lift)]">
         <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-600 text-white"><Icon name="check" className="h-8 w-8" strokeWidth={2.5} /></span>
         <h2 className="display mt-5 text-4xl">Sale complete</h2>
         <p className="mt-2 text-muted">{done.number} · {pkr(done.total)} · stock updated</p>
@@ -157,9 +157,9 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
             <Icon name="search" className="h-4 w-4" /> Camera
           </button>
         </form>
-        {flash && <p role="status" className={cn("rounded-xl px-4 py-3 text-sm font-medium", flash.tone === "ok" ? "bg-emerald-600/10 text-emerald-700" : "bg-red/10 text-red")}>{flash.text}</p>}
+        {flash && <p role="status" className={cn("rounded-xl px-4 py-3 text-sm font-medium", flash.tone === "ok" ? "bg-emerald-600/10 text-emerald-400" : "bg-red/10 text-red")}>{flash.text}</p>}
 
-        <div className="rounded-2xl bg-white shadow-[var(--shadow-card)]">
+        <div className="rounded-2xl bg-card shadow-[var(--shadow-card)]">
           {lines.length === 0 ? (
             <p className="p-10 text-center text-muted">Scan an item to start the sale.</p>
           ) : (
@@ -186,7 +186,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]">
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
           <p className="mb-3 font-semibold">Customer (optional — earns Passport points)</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile 03xx…" aria-label="Customer mobile" className="field" />
@@ -200,7 +200,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
           {customer && !customer.found && <p className="mt-2 text-xs text-muted">New customer — a Passport will be created.</p>}
         </div>
 
-        <div className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]">
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
           <p className="mb-3 font-semibold">Payment</p>
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(METHODS) as (keyof typeof METHODS)[]).map((m) => (
@@ -226,7 +226,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
 
       {override.open && (
         <div className="fixed inset-0 z-[80] grid place-items-center bg-navy-950/60 p-4" role="dialog" aria-label="Owner override">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-6">
             <h3 className="display text-2xl">Owner authorisation</h3>
             <p className="mt-1 text-sm text-muted">This sale includes items with insufficient stock. {isSuper ? "Confirm to proceed (logged in the audit trail)." : "The owner must enter their credentials. The override is logged."}</p>
             {!isSuper && (
@@ -237,7 +237,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
             )}
             {override.error && <p className="mt-3 text-sm text-red">{override.error}</p>}
             <div className="mt-5 flex gap-2">
-              <button onClick={() => setOverride({ open: false, email: "", password: "" })} className="btn btn-ghost flex-1 text-navy-950"><span>Cancel</span></button>
+              <button onClick={() => setOverride({ open: false, email: "", password: "" })} className="btn btn-ghost flex-1 text-ink"><span>Cancel</span></button>
               <button disabled={busy} onClick={() => complete(true)} className="btn btn-red flex-1">Authorise sale</button>
             </div>
           </div>

@@ -1,10 +1,15 @@
 import { db } from "./db";
 import { parseJson } from "./format";
 
+export type ProductType = "PHONE" | "TABLET" | "ACCESSORY";
+/** Phones and tablets share device features: 3D viewer, grades, installments, Care Card. */
+export const isDevice = (type: string) => type === "PHONE" || type === "TABLET";
+
 export type VariantDTO = {
   id: string;
   sku: string;
   storage: string | null;
+  ram: string | null;
   color: string | null;
   colorHex: string | null;
   price: number;
@@ -23,7 +28,7 @@ export type ProductDTO = {
   slug: string;
   name: string;
   brand: string;
-  type: "PHONE" | "ACCESSORY";
+  type: ProductType;
   condition: "NEW" | "USED";
   accessoryType: string | null;
   description: string;
@@ -52,6 +57,7 @@ function toDTO(p: Row): ProductDTO {
     id: v.id,
     sku: v.sku,
     storage: v.storage,
+    ram: v.ram,
     color: v.color,
     colorHex: v.colorHex,
     price: v.price,
@@ -69,7 +75,7 @@ function toDTO(p: Row): ProductDTO {
     slug: p.slug,
     name: p.name,
     brand: p.brand,
-    type: p.type as ProductDTO["type"],
+    type: p.type as ProductType,
     condition: p.condition as ProductDTO["condition"],
     accessoryType: p.accessoryType,
     description: p.description,
@@ -89,7 +95,7 @@ function toDTO(p: Row): ProductDTO {
   };
 }
 
-export async function listProducts(where: { type?: "PHONE" | "ACCESSORY"; condition?: "NEW" | "USED"; featured?: boolean } = {}) {
+export async function listProducts(where: { type?: ProductType; condition?: "NEW" | "USED"; featured?: boolean } = {}) {
   const rows = await db.product.findMany({
     where: { active: true, ...where },
     include,
@@ -105,7 +111,7 @@ export async function getProductBySlug(slug: string) {
 
 export async function getRelated(p: ProductDTO, take = 4) {
   const rows = await db.product.findMany({
-    where: { active: true, id: { not: p.id }, type: p.type, ...(p.type === "PHONE" ? { condition: p.condition } : {}) },
+    where: { active: true, id: { not: p.id }, type: p.type, ...(isDevice(p.type) ? { condition: p.condition } : {}) },
     include,
     take: 12,
   });
@@ -115,33 +121,74 @@ export async function getRelated(p: ProductDTO, take = 4) {
 }
 
 /** Lightweight shape sent to client components (catalogue grid / filters). */
-export type CatalogItem = Pick<ProductDTO, "id" | "slug" | "name" | "brand" | "type" | "condition" | "accessoryType" | "finishHex" | "featured" | "fromPrice" | "totalStock"> & {
+export type CatalogItem = Pick<ProductDTO, "slug" | "name" | "brand" | "type" | "condition" | "accessoryType" | "finishHex" | "featured" | "fromPrice" | "totalStock"> & {
+  /** Unique card key: product id, or product+variant for used devices. */
+  id: string;
+  /** Deep link to the product page (includes ?v= for a specific used device). */
+  href: string;
   storages: string[];
+  rams: string[];
   colors: { name: string; hex: string | null }[];
-  grades: string[];
+  /** Exactly one grade for a used-device card (master brief §8); null for new items. */
+  grade: string | null;
   bestBattery: number | null;
   onSale: boolean;
   createdOrder: number;
 };
 
+const uniq = <T,>(xs: (T | null | undefined)[]) => [...new Set(xs.filter((x): x is T => x != null && x !== ""))];
+
+/**
+ * New products = one card per product. Used devices = one card per SKU, so every card shows
+ * a single grade and links straight to that exact device.
+ */
 export function toCatalogItems(products: ProductDTO[]): CatalogItem[] {
-  return products.map((p, i) => ({
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    brand: p.brand,
-    type: p.type,
-    condition: p.condition,
-    accessoryType: p.accessoryType,
-    finishHex: p.finishHex,
-    featured: p.featured,
-    fromPrice: p.fromPrice,
-    totalStock: p.totalStock,
-    storages: [...new Set(p.variants.map((v) => v.storage).filter(Boolean) as string[])],
-    colors: [...new Map(p.variants.filter((v) => v.color).map((v) => [v.color!, { name: v.color!, hex: v.colorHex }])).values()],
-    grades: [...new Set(p.variants.map((v) => v.grade).filter(Boolean) as string[])],
-    bestBattery: p.variants.reduce<number | null>((m, v) => (v.batteryHealth != null && (m == null || v.batteryHealth > m) ? v.batteryHealth : m), null),
-    onSale: p.variants.some((v) => v.salePrice != null),
-    createdOrder: i,
-  }));
+  const out: CatalogItem[] = [];
+  products.forEach((p) => {
+    const base = {
+      slug: p.slug,
+      name: p.name,
+      brand: p.brand,
+      type: p.type,
+      condition: p.condition,
+      accessoryType: p.accessoryType,
+      finishHex: p.finishHex,
+      featured: p.featured,
+    };
+    if (p.condition === "USED") {
+      for (const v of p.variants) {
+        out.push({
+          ...base,
+          id: `${p.id}:${v.id}`,
+          href: `/product/${p.slug}?v=${v.id}`,
+          finishHex: v.colorHex ?? p.finishHex,
+          fromPrice: v.salePrice ?? v.price,
+          totalStock: v.stockQty,
+          storages: uniq([v.storage]),
+          rams: uniq([v.ram]),
+          colors: v.color ? [{ name: v.color, hex: v.colorHex }] : [],
+          grade: v.grade,
+          bestBattery: v.batteryHealth,
+          onSale: v.salePrice != null,
+          createdOrder: out.length,
+        });
+      }
+      return;
+    }
+    out.push({
+      ...base,
+      id: p.id,
+      href: `/product/${p.slug}`,
+      fromPrice: p.fromPrice,
+      totalStock: p.totalStock,
+      storages: uniq(p.variants.map((v) => v.storage)),
+      rams: uniq(p.variants.map((v) => v.ram)),
+      colors: [...new Map(p.variants.filter((v) => v.color).map((v) => [v.color!, { name: v.color!, hex: v.colorHex }])).values()],
+      grade: null,
+      bestBattery: null,
+      onSale: p.variants.some((v) => v.salePrice != null),
+      createdOrder: out.length,
+    });
+  });
+  return out;
 }

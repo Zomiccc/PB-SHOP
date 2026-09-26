@@ -34,8 +34,8 @@ export default async function InboxPage(props: PageProps<"/admin/inbox">) {
               {m.subject && <p className="mt-2 text-sm font-semibold">{m.subject}</p>}
               <p className="mt-1 whitespace-pre-line text-sm">{m.message}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {m.phone && <a href={`https://wa.me/${m.phone.replace(/\D/g, "").replace(/^0/, "92")}`} target="_blank" rel="noreferrer" className="btn btn-ghost !py-2 !text-sm text-navy-950"><span>Reply on WhatsApp</span></a>}
-                {m.email && <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject ?? "your message to PB Mobiles"}`)}`} className="btn btn-ghost !py-2 !text-sm text-navy-950"><span>Email</span></a>}
+                {m.phone && <a href={`https://wa.me/${m.phone.replace(/\D/g, "").replace(/^0/, "92")}`} target="_blank" rel="noreferrer" className="btn btn-ghost !py-2 !text-sm text-ink"><span>Reply on WhatsApp</span></a>}
+                {m.email && <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject ?? "your message to PB Mobiles"}`)}`} className="btn btn-ghost !py-2 !text-sm text-ink"><span>Email</span></a>}
                 {["REPLIED", "CLOSED"].filter((s) => s !== m.status).map((s) => (
                   <ActionForm key={s} action={contactStatusAction}>
                     <input type="hidden" name="id" value={m.id} />

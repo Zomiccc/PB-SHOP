@@ -1,5 +1,19 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Master brief (updated) — changes implemented
+
+| Master brief § | Requirement | Status |
+|---|---|---|
+| Theme override, §2, §16 | Previous off-white theme removed; dark, logo-coloured UI everywhere; no white backgrounds (only printed receipts/labels/repair sheets are white paper) | ✅ |
+| Reference images | Homepage rebuilt to the reference: logo header, "Phones. Repairs. Sorted.", gold "Book a repair" + outlined "Shop phones", category cards, trust strip, Featured Phones, PB Rewards, How repairs work, reviews, "Ready when you are", footer columns | ✅ |
+| §3, §9 | **Tablets** category: /tablets catalogue, RAM field, filters, admin, SKU/barcode, POS, cart/checkout, reviews, 3D tablet designs | ✅ |
+| §6 | **3D colour protection**: white-only lighting & reflections, no tone mapping/auto-exposure, matte colour-accurate product materials, photo models rendered unlit | ✅ + tests |
+| §8 | **Single grade per device/SKU**: enforced in the backend (`src/lib/grade.ts`) for every write; used listings show one card per SKU; grade snapshotted on order lines and receipts | ✅ + tests |
+| §13 | **Print Repair Information** (A4, B&W-friendly) with IMEI/serial, diagnosis, parts, work, charges, staff, notes | ✅ |
+| §3, §17 | **Reviews**: customer submission, verified-customer badge, admin moderation (approve/reject/delete), shown on home + product pages, SEO rating markup. No fake reviews are seeded. | ✅ + tests |
+
+---
+
 Source of truth: the client's *PB Mobiles Website Developer Requirements* PDF (§1–§20) — kept privately, not in this repository.
 **All five phases are built.** What remains is client input (credentials, content, decisions) and go-live setup.
 

@@ -131,9 +131,9 @@ export async function repairDetailsAction(_: FormState, f: FormData): Promise<Fo
   const staff = await requireStaff();
   return run(async () => {
     const r = await db.repairRequest.findUniqueOrThrow({ where: { id: str(f, "repairId") } });
-    const data = { quote: int(f, "quote"), finalPrice: int(f, "finalPrice"), assignedToId: optStr(f, "assignedToId") };
+    const data = { quote: int(f, "quote"), finalPrice: int(f, "finalPrice"), assignedToId: optStr(f, "assignedToId"), imei: optStr(f, "imei") };
     await db.repairRequest.update({ where: { id: r.id }, data });
-    await audit({ staffId: staff.id, action: "REPAIR_UPDATED", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}`, before: { quote: r.quote, finalPrice: r.finalPrice, assignedToId: r.assignedToId }, after: data });
+    await audit({ staffId: staff.id, action: "REPAIR_UPDATED", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}`, before: { quote: r.quote, finalPrice: r.finalPrice, assignedToId: r.assignedToId, imei: r.imei }, after: data });
     revalidatePath(`/admin/repairs/${r.id}`);
     return "Repair updated";
   });
@@ -149,7 +149,7 @@ export async function createWalkInRepairAction(_: FormState, f: FormData): Promi
     const r = await db.$transaction(async (tx) => {
       const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "name"), phone, passportNo: newPassportNo() } }));
       const r = await tx.repairRequest.create({
-        data: { ref: await nextRepairRef(tx), customerId: c.id, name: str(f, "name"), phone, brand: str(f, "brand"), model: str(f, "model"), category: str(f, "category"), description: str(f, "description"), dropOff: "WALK_IN", status: "RECEIVED", assignedToId: staff.id },
+        data: { ref: await nextRepairRef(tx), customerId: c.id, name: str(f, "name"), phone, brand: str(f, "brand"), model: str(f, "model"), imei: optStr(f, "imei"), category: str(f, "category"), description: str(f, "description"), dropOff: "WALK_IN", status: "RECEIVED", assignedToId: staff.id },
       });
       await tx.repairStatusChange.create({ data: { repairId: r.id, from: null, to: "RECEIVED", staffId: staff.id } });
       await audit({ staffId: staff.id, action: "REPAIR_CREATED", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}` }, tx);

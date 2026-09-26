@@ -19,7 +19,7 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
  *  0.45–0.72  explodes into layers (repair lab chapter)
  *  0.72–1.00  reassembles and settles (CTA chapter)
  */
-function Scene({ progress, box }: { progress: React.RefObject<number>; box: boolean }) {
+function Scene({ progress, box, color }: { progress: React.RefObject<number>; box: boolean; color: string }) {
   const phone = useRef<THREE.Group>(null);
   const rig = useRef<THREE.Group>(null);
   const swooshA = useRef<THREE.Mesh>(null);
@@ -89,7 +89,7 @@ function Scene({ progress, box }: { progress: React.RefObject<number>; box: bool
       <pointLight position={[3, -1, 1.5]} intensity={12} color="#d71920" />
       <pointLight position={[0, 2.5, -2]} intensity={6} color="#d9a62e" />
 
-      <PhoneModel ref={phone} color="#1c3552" explodeRef={explode} />
+      <PhoneModel ref={phone} color={color} explodeRef={explode} />
 
       {/* Blue + red orbit swooshes echoing the PB logo */}
       <group ref={rig} position={[0, 0, -0.4]}>
@@ -116,7 +116,7 @@ function Scene({ progress, box }: { progress: React.RefObject<number>; box: bool
   );
 }
 
-export default function HeroCanvas({ progress, box = false }: { progress: React.RefObject<number>; box?: boolean }) {
+export default function HeroCanvas({ progress, box = false, color = "#b8955a" }: { progress: React.RefObject<number>; box?: boolean; color?: string }) {
   const dpr = useMemo<[number, number]>(() => [1, typeof window !== "undefined" && window.innerWidth < 768 ? 1.5 : 2], []);
   return (
     <Canvas
@@ -126,7 +126,7 @@ export default function HeroCanvas({ progress, box = false }: { progress: React.
       style={{ position: "absolute", inset: 0 }}
       aria-hidden
     >
-      <Scene progress={progress} box={box} />
+      <Scene progress={progress} box={box} color={color} />
     </Canvas>
   );
 }

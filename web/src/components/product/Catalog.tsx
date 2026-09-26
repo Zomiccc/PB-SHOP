@@ -9,7 +9,7 @@ import { cn, pkr } from "@/lib/format";
 import { ProductCard } from "./ProductCard";
 import { Icon } from "../ui/Icon";
 
-type Mode = "new" | "used" | "accessories";
+type Mode = "new" | "used" | "tablets" | "accessories";
 
 const SORTS = {
   featured: "Featured",
@@ -32,6 +32,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
   const [q, setQ] = useState(params.get("q") ?? "");
   const [brands, setBrands] = useState<string[]>(list("brand"));
   const [storages, setStorages] = useState<string[]>(list("storage"));
+  const [rams, setRams] = useState<string[]>(list("ram"));
   const [colors, setColors] = useState<string[]>(list("color"));
   const [grades, setGrades] = useState<string[]>(list("grade"));
   const [types, setTypes] = useState<string[]>(list("type"));
@@ -53,7 +54,8 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
       brands: count((i) => [i.brand]),
       storages: count((i) => i.storages),
       colors: count((i) => i.colors.map((c) => c.name)).map(([n, c]) => ({ name: n, count: c, hex: colorHex.get(n) ?? null })),
-      grades: count((i) => i.grades),
+      grades: count((i) => (i.grade ? [i.grade] : [])),
+      rams: count((i) => i.rams),
       types: count((i) => (i.accessoryType ? [i.accessoryType] : [])),
       priceCeil: Math.max(0, ...items.map((i) => i.fromPrice)),
     };
@@ -66,7 +68,8 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
       if (brands.length && !brands.includes(i.brand)) return false;
       if (storages.length && !i.storages.some((s) => storages.includes(s))) return false;
       if (colors.length && !i.colors.some((c) => colors.includes(c.name))) return false;
-      if (grades.length && !i.grades.some((g) => grades.includes(g))) return false;
+      if (grades.length && !(i.grade && grades.includes(i.grade))) return false;
+      if (rams.length && !i.rams.some((r) => rams.includes(r))) return false;
       if (types.length && !(i.accessoryType && types.includes(i.accessoryType))) return false;
       if (inStock && i.totalStock <= 0) return false;
       if (minBattery && (i.bestBattery ?? 0) < minBattery) return false;
@@ -86,7 +89,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
       }
     });
     return out;
-  }, [items, q, brands, storages, colors, grades, types, inStock, minBattery, maxPrice, sort]);
+  }, [items, q, brands, storages, rams, colors, grades, types, inStock, minBattery, maxPrice, sort]);
 
   function sync(next: Record<string, string | string[] | number | boolean | null>) {
     const p = new URLSearchParams(params.toString());
@@ -104,11 +107,12 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
     sync({ [key]: next });
   };
 
-  const activeCount = brands.length + storages.length + colors.length + grades.length + types.length + (inStock ? 1 : 0) + (minBattery ? 1 : 0) + (maxPrice != null ? 1 : 0);
+  const activeCount = brands.length + storages.length + rams.length + colors.length + grades.length + types.length + (inStock ? 1 : 0) + (minBattery ? 1 : 0) + (maxPrice != null ? 1 : 0);
 
   const reset = () => {
     setBrands([]);
     setStorages([]);
+    setRams([]);
     setColors([]);
     setGrades([]);
     setTypes([]);
@@ -133,14 +137,14 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
           <Check key={b} label={b} count={c} checked={brands.includes(b)} onChange={() => toggle(brands, setBrands, "brand", b)} />
         ))}
       </FilterGroup>
-      {mode === "used" && facets.grades.length > 0 && (
+      {facets.grades.length > 0 && (
         <FilterGroup title="Condition grade">
           {facets.grades.map(([g, c]) => (
             <Check key={g} label={`Grade ${g}`} hint={USED_GRADES[g as keyof typeof USED_GRADES]} count={c} checked={grades.includes(g)} onChange={() => toggle(grades, setGrades, "grade", g)} />
           ))}
         </FilterGroup>
       )}
-      {mode === "used" && (
+      {facets.grades.length > 0 && (
         <FilterGroup title={`Battery health ${minBattery ? `≥ ${minBattery}%` : ""}`}>
           <div className="flex flex-wrap gap-2">
             {[0, 80, 85, 90].map((b) => (
@@ -150,7 +154,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
                   setMinBattery(b);
                   sync({ battery: b });
                 }}
-                className={cn("rounded-full border px-3 py-1.5 text-sm", minBattery === b ? "border-navy-950 bg-navy-950 text-white" : "border-ink/15 hover:border-ink/40")}
+                className={cn("rounded-full border px-3 py-1.5 text-sm", minBattery === b ? "border-gold bg-gold text-[#120d02]" : "border-ink/15 hover:border-ink/40")}
               >
                 {b === 0 ? "Any" : `${b}%+`}
               </button>
@@ -167,9 +171,25 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
                 key={s}
                 onClick={() => toggle(storages, setStorages, "storage", s)}
                 aria-pressed={storages.includes(s)}
-                className={cn("rounded-full border px-3 py-1.5 text-sm", storages.includes(s) ? "border-navy-950 bg-navy-950 text-white" : "border-ink/15 hover:border-ink/40")}
+                className={cn("rounded-full border px-3 py-1.5 text-sm", storages.includes(s) ? "border-gold bg-gold text-[#120d02]" : "border-ink/15 hover:border-ink/40")}
               >
                 {s}
+              </button>
+            ))}
+          </div>
+        </FilterGroup>
+      )}
+      {facets.rams.length > 0 && (
+        <FilterGroup title="RAM">
+          <div className="flex flex-wrap gap-2">
+            {facets.rams.map(([r]) => (
+              <button
+                key={r}
+                onClick={() => toggle(rams, setRams, "ram", r)}
+                aria-pressed={rams.includes(r)}
+                className={cn("rounded-full border px-3 py-1.5 text-sm", rams.includes(r) ? "border-gold bg-gold text-[#120d02]" : "border-ink/15 hover:border-ink/40")}
+              >
+                {r}
               </button>
             ))}
           </div>
@@ -210,7 +230,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
           <span>{pkr(facets.priceCeil)}</span>
         </div>
       </FilterGroup>
-      <label className="flex cursor-pointer items-center justify-between rounded-xl bg-white px-4 py-3 shadow-[var(--shadow-card)]">
+      <label className="flex cursor-pointer items-center justify-between rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-card)]">
         <span className="text-sm font-medium">In stock only</span>
         <input
           type="checkbox"
@@ -243,7 +263,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
               className="field !rounded-full !py-2.5 !pl-10"
             />
           </div>
-          <button onClick={() => setPanel(true)} className="btn btn-ghost !rounded-full !py-2.5 text-navy-950 lg:hidden">
+          <button onClick={() => setPanel(true)} className="btn btn-ghost !rounded-full !py-2.5 text-ink lg:hidden">
             <span className="flex items-center gap-2">
               <Icon name="filter" className="h-4 w-4" /> Filters {activeCount > 0 && `(${activeCount})`}
             </span>
@@ -326,7 +346,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
               </div>
               {filters}
               <div className="sticky bottom-0 mt-8 flex gap-3 bg-cream pt-3">
-                <button onClick={reset} className="btn btn-ghost flex-1 text-navy-950"><span>Clear</span></button>
+                <button onClick={reset} className="btn btn-ghost flex-1 text-ink"><span>Clear</span></button>
                 <button onClick={() => setPanel(false)} className="btn btn-primary flex-1">Show {filtered.length}</button>
               </div>
             </motion.div>
