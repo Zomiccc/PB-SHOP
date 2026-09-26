@@ -49,26 +49,10 @@ export function HeroStory() {
   );
 }
 
-/** Phones: gentle float and slow turn (front → back → front); subtle motion per the master brief. */
-const TURN_SECONDS = 16;
-
+/** Phones: gentle float and slow turn (front → back → front), driven inside the 3D scene; subtle motion per the master brief. */
 function MobileHero({ active }: { active: boolean }) {
   const progress = useRef(0);
   const reduced = useReducedMotion() ?? false;
-
-  useEffect(() => {
-    if (!active || reduced) return;
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      // Ping-pong between the front view (0) and the back view (0.42) of the story timeline.
-      const t = ((now - start) / 1000 / TURN_SECONDS) * Math.PI * 2;
-      progress.current = 0.21 - Math.cos(t) * 0.21;
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active, reduced]);
 
   return (
     <section aria-label="PB Mobiles — phones and repairs" className="relative -mt-[var(--header-h)] overflow-hidden bg-black pt-[var(--header-h)] text-white md:hidden">
@@ -77,7 +61,7 @@ function MobileHero({ active }: { active: boolean }) {
       <div aria-hidden className="absolute -right-10 top-24 h-[2px] w-[80%] rotate-[-28deg] bg-gradient-to-r from-transparent via-blue to-transparent opacity-70 blur-[1px]" />
       <div aria-hidden className="absolute -right-6 top-56 h-[2px] w-[70%] rotate-[-18deg] bg-gradient-to-r from-transparent via-red to-transparent opacity-70 blur-[1px]" />
       <div className="relative min-h-[440px]">
-        <div className="absolute -right-[8%] top-0 h-full w-[62%]">{active && <HeroCanvas progress={progress} box />}</div>
+        <div className="absolute -right-[8%] top-0 h-full w-[62%]">{active && <HeroCanvas progress={progress} box autoTurn={!reduced} />}</div>
         <div className="container-pb relative z-10 pb-10 pt-8">
           <div className="max-w-[58%]">
             <h1 className="display text-[2.5rem] leading-[0.98]">

@@ -53,8 +53,14 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  /* No grey flash on tap; instant taps (no double-tap-zoom wait) on buttons and links. */
+  -webkit-tap-highlight-color: transparent;
 }
+
+a, button, [role="button"], label, summary { touch-action: manipulation; }
+
+/* Horizontal card rows: swiping sideways never drags the whole page. */
+.snap-x { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 
 /* Lenis smooth scroll */
 html.lenis, html.lenis body { height: auto; }

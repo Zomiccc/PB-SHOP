@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, Sparkles } from "@react-three/drei";
@@ -19,7 +19,7 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
  *  0.45–0.72  explodes into layers (repair lab chapter)
  *  0.72–1.00  reassembles and settles (CTA chapter)
  */
-function Scene({ progress, box, color }: { progress: React.RefObject<number>; box: boolean; color: string }) {
+function Scene({ progress, box, color, autoTurn }: { progress: React.RefObject<number>; box: boolean; color: string; autoTurn: boolean }) {
   const phone = useRef<THREE.Group>(null);
   const rig = useRef<THREE.Group>(null);
   const swooshA = useRef<THREE.Mesh>(null);
@@ -29,17 +29,22 @@ function Scene({ progress, box, color }: { progress: React.RefObject<number>; bo
   // "box" = phones: the canvas sits in its own frame above the text, so the phone stays centred in it.
   const mobile = box || viewport.aspect < 0.9;
 
-  const smooth = useRef({ p: 0, mx: 0, my: 0 });
+  const smooth = useRef({ p: 0, mx: 0, my: 0, t: 0 });
 
   useFrame((state, dt) => {
     const s = smooth.current;
-    const target = progress.current ?? 0;
-    // Box mode is driven by a smooth auto-loop (1 wraps to 0 seamlessly), so no damping there.
+    // Own clock with a clamped step, so resuming after the canvas was paused off-screen never jumps.
+    s.t += Math.min(dt, 1 / 30);
+    // Phones: slow ping-pong between the front (0) and back (0.42) views of the story, 16 s per cycle.
+    const target = box ? (autoTurn ? 0.21 - Math.cos((s.t / 16) * Math.PI * 2) * 0.21 : 0) : (progress.current ?? 0);
     s.p = box || (window as unknown as { __pbStoryForced?: boolean }).__pbStoryForced ? target : THREE.MathUtils.damp(s.p, target, 5, dt);
-    s.mx = THREE.MathUtils.damp(s.mx, pointer.x, 3, dt);
-    s.my = THREE.MathUtils.damp(s.my, pointer.y, 3, dt);
+    // Pointer tilt only on desktop; on touch screens a scrolling finger would make the phone twitch.
+    if (!box) {
+      s.mx = THREE.MathUtils.damp(s.mx, pointer.x, 3, dt);
+      s.my = THREE.MathUtils.damp(s.my, pointer.y, 3, dt);
+    }
     const p = s.p;
-    const t = state.clock.elapsedTime;
+    const t = s.t;
 
     const turn = seg(p, 0.22, 0.45);
     const burst = seg(p, 0.47, 0.64) * (1 - seg(p, 0.74, 0.9));
@@ -103,10 +108,11 @@ function Scene({ progress, box, color }: { progress: React.RefObject<number>; bo
         </mesh>
       </group>
 
-      <Sparkles count={mobile ? 40 : 90} scale={[8, 5, 3]} size={2.2} speed={0.35} color="#d9a62e" opacity={0.7} />
-      <ContactShadows position={[0, -1.35, 0]} opacity={0.45} scale={8} blur={2.6} far={3} color="#000" />
+      <Sparkles count={box ? 24 : mobile ? 40 : 90} scale={[8, 5, 3]} size={2.2} speed={0.35} color="#d9a62e" opacity={0.7} />
+      {/* The contact shadow re-renders a depth pass every frame; the phone hero floats without it. */}
+      {!box && <ContactShadows position={[0, -1.35, 0]} opacity={0.45} scale={8} blur={2.6} far={3} color="#000" />}
 
-      <Environment resolution={256}>
+      <Environment resolution={box ? 128 : 256}>
         <Lightformer form="rect" intensity={3} position={[0, 3, 2]} scale={[6, 1, 1]} rotation-x={Math.PI / 2} />
         <Lightformer form="rect" intensity={2.2} color="#4aa8ff" position={[-4, 0, 1]} scale={[1, 5, 1]} rotation-y={Math.PI / 2} />
         <Lightformer form="rect" intensity={2} color="#ff4a52" position={[4, 0, 1]} scale={[1, 5, 1]} rotation-y={-Math.PI / 2} />
@@ -116,17 +122,42 @@ function Scene({ progress, box, color }: { progress: React.RefObject<number>; bo
   );
 }
 
-export default function HeroCanvas({ progress, box = false, color = "#b8955a" }: { progress: React.RefObject<number>; box?: boolean; color?: string }) {
+export default function HeroCanvas({
+  progress,
+  box = false,
+  color = "#b8955a",
+  autoTurn = true,
+}: {
+  progress: React.RefObject<number>;
+  box?: boolean;
+  color?: string;
+  autoTurn?: boolean;
+}) {
   const dpr = useMemo<[number, number]>(() => [1, typeof window !== "undefined" && window.innerWidth < 768 ? 1.5 : 2], []);
+  const wrap = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(true);
+
+  // Stop rendering once the hero scrolls out of view, so the GPU is free while the rest of the page scrolls.
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "80px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
+    <div ref={wrap} className={box ? "pointer-events-none absolute inset-0" : "absolute inset-0"}>
     <Canvas
+      frameloop={visible ? "always" : "never"}
       dpr={dpr}
       camera={{ position: [0, 0, 4.4], fov: 35 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       style={{ position: "absolute", inset: 0 }}
       aria-hidden
     >
-      <Scene progress={progress} box={box} color={color} />
+      <Scene progress={progress} box={box} color={color} autoTurn={autoTurn} />
     </Canvas>
+    </div>
   );
 }

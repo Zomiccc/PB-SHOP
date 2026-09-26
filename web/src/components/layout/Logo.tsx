@@ -5,7 +5,7 @@ import { cn } from "@/lib/format";
 /**
  * PB Mobiles logo (cut out of the client-supplied artwork; transparent background for the dark theme).
  * `variant="stacked"` shows the full stacked logo (footer / hero); default is the horizontal header lockup.
- * Replace /public/brand/pb-logo*.png with the client's vector logo when supplied.
+ * Replace /public/brand/pb-logo*.webp with the client's vector logo when supplied.
  */
 export function Logo({ className, variant = "horizontal" }: { dark?: boolean; className?: string; variant?: "horizontal" | "stacked" }) {
   const stacked = variant === "stacked";

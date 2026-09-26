@@ -59,8 +59,9 @@ export function Header() {
 
       <header
         className={cn(
-          "sticky top-0 z-50 transition-[background-color,box-shadow,backdrop-filter] duration-500",
-          dark ? "bg-transparent" : "bg-cream/85 shadow-[0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-xl",
+          "sticky top-0 z-50 transition-[background-color,box-shadow] duration-300",
+          // Phones get a near-solid bar with a light blur: large backdrop blurs are the main cause of scroll jank on mobile GPUs.
+          dark ? "bg-transparent" : "bg-cream/95 shadow-[0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-md md:bg-cream/85 md:backdrop-blur-xl",
         )}
       >
         <div className="container-pb flex h-[var(--header-h)] items-center justify-between gap-6">
@@ -127,11 +128,14 @@ export function Header() {
           {menu && (
             <motion.nav
               aria-label="Mobile"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-              className="overflow-hidden border-t border-ink/10 bg-cream lg:hidden"
+              // Opacity + slide only (GPU-composited); animating height re-lays out the page every frame.
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+              // Scrolls inside itself on short screens so the last links are always reachable.
+              data-lenis-prevent
+              className="max-h-[calc(100svh-var(--header-h))] overflow-y-auto overscroll-contain border-t border-ink/10 bg-cream lg:hidden"
             >
               <div className="container-pb flex flex-col py-4">
                 {NAV.map((item, i) => (
