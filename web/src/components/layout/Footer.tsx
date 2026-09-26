@@ -29,6 +29,7 @@ export function Footer() {
                 <Link href={n.href} className="hover:text-white">{n.label}</Link>
               </li>
             ))}
+            <li><Link href="/installments" className="hover:text-white">Installments calculator</Link></li>
             <li><Link href="/loyalty" className="hover:text-white">PB Phone Passport</Link></li>
           </ul>
         </div>

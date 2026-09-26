@@ -23,7 +23,7 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
   const { slug } = await props.params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-  const [related, loyalty] = await Promise.all([getRelated(product), getSetting("loyalty")]);
+  const [related, loyalty, financing] = await Promise.all([getRelated(product), getSetting("loyalty"), getSetting("financing")]);
 
   // Structured data for search engines (§10 SEO-friendly structure).
   const jsonLd = {
@@ -46,7 +46,7 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\u003c") }} />
-      <ProductDetail product={product} pointsPerRupees={loyalty.pointsPerRupees} />
+      <ProductDetail product={product} pointsPerRupees={loyalty.pointsPerRupees} financing={financing} />
       {related.length > 0 && (
         <section className="bg-navy-950 py-20 text-white">
           <div className="container-pb">

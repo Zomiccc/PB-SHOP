@@ -10,6 +10,8 @@ import { cn, pkr } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { ProductArt } from "./ProductArt";
+import { FinanceCalculator } from "../FinanceCalculator";
+import { lowestInstallment, type FinancingConfig } from "@/lib/finance";
 import { Icon } from "../ui/Icon";
 
 const ProductViewer = dynamic(() => import("../three/ProductViewer"), {
@@ -17,7 +19,7 @@ const ProductViewer = dynamic(() => import("../three/ProductViewer"), {
   loading: () => <div className="aspect-square animate-pulse rounded-[var(--radius-card)] bg-navy-900" />,
 });
 
-export function ProductDetail({ product, pointsPerRupees }: { product: ProductDTO; pointsPerRupees: number }) {
+export function ProductDetail({ product, pointsPerRupees, financing }: { product: ProductDTO; pointsPerRupees: number; financing: FinancingConfig }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const isPhone = product.type === "PHONE";
@@ -236,6 +238,25 @@ export function ProductDetail({ product, pointsPerRupees }: { product: ProductDT
             Ask us when it&apos;s back in stock →
           </Link>
         )}
+
+        {isPhone && (() => {
+          const low = lowestInstallment(price, financing);
+          if (!low) return null;
+          return (
+            <details className="group mt-6 rounded-2xl bg-white shadow-[var(--shadow-card)] open:shadow-[var(--shadow-lift)]">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
+                <span>
+                  <span className="block text-xs text-muted">Or pay in installments</span>
+                  <span className="font-semibold">From <b className="text-red">{pkr(low.perInstallment)}</b>/{financing.period === "WEEKLY" ? "week" : "month"}</span>
+                </span>
+                <span className="rounded-full bg-navy-950 px-3 py-1.5 text-xs font-semibold text-white group-open:bg-gold group-open:text-navy-950">Calculate</span>
+              </summary>
+              <div className="p-2 pt-0">
+                <FinanceCalculator key={variant.id} config={financing} initialPrice={price} productName={`${product.name}${variant.storage ? ` ${variant.storage}` : ""}`} compact />
+              </div>
+            </details>
+          );
+        })()}
 
         <ul className="mt-8 space-y-3 border-t border-ink/10 pt-6 text-sm">
           <li className="flex gap-3"><Icon name="gift" className="h-5 w-5 shrink-0 text-gold" /> Earn about <b>{points} Passport points</b> with this purchase.</li>

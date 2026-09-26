@@ -22,9 +22,10 @@ export async function saveSettingAction(_: FormState, f: FormData): Promise<Form
     for (const [k, def] of Object.entries(SETTING_DEFAULTS[key])) {
       if (typeof def === "boolean") next[k] = bool(f, k);
       else if (typeof def === "number") {
-        const n = int(f, k);
-        if (n == null || n < 0) throw new Error(`${k} must be a positive number`);
-        next[k] = n;
+        // Decimals allowed (e.g. 2.5% fees), kept to 2 places.
+        const n = Number(str(f, k).replace(/,/g, ""));
+        if (!Number.isFinite(n) || n < 0 || str(f, k) === "") throw new Error(`${k} must be a positive number`);
+        next[k] = Math.round(n * 100) / 100;
       } else next[k] = str(f, k);
     }
     await db.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(next) }, update: { value: JSON.stringify(next) } });

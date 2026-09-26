@@ -10,7 +10,8 @@ export const metadata = { title: "Settings & rules" };
 /** Owner-only configuration: Care Card services (§18), loyalty rules (§7), social proof (§15), delivery. */
 export default async function SettingsPage() {
   await requireStaffPage({ superAdmin: true });
-  const [social, loyalty, shipping, care, services, rewards] = await Promise.all([
+  const [financing, social, loyalty, shipping, care, services, rewards] = await Promise.all([
+    getSetting("financing"),
     getSetting("socialProof"),
     getSetting("loyalty"),
     getSetting("shipping"),
@@ -44,6 +45,36 @@ export default async function SettingsPage() {
             <Field label="Max uses per card"><input name="maxUses" type="number" min={1} max={10} defaultValue={care.maxUses} className="field !w-28" /></Field>
             <label className="flex items-center gap-2 pb-3 text-sm"><input type="checkbox" name="allowRepeatService" defaultChecked={care.allowRepeatService} className="h-4 w-4" /> Allow the same service twice on one card</label>
             <Submit>Save card rules</Submit>
+          </ActionForm>
+        </Panel>
+
+        <Panel title="Installment calculator" className="xl:col-span-2">
+          <p className="mb-4 text-sm text-muted">
+            Shown on <a href="/installments" target="_blank" className="text-blue underline">/installments</a> and on every phone page. Enter the financing partner&apos;s real rates from the agent app — the defaults are samples.
+          </p>
+          <ActionForm action={saveSettingAction} className="space-y-4">
+            <input type="hidden" name="key" value="financing" />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Financing partner name"><input name="partnerName" defaultValue={financing.partnerName} className="field" /></Field>
+              <Field label="Min. down payment %"><input name="minDownPaymentPercent" type="number" step="0.01" min={0} max={100} defaultValue={financing.minDownPaymentPercent} className="field" /></Field>
+              <Field label="Plans (number of terms)" hint="Comma-separated, e.g. 3,6,9,12"><input name="termOptions" defaultValue={financing.termOptions} className="field" /></Field>
+              <Field label="Repayment period">
+                <select name="period" defaultValue={financing.period} className="field">
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="WEEKLY">Weekly</option>
+                </select>
+              </Field>
+              <Field label="Markup % per month" hint="Flat, on the financed amount"><input name="markupPercentPerMonth" type="number" step="0.01" min={0} defaultValue={financing.markupPercentPerMonth} className="field" /></Field>
+              <Field label="Service fee %" hint="One-time, on financed amount"><input name="serviceFeePercent" type="number" step="0.01" min={0} defaultValue={financing.serviceFeePercent} className="field" /></Field>
+              <Field label="Risk management fee %" hint="One-time, on financed amount"><input name="riskFeePercent" type="number" step="0.01" min={0} defaultValue={financing.riskFeePercent} className="field" /></Field>
+              <Field label="Guarantee deposit (Rs)" hint="Fixed, paid upfront"><input name="guaranteeDeposit" type="number" min={0} defaultValue={financing.guaranteeDeposit} className="field" /></Field>
+              <Field label="Lowest eligible price (Rs)"><input name="minPrice" type="number" min={0} defaultValue={financing.minPrice} className="field" /></Field>
+            </div>
+            <Field label="Disclaimer shown under the calculator"><textarea name="disclaimer" rows={2} defaultValue={financing.disclaimer} className="field" /></Field>
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={financing.enabled} className="h-4 w-4" /> Show installments on the website</label>
+              <Submit>Save calculator</Submit>
+            </div>
           </ActionForm>
         </Panel>
 

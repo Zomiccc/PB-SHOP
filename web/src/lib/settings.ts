@@ -13,6 +13,20 @@ export const SETTING_DEFAULTS = {
   },
   shipping: { flatFee: 250, freeOver: 50000 },
   careCard: { maxUses: 5, allowRepeatService: false },
+  // SAMPLE rates — replace with the financing partner's real rates in Admin → Settings.
+  financing: {
+    enabled: true,
+    partnerName: "our financing partner",
+    minDownPaymentPercent: 30,
+    termOptions: "3,6,9,12",
+    period: "MONTHLY",
+    markupPercentPerMonth: 3,
+    serviceFeePercent: 2,
+    riskFeePercent: 1,
+    guaranteeDeposit: 0,
+    minPrice: 20000,
+    disclaimer: "Estimate only. Final installment, fees and approval are confirmed by the financing partner after KYC.",
+  },
 };
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;

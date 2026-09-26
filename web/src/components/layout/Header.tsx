@@ -48,6 +48,7 @@ export function Header() {
             </Link>
             <Link href="/repair" className="hover:text-white">Repairs</Link>
             <Link href="/accessories" className="hover:text-white">Accessories</Link>
+            <Link href="/installments" className="text-gold hover:text-gold-soft">Installments</Link>
           </div>
           <div className="flex items-center gap-6">
             <span>Secure JazzCash / wallet / bank payments</span>
