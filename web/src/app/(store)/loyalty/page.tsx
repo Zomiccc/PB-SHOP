@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
-import { PassportCard } from "@/components/home/PassportCard";
+import { FlipPassportCard } from "@/components/home/FlipPassportCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
 import { db } from "@/lib/db";
@@ -28,7 +28,7 @@ export default async function LoyaltyPage() {
     <>
       <PageHero dark eyebrow="PB Phone Passport" title="Points that" accent="pay you back." intro="One Passport for every repair and phone you buy with us. Collect points, track them, and swap them for real rewards.">
         <div className="mt-12 max-w-md">
-          <PassportCard />
+          <FlipPassportCard />
         </div>
       </PageHero>
 

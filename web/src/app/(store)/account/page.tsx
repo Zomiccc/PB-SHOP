@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import { pkr } from "@/lib/format";
 import { REPAIR_STATUSES } from "@/lib/constants";
 import { AuthForms, LogoutButton } from "@/components/account/AuthForms";
-import { PassportCard } from "@/components/home/PassportCard";
+import { FlipPassportCard } from "@/components/home/FlipPassportCard";
+import { PassportCardPrint } from "@/components/admin/PassportCardPrint";
+import { PrintButton } from "@/components/admin/PrintButton";
 import { Icon } from "@/components/ui/Icon";
 import { availablePoints } from "@/lib/loyalty";
 
@@ -23,7 +25,7 @@ export default async function AccountPage() {
           <h1 className="display mt-5 text-5xl md:text-7xl">Your phone, looked after.</h1>
           <p className="mt-5 max-w-md text-lg text-muted">Log in to see your points, what&apos;s expiring, your rewards, orders and repair history — all in one place.</p>
           <div className="mt-10 hidden lg:block">
-            <PassportCard />
+            <FlipPassportCard />
           </div>
         </div>
         <div className="flex justify-center lg:justify-end">
@@ -75,7 +77,11 @@ export default async function AccountPage() {
               <LogoutButton />
             </div>
           </div>
-          <PassportCard name={customer.name} number={customer.passportNo} points={points} />
+          <div>
+            <FlipPassportCard name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} />
+            <div className="mt-3 flex justify-center print:hidden"><PrintButton label="Print / save my card" /></div>
+            <PassportCardPrint name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} />
+          </div>
         </div>
       </section>
 

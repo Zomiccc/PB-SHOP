@@ -66,7 +66,7 @@ export function PassportCard({ name, number, points, still = false }: { name?: s
         <div className="relative flex h-full flex-col justify-between p-[5.5%]" style={{ transform: "translateZ(40px)" }}>
           <div className="flex items-start justify-between gap-3">
             <Image src="/brand/pb-logo-horizontal.webp" alt="" width={1007} height={200} className="h-auto w-[46%] drop-shadow-[0_2px_6px_rgba(0,0,0,.6)]" />
-            {sample && !still && <span className="rounded-full bg-black/50 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-white/70 ring-1 ring-white/20">Sample</span>}
+            {sample && <span className="rounded-full bg-black/50 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-white/70 ring-1 ring-white/20">Sample</span>}
           </div>
           <div>
             <p className="display bg-gradient-to-b from-[#fff3c4] via-gold to-[#8a6414] bg-clip-text text-[11cqw] leading-none text-transparent">PB REWARDS</p>

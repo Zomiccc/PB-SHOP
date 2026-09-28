@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { HeroStory } from "@/components/home/HeroStory";
-import { PassportCard } from "@/components/home/PassportCard";
+import { FlipPassportCard } from "@/components/home/FlipPassportCard";
 import { ProductArt } from "@/components/product/ProductArt";
 import { Reveal, SplitHeadline } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
@@ -150,7 +150,7 @@ export default async function HomePage() {
             </div>
           </div>
           <div>
-            <PassportCard />
+            <FlipPassportCard />
           </div>
         </div>
         <div className="container-pb relative mt-12 grid grid-cols-3 gap-3 text-center md:gap-6">
