@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { saveUpload } from "./storage";
+import { db } from "./db";
 
 /**
  * 6-photo → 3D pipelines (§14).
@@ -34,6 +35,12 @@ interface AiProvider {
 
 async function asDataUri(url: string) {
   if (/^https?:\/\//.test(url)) return url; // already public (object storage)
+  const media = url.match(/^\/api\/media\/([\w-]+)$/);
+  if (media) {
+    // Photo kept in the database fallback (no object storage configured).
+    const m = await db.mediaFile.findUniqueOrThrow({ where: { id: media[1] } });
+    return `data:${m.mimeType};base64,${Buffer.from(m.data).toString("base64")}`;
+  }
   const file = path.join(process.cwd(), "public", url.replace(/^\//, ""));
   const buf = await readFile(file);
   const ext = path.extname(file).slice(1).toLowerCase();

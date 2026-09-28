@@ -640,3 +640,15 @@ model Broadcast {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+/// Public media (product photos, 3D source photos, GLB models) kept in the database when no object
+/// storage is configured and the server disk is read-only (e.g. the Vercel demo). Served by /api/media/[id].
+model MediaFile {
+  id        String   @id @default(cuid())
+  folder    String
+  fileName  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+}

@@ -83,10 +83,10 @@ export function SixPhotoForm({ productId }: { productId: string }) {
   );
 }
 
-/** Crops uniform background from the edges (sampled from the corners) and caps size at 1600px. */
+/** Crops uniform background from the edges (sampled from the corners) and caps size at 1400px (six photos stay well under hosting upload limits). */
 async function trim(file: File): Promise<Blob> {
   const img = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const scale = Math.min(1, 1400 / Math.max(img.width, img.height));
   const w = Math.round(img.width * scale);
   const h = Math.round(img.height * scale);
   const c = document.createElement("canvas");
@@ -124,5 +124,5 @@ async function trim(file: File): Promise<Blob> {
     out.height = ch + 4;
     out.getContext("2d")!.drawImage(c, minX - 2, minY - 2, cw + 4, ch + 4, 0, 0, cw + 4, ch + 4);
   }
-  return new Promise((resolve) => out.toBlob((b) => resolve(b!), "image/jpeg", 0.9));
+  return new Promise((resolve) => out.toBlob((b) => resolve(b!), "image/jpeg", 0.85));
 }
