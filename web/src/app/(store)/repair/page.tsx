@@ -33,7 +33,7 @@ export default async function RepairPage(props: PageProps<"/repair">) {
         eyebrow="PB Repairing Lab"
         title="Something not"
         accent="working right?"
-        intro="Tell us what's happening and create a clear visit note before you come in. We diagnose first and confirm the price before any work begins."
+        intro="Tell us what's happening and create a clear repair note before you come in. We diagnose first and confirm the price before any work begins."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="#form" className="btn btn-red">Start my repair</a>
@@ -77,13 +77,13 @@ export default async function RepairPage(props: PageProps<"/repair">) {
         <div className="container-pb grid gap-12 lg:grid-cols-[1fr_1.6fr]">
           <div>
             <p className="eyebrow text-red">Book a repair</p>
-            <h2 className="display mt-4 text-4xl md:text-5xl">Create your visit note.</h2>
+            <h2 className="display mt-4 text-4xl md:text-5xl">Create your repair note.</h2>
             <p className="mt-4 text-muted">You&apos;ll get a repair reference instantly. Bring your phone in, book a slot, or request pickup.</p>
             <ul className="mt-8 space-y-4 text-sm">
               <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Free diagnosis before any paid work</li>
               <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Price approved by you before we repair</li>
               <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Repair history saved to your PB Phone Passport</li>
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Care Card services redeemable on eligible visits</li>
+              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> 10 PB Phone Passport points on every completed repair</li>
             </ul>
           </div>
           <RepairForm defaults={{ device: str(sp.device), issue: str(sp.issue), name: customer?.name, phone: customer?.phone, email: customer?.email ?? undefined }} />

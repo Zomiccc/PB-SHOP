@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
 import { saveUpload } from "@/lib/storage";
-import { VIEWS, aiProvider, storeGlb, type View } from "@/lib/model3d";
+import { VIEWS, aiProvider, missingViews, storeGlb, type View } from "@/lib/model3d";
 import type { FormState } from "./auth";
 import { run, str } from "./util";
 
@@ -42,7 +42,7 @@ export async function createModelJobAction(_: FormState, f: FormData): Promise<F
   return run(async () => {
     const productId = str(f, "productId");
     const product = await db.product.findUniqueOrThrow({ where: { id: productId } });
-    const missing = VIEWS.filter((v) => !(f.get(v) instanceof File) || !(f.get(v) as File).size);
+    const missing = missingViews(f);
     if (missing.length) throw new Error(`Missing photo(s): ${missing.join(", ")}. All six views are required.`);
     const stamp = Date.now().toString(36);
     const photos = {} as Photos;

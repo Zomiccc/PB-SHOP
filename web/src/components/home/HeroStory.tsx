@@ -60,9 +60,9 @@ function MobileHero({ active }: { active: boolean }) {
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_45%_at_85%_40%,rgba(0,119,217,0.55),transparent_70%),radial-gradient(55%_40%_at_95%_75%,rgba(215,25,32,0.5),transparent_70%),radial-gradient(40%_30%_at_10%_10%,rgba(217,166,46,0.08),transparent_70%)]" />
       <div aria-hidden className="absolute -right-10 top-24 h-[2px] w-[80%] rotate-[-28deg] bg-gradient-to-r from-transparent via-blue to-transparent opacity-70 blur-[1px]" />
       <div aria-hidden className="absolute -right-6 top-56 h-[2px] w-[70%] rotate-[-18deg] bg-gradient-to-r from-transparent via-red to-transparent opacity-70 blur-[1px]" />
-      <div className="relative min-h-[440px]">
+      <div className="relative min-h-[330px]">
         <div className="absolute -right-[8%] top-0 h-full w-[62%]">{active && <HeroCanvas progress={progress} box autoTurn={!reduced} />}</div>
-        <div className="container-pb relative z-10 pb-10 pt-8">
+        <div className="container-pb relative z-10 pb-6 pt-8">
           <div className="max-w-[58%]">
             <h1 className="display text-[2.5rem] leading-[0.98]">
               Phones.
@@ -72,18 +72,19 @@ function MobileHero({ active }: { active: boolean }) {
               Sorted<span className="text-gold">.</span>
             </h1>
             <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">Quality devices and expert repairs, all in one place.</p>
-            <div className="mt-6 grid gap-2.5">
-              <Link href="/repair" className="btn btn-gold !justify-between !px-4">
-                <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> Book a repair</span>
-                <Icon name="arrow-right" className="h-4 w-4" />
-              </Link>
-              <Link href="/new-phones" className="btn !justify-between border border-gold/70 !px-4 text-white hover:bg-gold/10">
-                <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> Shop phones</span>
-                <Icon name="arrow-right" className="h-4 w-4" />
-              </Link>
-            </div>
           </div>
         </div>
+      </div>
+      {/* Full-width CTAs under the phone, so the exact "Create your repair note" label never has to wrap. */}
+      <div className="container-pb relative z-10 grid gap-2.5 pb-10">
+        <Link href="/repair" aria-label="Book a repair — create your repair note" className="btn btn-gold !justify-between !px-4">
+          <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> Create your repair note</span>
+          <Icon name="arrow-right" className="h-4 w-4" />
+        </Link>
+        <Link href="/new-phones" className="btn !justify-between border border-gold/70 !px-4 text-white hover:bg-gold/10">
+          <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> Shop phones</span>
+          <Icon name="arrow-right" className="h-4 w-4" />
+        </Link>
       </div>
     </section>
   );
@@ -166,8 +167,8 @@ function DesktopHero({ active }: { active: boolean }) {
               Quality devices and expert repairs, all in one place — new and lab-checked used phones, tablets, accessories and a repair lab you can trust.
             </p>
             <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
-              <Link href="/repair" className="btn btn-gold">
-                <Icon name="wrench" className="h-4 w-4" /> Book a repair <Icon name="arrow-right" className="h-4 w-4" />
+              <Link href="/repair" aria-label="Book a repair — create your repair note" className="btn btn-gold">
+                <Icon name="wrench" className="h-4 w-4" /> Create your repair note <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
               <Link href="/new-phones" className="btn border border-gold/70 text-white hover:bg-gold/10">
                 <Icon name="bag" className="h-4 w-4" /> Shop phones <Icon name="arrow-right" className="h-4 w-4" />

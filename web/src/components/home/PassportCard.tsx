@@ -1,25 +1,34 @@
 "use client";
 
+import Image from "next/image";
 import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 
-/** Tilting, light-catching PB Phone Passport card (loyalty concept, §7). */
-export function PassportCard({ name = "Your phone, looked after", number = "PBP-000000", points }: { name?: string; number?: string; points?: number }) {
+/**
+ * PB Rewards / Phone Passport card, following the client's reference design: PB logo, gold
+ * circuit lines, blue + red swooshes, "PB REWARDS" and a gold points coin.
+ * (No "tap to reveal" and no visit counter — both removed at the client's request.)
+ * With a customer's `points` / `number` it is their digital card; without them it's a labelled sample.
+ */
+export function PassportCard({ name, number, points }: { name?: string; number?: string; points?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0.5);
   const my = useMotionValue(0.5);
-  const rx = useSpring(useTransform(my, [0, 1], [14, -14]), { stiffness: 160, damping: 16 });
-  const ry = useSpring(useTransform(mx, [0, 1], [-18, 18]), { stiffness: 160, damping: 16 });
+  const rx = useSpring(useTransform(my, [0, 1], [12, -12]), { stiffness: 160, damping: 16 });
+  const ry = useSpring(useTransform(mx, [0, 1], [-16, 16]), { stiffness: 160, damping: 16 });
   const glareX = useTransform(mx, [0, 1], ["0%", "100%"]);
   const glareY = useTransform(my, [0, 1], ["0%", "100%"]);
-  const glare = useTransform([glareX, glareY], ([x, y]) => `radial-gradient(circle at ${x} ${y}, rgba(255,255,255,.55), transparent 45%)`);
+  const glare = useTransform([glareX, glareY], ([x, y]) => `radial-gradient(circle at ${x} ${y}, rgba(255,255,255,.4), transparent 45%)`);
+  const sample = points == null;
+  const shown = (points ?? 1250).toLocaleString("en-PK");
 
   return (
     <div
       ref={ref}
       style={{ perspective: 1100 }}
-      className="mx-auto w-full max-w-[440px] touch-pan-y"
+      className="mx-auto w-full max-w-[460px] touch-pan-y"
       onPointerMove={(e) => {
+        if (e.pointerType !== "mouse") return;
         const r = ref.current!.getBoundingClientRect();
         mx.set((e.clientX - r.left) / r.width);
         my.set((e.clientY - r.top) / r.height);
@@ -31,54 +40,52 @@ export function PassportCard({ name = "Your phone, looked after", number = "PBP-
     >
       <motion.div
         style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
-        initial={{ rotateZ: -8, y: 40, opacity: 0 }}
-        whileInView={{ rotateZ: -4, y: 0, opacity: 1 }}
+        initial={{ rotateZ: -6, y: 30, opacity: 0 }}
+        whileInView={{ rotateZ: -3, y: 0, opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 1, ease: [0.2, 0.8, 0.2, 1] }}
-        className="relative aspect-[1.58] overflow-hidden rounded-[1.4rem] bg-gradient-to-br from-navy-800 via-navy-950 to-[#02080f] p-6 text-white shadow-[0_40px_80px_-30px_rgba(7,26,43,.8)] ring-1 ring-gold/50"
+        aria-label={sample ? "Sample PB Rewards card" : `PB Rewards card — ${shown} points`}
+        role="img"
+        className="relative aspect-[1.58] overflow-hidden rounded-[1.4rem] bg-[#05070b] text-white shadow-[0_40px_80px_-30px_rgba(0,0,0,.9),0_0_0_1px_rgba(217,166,46,.7),0_0_40px_-10px_rgba(217,166,46,.55)]"
       >
-        <div aria-hidden className="absolute -left-10 top-1/2 h-40 w-40 rounded-full bg-blue/40 blur-3xl" />
-        <div aria-hidden className="absolute -right-8 -top-8 h-36 w-36 rounded-full bg-red/35 blur-3xl" />
-        <svg aria-hidden viewBox="0 0 200 120" className="absolute right-4 top-1/2 h-24 -translate-y-1/2 opacity-40">
-          {[20, 40, 60, 80].map((y, i) => (
-            <g key={y} stroke="#d9a62e" fill="none" strokeWidth="1.5">
-              <path d={`M40 ${y} H${110 + i * 8} L${130 + i * 8} ${y - 10} H190`} />
-              <circle cx="190" cy={y - 10} r="3" />
+        {/* Blue + red swooshes across the top, like the logo */}
+        <div aria-hidden className="absolute -right-[20%] -top-[30%] h-[70%] w-[120%] rotate-[-14deg] bg-gradient-to-r from-transparent via-blue/80 to-blue/30 blur-[2px]" />
+        <div aria-hidden className="absolute -right-[20%] top-[8%] h-[16%] w-[110%] rotate-[-14deg] bg-gradient-to-r from-transparent via-red to-red/40" />
+        <div aria-hidden className="absolute -right-[20%] top-[24%] h-[3%] w-[110%] rotate-[-14deg] bg-gradient-to-r from-transparent via-gold/80 to-transparent" />
+        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_80%_at_20%_100%,rgba(0,119,217,.25),transparent_70%)]" />
+        {/* Gold circuit lines */}
+        <svg aria-hidden viewBox="0 0 200 120" className="absolute bottom-3 right-3 h-[46%] opacity-60">
+          {[30, 50, 70, 90].map((y, i) => (
+            <g key={y} stroke="#d9a62e" fill="none" strokeWidth="1.2">
+              <path d={`M20 ${y} H${100 + i * 10} L${118 + i * 10} ${y - 12} H196`} />
+              <circle cx="20" cy={y} r="2.5" fill="#d9a62e" />
             </g>
           ))}
         </svg>
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 mix-blend-overlay"
-          style={{ background: glare }}
-        />
-        <div className="relative flex h-full flex-col justify-between" style={{ transform: "translateZ(40px)" }}>
-          <div className="flex items-start justify-between">
-            <span className="display text-4xl italic">
-              <span className="text-blue">P</span>
-              <span className="text-red">B</span>
-              <sup className="text-gold">•</sup>
-            </span>
-            <span className="text-right font-mono text-[0.62rem] uppercase leading-tight tracking-[0.25em] text-gold">
-              Phone
-              <br />
-              Passport
-            </span>
+        <motion.div aria-hidden className="pointer-events-none absolute inset-0 mix-blend-overlay" style={{ background: glare }} />
+
+        <div className="relative flex h-full flex-col justify-between p-[5.5%]" style={{ transform: "translateZ(40px)" }}>
+          <div className="flex items-start justify-between gap-3">
+            <Image src="/brand/pb-logo-horizontal.webp" alt="" width={1007} height={200} className="h-auto w-[46%] drop-shadow-[0_2px_6px_rgba(0,0,0,.6)]" />
+            {sample && <span className="rounded-full bg-black/50 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-white/70 ring-1 ring-white/20">Sample</span>}
           </div>
           <div>
-            <p className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-white/50">{name}</p>
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[0.72rem] text-white/80">
-              {["Battery", "Screen", "Charging", "Storage", "Camera"].map((s) => (
-                <span key={s} className="flex items-center gap-1">
-                  <span className="h-1 w-1 rounded-full bg-gold" />
-                  {s}
-                </span>
-              ))}
+            <p className="display bg-gradient-to-b from-[#fff3c4] via-gold to-[#8a6414] bg-clip-text text-[clamp(1.6rem,8.5vw,2.6rem)] leading-none text-transparent">PB REWARDS</p>
+            <div className="mt-[4%] flex items-center gap-3">
+              <span className="grid aspect-square w-[15%] min-w-10 place-items-center rounded-full bg-gradient-to-b from-[#ffe08a] via-gold to-[#7a560f] text-[#3a2604] shadow-[0_0_18px_rgba(217,166,46,.6)] ring-2 ring-[#fff1c1]/60">
+                <svg viewBox="0 0 24 24" className="h-1/2 w-1/2" fill="currentColor" aria-hidden>
+                  <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+                </svg>
+              </span>
+              <div className="leading-none">
+                <p className="display text-[clamp(1.4rem,7vw,2.2rem)]">{shown}</p>
+                <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.3em] text-gold">Points</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-end justify-between font-mono text-[0.65rem] tracking-[0.2em] text-white/55">
-            <span>{number}</span>
-            <span>{points != null ? `${points} PTS` : "PB MOBILES"}</span>
+          <div className="flex items-end justify-between gap-3 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-white/60">
+            <span className="truncate">{name ?? "PB Phone Passport"}</span>
+            <span className="shrink-0">{number ?? "PBP-000000"}</span>
           </div>
         </div>
       </motion.div>

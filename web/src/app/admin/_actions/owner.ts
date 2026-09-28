@@ -10,7 +10,7 @@ import { SETTING_DEFAULTS, getSetting, type SettingKey } from "@/lib/settings";
 import type { FormState } from "./auth";
 import { bool, diff, int, run, str } from "./util";
 
-/** Super-admin-only configuration (§16, §18). Every change is audited with before/after. */
+/** Super-admin-only configuration. Every change is audited with before/after values (master brief §14). */
 
 export async function saveSettingAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff({ superAdmin: true });
@@ -28,6 +28,7 @@ export async function saveSettingAction(_: FormState, f: FormData): Promise<Form
         next[k] = Math.round(n * 100) / 100;
       } else next[k] = str(f, k);
     }
+    if (key === "passport" && Number(next.expiryMonths) < 1) throw new Error("Points must last at least 1 month");
     await db.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(next) }, update: { value: JSON.stringify(next) } });
     const d = diff(before as Record<string, unknown>, next);
     await audit({ staffId: staff.id, action: "SETTING_CHANGED", entityType: "SETTING", entityId: key, recordLabel: key, before: d.before, after: d.after });
@@ -36,53 +37,47 @@ export async function saveSettingAction(_: FormState, f: FormData): Promise<Form
   });
 }
 
-/** Care Card service definitions — create/edit/reorder/activate (owner only, §18). */
-export async function saveCareServiceAction(_: FormState, f: FormData): Promise<FormState> {
-  const staff = await requireStaff({ superAdmin: true });
-  return run(async () => {
-    const visitNumber = int(f, "visitNumber");
-    if (!visitNumber || visitNumber < 1 || visitNumber > 10) throw new Error("Visit number must be 1–10");
-    const name = str(f, "name");
-    if (name.length < 3) throw new Error("Service name is required");
-    const id = str(f, "id");
-    const data = { visitNumber, name, description: str(f, "description") || null, active: bool(f, "active"), configured: true };
-    await db.$transaction(async (tx) => {
-      if (id) {
-        const before = await tx.careCardService.findUniqueOrThrow({ where: { id } });
-        if (before.visitNumber !== visitNumber) {
-          // Reorder: swap with whichever service holds the target visit number.
-          const other = await tx.careCardService.findUnique({ where: { visitNumber } });
-          if (other) {
-            await tx.careCardService.update({ where: { id: other.id }, data: { visitNumber: -1 } });
-            await tx.careCardService.update({ where: { id }, data });
-            await tx.careCardService.update({ where: { id: other.id }, data: { visitNumber: before.visitNumber } });
-          } else await tx.careCardService.update({ where: { id }, data });
-        } else await tx.careCardService.update({ where: { id }, data });
-        const d = diff(before as unknown as Record<string, unknown>, data);
-        await audit({ staffId: staff.id, action: "CARE_SERVICE_CHANGED", entityType: "CARE_SERVICE", entityId: id, recordLabel: `Visit ${visitNumber}`, before: d.before, after: d.after }, tx);
-      } else {
-        if (await tx.careCardService.findUnique({ where: { visitNumber } })) throw new Error(`Visit ${visitNumber} already exists — edit it instead`);
-        const s = await tx.careCardService.create({ data });
-        await audit({ staffId: staff.id, action: "CARE_SERVICE_CREATED", entityType: "CARE_SERVICE", entityId: s.id, recordLabel: `Visit ${visitNumber}`, after: data }, tx);
-      }
-    });
-    revalidatePath("/admin/settings");
-    return "Care Card service saved";
-  });
-}
-
+/**
+ * Phone Passport rewards (master brief §4): the Super Admin creates, edits, enables/disables rewards and
+ * changes points, descriptions and exclusions. Every change is audited with before/after values.
+ */
 export async function saveRewardAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff({ superAdmin: true });
   return run(async () => {
     const pointsCost = int(f, "pointsCost");
-    if (!pointsCost || pointsCost < 1) throw new Error("Points cost is required");
-    const data = { name: str(f, "name"), description: str(f, "description") || null, pointsCost, active: bool(f, "active") };
+    if (!pointsCost || pointsCost < 1) throw new Error("Points required must be at least 1");
+    const kind = str(f, "kind") === "REPAIR_DISCOUNT" ? "REPAIR_DISCOUNT" : "ITEM";
+    const discountPercent = kind === "REPAIR_DISCOUNT" ? int(f, "discountPercent") : null;
+    if (kind === "REPAIR_DISCOUNT" && (!discountPercent || discountPercent < 1 || discountPercent > 100)) throw new Error("Discount must be 1–100%");
+    const data = {
+      name: str(f, "name"),
+      description: str(f, "description") || null,
+      pointsCost,
+      kind,
+      appliesTo: kind === "REPAIR_DISCOUNT" ? "REPAIR" : str(f, "appliesTo") === "REPAIR" ? "REPAIR" : "ACCESSORY",
+      discountPercent,
+      exclusions: str(f, "exclusions") || null,
+      sortOrder: int(f, "sortOrder") ?? 0,
+      active: bool(f, "active"),
+    };
     if (data.name.length < 3) throw new Error("Reward name is required");
     const id = str(f, "id");
-    const before = id ? await db.reward.findUnique({ where: { id } }) : null;
-    const r = id ? await db.reward.update({ where: { id }, data }) : await db.reward.create({ data });
-    await audit({ staffId: staff.id, action: id ? "REWARD_UPDATED" : "REWARD_CREATED", entityType: "LOYALTY", entityId: r.id, recordLabel: r.name, before, after: data });
+    if (id) {
+      const before = await db.reward.findUniqueOrThrow({ where: { id } });
+      const d = diff(before as unknown as Record<string, unknown>, data);
+      if (!d.changed) return "No changes";
+      await db.$transaction(async (tx) => {
+        await tx.reward.update({ where: { id }, data });
+        await audit({ staffId: staff.id, action: before.active !== data.active ? (data.active ? "REWARD_ENABLED" : "REWARD_DISABLED") : "REWARD_UPDATED", entityType: "REWARD", entityId: id, recordLabel: data.name, before: d.before, after: d.after }, tx);
+      });
+    } else {
+      await db.$transaction(async (tx) => {
+        const r = await tx.reward.create({ data });
+        await audit({ staffId: staff.id, action: "REWARD_CREATED", entityType: "REWARD", entityId: r.id, recordLabel: r.name, after: data }, tx);
+      });
+    }
     revalidatePath("/admin/settings");
+    revalidatePath("/loyalty");
     return "Reward saved";
   });
 }

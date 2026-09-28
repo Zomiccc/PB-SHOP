@@ -19,7 +19,7 @@ const ProductViewer = dynamic(() => import("../three/ProductViewer"), {
   loading: () => <div className="aspect-square animate-pulse rounded-[var(--radius-card)] bg-navy-900" />,
 });
 
-export function ProductDetail({ product, pointsPerRupees, financing, initialVariantId }: { product: ProductDTO; pointsPerRupees: number; financing: FinancingConfig; initialVariantId?: string }) {
+export function ProductDetail({ product, phonePoints, financing, initialVariantId }: { product: ProductDTO; phonePoints: number; financing: FinancingConfig; initialVariantId?: string }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   // Phones and tablets share device features (3D viewer, installments, grades).
@@ -51,7 +51,7 @@ export function ProductDetail({ product, pointsPerRupees, financing, initialVari
   const price = variant.salePrice ?? variant.price;
   const out = variant.stockQty <= 0;
   const low = !out && variant.stockQty <= Math.max(variant.lowStockThreshold, 2);
-  const points = Math.floor((price * qty) / pointsPerRupees);
+  const points = phonePoints * qty;
   const label = [variant.storage, variant.ram ? `${variant.ram} RAM` : null, variant.color, variant.grade ? `Grade ${variant.grade}` : null].filter(Boolean).join(" · ") || "Standard";
 
   const toCart = (buyNow = false) => {
@@ -65,7 +65,7 @@ export function ProductDetail({ product, pointsPerRupees, financing, initialVari
       qty,
       maxQty: variant.stockQty,
       colorHex: variant.colorHex ?? product.finishHex,
-      kind: product.type,
+      kind: product.type as "PHONE" | "TABLET" | "ACCESSORY",
       accessoryType: product.accessoryType,
     });
     if (buyNow) {
@@ -136,7 +136,6 @@ export function ProductDetail({ product, pointsPerRupees, financing, initialVari
           <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", product.condition === "USED" ? "bg-gold/20 text-gold-soft" : "bg-blue/10 text-blue")}>
             {isPhone ? (used ? `Used · Grade ${variant.grade ?? "—"}` : "Brand new") : ACCESSORY_TYPES[(product.accessoryType ?? "OTHER") as AccessoryType]}
           </span>
-          {product.careCardEligible && <span className="rounded-full bg-navy-950 px-3 py-1 text-xs font-semibold text-gold">Includes PB Care Card</span>}
         </div>
         <p className="mt-5 text-lg text-muted">{product.description}</p>
 
@@ -296,10 +295,9 @@ export function ProductDetail({ product, pointsPerRupees, financing, initialVari
         })()}
 
         <ul className="mt-8 space-y-3 border-t border-ink/10 pt-6 text-sm">
-          <li className="flex gap-3"><Icon name="gift" className="h-5 w-5 shrink-0 text-gold" /> Earn about <b>{points} Passport points</b> with this purchase.</li>
+          {points > 0 && <li className="flex gap-3"><Icon name="gift" className="h-5 w-5 shrink-0 text-gold" /> Earn <b>{points} Phone Passport points</b> with this purchase.</li>}
           <li className="flex gap-3"><Icon name="card" className="h-5 w-5 shrink-0 text-gold" /> Pay by mobile wallet, bank account or card — secure Pakistani gateway.</li>
           <li className="flex gap-3"><Icon name="truck" className="h-5 w-5 shrink-0 text-gold" /> Home delivery or collect in store.</li>
-          {product.careCardEligible && <li className="flex gap-3"><Icon name="shield" className="h-5 w-5 shrink-0 text-gold" /> PB Care Card with up to 5 free service visits.</li>}
         </ul>
 
         {Object.keys(product.specs).length > 0 && (

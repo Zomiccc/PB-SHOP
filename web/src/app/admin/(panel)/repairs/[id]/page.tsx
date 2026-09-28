@@ -6,24 +6,31 @@ import { DROP_OFF, REPAIR_CATEGORIES, REPAIR_STATUSES } from "@/lib/constants";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
-import { addNoteAction, redeemCareAction, repairDetailsAction, repairStatusAction } from "../../../_actions/operations";
+import { addNoteAction, redeemRewardAction, repairDetailsAction, repairStatusAction } from "../../../_actions/operations";
+import { Attachments } from "@/components/admin/Attachments";
+import { requireStaffPage } from "@/lib/staff";
 
 export const metadata = { title: "Repair" };
 
 export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">) {
+  const me = await requireStaffPage();
   const { id } = await props.params;
   const r = await db.repairRequest.findUnique({
     where: { id },
     include: {
       statusChanges: { orderBy: { createdAt: "asc" }, include: { staff: true } },
       notes: { orderBy: { createdAt: "desc" }, include: { author: true } },
-      customer: { include: { careCards: { where: { status: "ACTIVE" }, include: { redemptions: true } } } },
-      careRedemptions: { include: { service: true, staff: true } },
+      customer: true,
+      attachments: { orderBy: { createdAt: "asc" }, include: { uploadedBy: true } },
       assignedTo: true,
     },
   });
   if (!r) notFound();
-  const [staff, services] = await Promise.all([db.staff.findMany({ where: { active: true }, orderBy: { name: "asc" } }), db.careCardService.findMany({ where: { active: true, configured: true }, orderBy: { visitNumber: "asc" } })]);
+  const [staff, repairRewards] = await Promise.all([
+    db.staff.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    db.reward.findMany({ where: { active: true, kind: "REPAIR_DISCOUNT" }, orderBy: { pointsCost: "asc" } }),
+  ]);
+  const charge = r.finalPrice ?? r.quote;
   const photos = parseJson<string[]>(r.photos, []);
   const idx = REPAIR_STATUSES.findIndex((s) => s.key === r.status);
   const next = REPAIR_STATUSES[idx + 1];
@@ -129,6 +136,7 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
                 <Field label="Quote (PKR)"><input name="quote" type="number" defaultValue={r.quote ?? ""} className="field" /></Field>
                 <Field label="Final price"><input name="finalPrice" type="number" defaultValue={r.finalPrice ?? ""} className="field" /></Field>
               </div>
+              <Field label="Of which parts (PKR)" hint="Passport repair discounts exclude parts"><input name="partsCost" type="number" min={0} defaultValue={r.partsCost ?? ""} className="field" /></Field>
               <Field label="IMEI / serial"><input name="imei" defaultValue={r.imei ?? ""} className="field" /></Field>
               <Field label="Assigned technician">
                 <select name="assignedToId" defaultValue={r.assignedToId ?? ""} className="field">
@@ -141,32 +149,29 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             {r.quote != null && <p className="mt-3 text-xs text-muted">Quote {pkr(r.quote)} is shown to the customer on the tracking page.</p>}
           </Panel>
 
-          <Panel title="Care Card (§18)">
-            {r.careRedemptions.length > 0 && (
-              <ul className="mb-3 space-y-1 text-sm">
-                {r.careRedemptions.map((c) => (
-                  <li key={c.id}><Badge tone="green">Redeemed</Badge> {c.service.name} · {c.staff.name} · {dt(c.createdAt)}</li>
-                ))}
-              </ul>
-            )}
-            {!r.customer?.careCards.length ? (
-              <p className="text-sm text-muted">No active Care Card for this customer.</p>
+          <Panel title="Phone Passport reward">
+            {r.rewardDiscount ? (
+              <p className="text-sm"><Badge tone="green">Applied</Badge> Rs {r.rewardDiscount.toLocaleString("en-PK")} off labour{charge != null ? ` · customer pays ${pkr(charge - r.rewardDiscount)}` : ""}</p>
+            ) : !r.customer ? (
+              <p className="text-sm text-muted">Link this repair to a Passport (customer phone) to use points.</p>
+            ) : repairRewards.length === 0 ? (
+              <p className="text-sm text-muted">No repair rewards are switched on.</p>
             ) : (
-              r.customer.careCards.map((card) => {
-                const available = services.filter((s) => !card.redemptions.some((x) => x.serviceId === s.id));
-                return (
-                  <ActionForm key={card.id} action={redeemCareAction} className="space-y-2 rounded-xl bg-navy-950 p-3 text-white">
-                    <p className="text-sm"><b className="text-gold">{card.number}</b> · {card.maxUses - card.redemptions.length} of {card.maxUses} uses left</p>
-                    <input type="hidden" name="cardId" value={card.id} />
-                    <input type="hidden" name="repairId" value={r.id} />
-                    <select name="serviceId" aria-label="Service" className="field field-dark">
-                      {available.map((s) => <option key={s.id} value={s.id}>Visit {s.visitNumber}: {s.name}</option>)}
-                    </select>
-                    <Submit variant="gold">Redeem with this repair</Submit>
-                  </ActionForm>
-                );
-              })
+              <ActionForm action={redeemRewardAction} className="space-y-2">
+                <input type="hidden" name="customerId" value={r.customer.id} />
+                <input type="hidden" name="repairId" value={r.id} />
+                <p className="text-sm">{r.customer.loyaltyPoints} points available</p>
+                <select name="rewardId" aria-label="Reward" className="field">
+                  {repairRewards.map((w) => <option key={w.id} value={w.id} disabled={w.pointsCost > r.customer!.loyaltyPoints}>{w.name} — {w.pointsCost} pts</option>)}
+                </select>
+                <p className="text-xs text-muted">Set the final charge and parts cost first — the discount applies to labour only.</p>
+                <Submit variant="gold">Apply to this repair</Submit>
+              </ActionForm>
             )}
+          </Panel>
+
+          <Panel title="Photos & documents">
+            <Attachments items={r.attachments} target="repair" id={r.id} isSuper={me.role === "SUPER_ADMIN"} />
           </Panel>
 
           <Panel title="Status">

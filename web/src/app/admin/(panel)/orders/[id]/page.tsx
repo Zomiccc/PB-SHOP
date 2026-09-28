@@ -5,7 +5,7 @@ import { pkr } from "@/lib/format";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
-import { addNoteAction, cancelOrReturnAction, markPaidAction, setFulfilmentAction } from "../../../_actions/operations";
+import { addNoteAction, cancelOrReturnAction, givePointsForOrderAction, markPaidAction, setFulfilmentAction } from "../../../_actions/operations";
 
 export const metadata = { title: "Order" };
 
@@ -18,7 +18,6 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
       payments: { orderBy: { createdAt: "desc" } },
       notes: { orderBy: { createdAt: "desc" }, include: { author: true } },
       movements: { orderBy: { createdAt: "asc" }, include: { staff: true, variant: true } },
-      careCard: true,
       loyaltyTx: true,
       customer: true,
       staff: true,
@@ -123,8 +122,19 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
             {o.shippingAddress && <p className="mt-2 text-sm text-muted">{o.shippingAddress}, {o.city}</p>}
             <p className="mt-2 text-xs text-muted">{o.fulfilment === "PICKUP" ? "Collect in store" : o.fulfilment === "IN_STORE" ? "Sold in store" : "Home delivery"}</p>
             {o.customer && <Link href={`/admin/customers/${o.customer.id}`} className="mt-3 inline-block text-sm text-blue">Passport {o.customer.passportNo} →</Link>}
-            {o.careCard && <p className="mt-3"><Badge tone="navy">Care Card {o.careCard.number}</Badge></p>}
             {o.loyaltyTx.length > 0 && <p className="mt-2 text-sm">Points: {o.loyaltyTx.map((t) => (t.points > 0 ? `+${t.points}` : t.points)).join(", ")}</p>}
+            {o.customerId && o.paymentStatus === "PAID" && (
+              <ActionForm action={givePointsForOrderAction} resetOnSuccess className="mt-4 space-y-2 rounded-xl bg-gold/10 p-3">
+                <p className="text-sm font-semibold">Give Passport points for this purchase</p>
+                <input type="hidden" name="orderId" value={o.id} />
+                <div className="flex gap-2">
+                  <input name="points" type="number" min={1} max={10000} required placeholder="Points" aria-label="Points to give" className="field !w-28" />
+                  <input name="reason" placeholder="Reason (optional)" aria-label="Reason" className="field" />
+                  <Submit variant="gold">Give</Submit>
+                </div>
+                <p className="text-xs text-muted">Added on top of any points already given; expires in six months. Recorded in the audit log.</p>
+              </ActionForm>
+            )}
             {o.socialProofLabel && <p className="mt-2 text-xs text-muted">Social-proof label: “{o.socialProofLabel}”</p>}
           </Panel>
 

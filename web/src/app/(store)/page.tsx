@@ -5,29 +5,31 @@ import { ProductArt } from "@/components/product/ProductArt";
 import { Reveal, SplitHeadline } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
 import { ReviewCard, ReviewForm, Stars } from "@/components/reviews/Reviews";
-import { listProducts } from "@/lib/catalog";
+import { listProducts, toCatalogItems } from "@/lib/catalog";
 import { approvedReviews, reviewStats } from "@/lib/reviews";
 import { getSetting } from "@/lib/settings";
 import { pkr } from "@/lib/format";
-import { db } from "@/lib/db";
+import { activeListings } from "@/lib/installments";
+import { InstallmentPhones } from "@/components/home/InstallmentPhones";
 
 export const dynamic = "force-dynamic";
 
 /** Homepage — follows the master brief's reference layout on a fully dark, logo-coloured theme. */
 export default async function HomePage() {
-  const [phones, tablets, accessories, loyalty, careServices, reviews, stats] = await Promise.all([
+  const [phones, tablets, accessories, passport, installments, reviews, stats] = await Promise.all([
     listProducts({ type: "PHONE" }),
     listProducts({ type: "TABLET" }),
     listProducts({ type: "ACCESSORY" }),
-    getSetting("loyalty"),
-    db.careCardService.findMany({ where: { active: true, configured: true }, orderBy: { visitNumber: "asc" } }),
+    getSetting("passport"),
+    activeListings(),
     approvedReviews({ take: 9 }),
     reviewStats(),
   ]);
-  const featuredPhones = phones.filter((p) => p.featured).slice(0, 6);
+  const featuredPhones = phones.filter((p) => p.featured && p.condition === "NEW").slice(0, 6);
+  // One card per used SKU, each with its single grade (master brief §12).
+  const usedPhones = toCatalogItems(phones.filter((p) => p.condition === "USED")).filter((c) => c.totalStock > 0).sort((a, b) => Number(b.featured) - Number(a.featured)).slice(0, 6);
   const featuredTablets = tablets.filter((p) => p.featured).concat(tablets.filter((p) => !p.featured)).slice(0, 3);
   const featuredAcc = accessories.filter((p) => p.featured).slice(0, 4);
-  const hundredPts = 100 * loyalty.pointValueRupees;
 
   return (
     <>
@@ -35,12 +37,14 @@ export default async function HomePage() {
 
       {/* Category entry points */}
       <section className="relative z-10 pb-6 pt-6 md:pt-14">
-        <div className="container-pb grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <div className="container-pb grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
           {[
             { href: "/repair", title: "Phone repairs", sub: "Screen, battery, software & more.", art: <RepairArt />, glow: "rgba(0,119,217,.45)" },
-            { href: "/new-phones", title: "Buy a phone", sub: "New & pre-owned devices.", art: <ProductArt kind="PHONE" colorHex="#3a3f4a" brand="Apple" name="iPhone 16 Pro" />, glow: "rgba(215,25,32,.4)" },
-            { href: "/tablets", title: "Tablets", sub: "iPad, Galaxy Tab & more.", art: <ProductArt kind="TABLET" colorHex="#8fa7c4" brand="Apple" name="iPad Air" />, glow: "rgba(0,119,217,.4)" },
+            { href: "/new-phones", title: "New phones", sub: "Latest models, official warranty.", art: <ProductArt kind="PHONE" colorHex="#3a3f4a" brand="Apple" name="iPhone 16 Pro" />, glow: "rgba(215,25,32,.4)" },
+            { href: "/used-phones", title: "Used phones", sub: "Lab-checked, one clear grade.", art: <ProductArt kind="PHONE" colorHex="#5b6b7d" brand="Samsung" name="Galaxy S23" />, glow: "rgba(217,166,46,.4)" },
+            { href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <ProductArt kind="TABLET" colorHex="#8fa7c4" brand="Apple" name="iPad Air" />, glow: "rgba(0,119,217,.4)" },
             { href: "/accessories", title: "Accessories", sub: "Cases, chargers & essentials.", art: <ProductArt kind="ACCESSORY" accessoryType="EARBUDS" colorHex="#e8e8e8" />, glow: "rgba(217,166,46,.4)" },
+            { href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <ProductArt kind="PHONE" colorHex="#b8955a" brand="Samsung" name="Galaxy A55" />, glow: "rgba(215,25,32,.35)" },
           ].map((c, i) => (
             <Reveal key={c.href} delay={i * 0.05}>
               <Link href={c.href} className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-gold/25 transition hover:ring-gold/70">
@@ -80,11 +84,30 @@ export default async function HomePage() {
           <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={<ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
         ))}
       </Row>
-      <div className="container-pb -mt-4 flex flex-wrap gap-2 pb-4">
-        <Link href="/new-phones" className="rounded-full border border-gold/40 px-4 py-2 text-sm hover:bg-gold/10">Shop new phones</Link>
-        <Link href="/used-phones" className="rounded-full border border-white/15 px-4 py-2 text-sm hover:border-white/40">Shop used phones</Link>
-        <Link href="/installments" className="rounded-full border border-white/15 px-4 py-2 text-sm hover:border-white/40">Pay in installments</Link>
+
+      {/* Used phones */}
+      {usedPhones.length > 0 && (
+        <Row title="Used Phones" href="/used-phones">
+          {usedPhones.map((p) => (
+            <MiniCard key={p.id} href={p.href} name={`${p.name}${p.grade ? ` · Grade ${p.grade}` : ""}`} price={p.fromPrice} art={<ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+          ))}
+        </Row>
+      )}
+
+      {/* Strong CTAs (master brief §18) */}
+      <div className="container-pb -mt-2 flex gap-2 overflow-x-auto pb-4 [scrollbar-width:none]">
+        {[
+          { href: "/new-phones", label: "Shop Phones", gold: true },
+          { href: "/used-phones", label: "Shop Used Phones" },
+          { href: "/tablets", label: "Shop Tablets" },
+          { href: "/accessories", label: "View Accessories" },
+          { href: "/repair", label: "Create your repair note" },
+        ].map((c) => (
+          <Link key={c.href} href={c.href} className={`shrink-0 rounded-full border px-4 py-2 text-sm ${c.gold ? "border-gold/50 hover:bg-gold/10" : "border-white/15 hover:border-white/40"}`}>{c.label}</Link>
+        ))}
       </div>
+
+      <InstallmentPhones listings={installments} />
 
       {/* Tablets */}
       {featuredTablets.length > 0 && (
@@ -111,10 +134,9 @@ export default async function HomePage() {
               <span className="text-gradient-gold">PB Rewards</span>
               <CrownIcon />
             </h2>
-            <p className="mt-3 text-lg text-white/85">Earn points every time you shop or repair.</p>
+            <p className="mt-3 text-lg text-white/85">Your PB Phone Passport earns points every time you repair or buy a phone.</p>
             <ul className="mt-5 space-y-2.5 text-sm">
-              {["Get exclusive offers", "Member-only discounts", "Be the first to know", careServices.length ? `PB Care Card: ${careServices.length}+ free service visits with eligible devices` : null]
-                .filter(Boolean)
+              {[`${passport.repairPoints} points for every repair`, `${passport.newPhonePoints} points per new phone · ${passport.usedPhonePoints} per used phone`, "Redeem for AirPods, a phone case or 50% off repairs", `Points last ${passport.expiryMonths} months from when you earn them`]
                 .map((t) => (
                   <li key={t} className="flex items-center gap-2.5">
                     <span className="grid h-5 w-5 place-items-center rounded-full bg-gold text-[#120d02]"><Icon name="check" className="h-3 w-3" strokeWidth={3} /></span>
@@ -128,14 +150,14 @@ export default async function HomePage() {
             </div>
           </div>
           <div>
-            <PassportCard name={`100 points = ${pkr(hundredPts)} off`} />
+            <PassportCard />
           </div>
         </div>
         <div className="container-pb relative mt-12 grid grid-cols-3 gap-3 text-center md:gap-6">
           {[
             { icon: "user", t: "1. Join free", d: "Create your account in seconds." },
-            { icon: "gift", t: "2. Earn points", d: "Get points when you shop or repair." },
-            { icon: "star", t: "3. Redeem rewards", d: "Turn your points into discounts." },
+            { icon: "gift", t: "2. Earn points", d: "On every repair and phone you buy." },
+            { icon: "star", t: "3. Redeem rewards", d: "AirPods, cases & repair discounts." },
           ].map((s) => (
             <div key={s.t}>
               <span className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-gold/60 text-gold"><Icon name={s.icon} className="h-6 w-6" /></span>

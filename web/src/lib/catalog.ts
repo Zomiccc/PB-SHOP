@@ -1,8 +1,8 @@
 import { db } from "./db";
 import { parseJson } from "./format";
 
-export type ProductType = "PHONE" | "TABLET" | "ACCESSORY";
-/** Phones and tablets share device features: 3D viewer, grades, installments, Care Card. */
+export type ProductType = "PHONE" | "TABLET" | "ACCESSORY" | "PART";
+/** Phones and tablets share device features: 3D viewer, grades, installments. */
 export const isDevice = (type: string) => type === "PHONE" || type === "TABLET";
 
 export type VariantDTO = {
@@ -36,7 +36,6 @@ export type ProductDTO = {
   images: string[];
   finishHex: string | null;
   featured: boolean;
-  careCardEligible: boolean;
   model3dUrl: string | null;
   model3dTextures: Record<string, string> | null;
   sketchfabUid: string | null;
@@ -83,7 +82,6 @@ function toDTO(p: Row): ProductDTO {
     images: parseJson(p.images, []),
     finishHex: p.finishHex,
     featured: p.featured,
-    careCardEligible: p.careCardEligible,
     model3dUrl: p.model3dKind === "GLB" ? p.model3dUrl : null,
     model3dTextures: p.model3dKind === "TEXTURED" ? parseJson<Record<string, string> | null>(p.model3dTextures, null) : null,
     sketchfabUid: p.sketchfabUid,
@@ -95,9 +93,12 @@ function toDTO(p: Row): ProductDTO {
   };
 }
 
+/** Spare parts are stock for the repair lab and the till only — never listed in the online shop. */
+const SHOP = { active: true, type: { not: "PART" } } as const;
+
 export async function listProducts(where: { type?: ProductType; condition?: "NEW" | "USED"; featured?: boolean } = {}) {
   const rows = await db.product.findMany({
-    where: { active: true, ...where },
+    where: { ...SHOP, ...where },
     include,
     orderBy: [{ featured: "desc" }, { createdAt: "asc" }],
   });
@@ -105,7 +106,7 @@ export async function listProducts(where: { type?: ProductType; condition?: "NEW
 }
 
 export async function getProductBySlug(slug: string) {
-  const row = await db.product.findFirst({ where: { slug, active: true }, include });
+  const row = await db.product.findFirst({ where: { slug, ...SHOP }, include });
   return row ? toDTO(row) : null;
 }
 

@@ -6,23 +6,27 @@ import { Badge, Field, PageTitle, Panel, Table, Td, dt, statusTone } from "@/com
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
 import { addNoteAction, adjustPointsAction, redeemRewardAction } from "../../../_actions/operations";
+import { availablePoints } from "@/lib/loyalty";
 
 export const metadata = { title: "Customer" };
 
 export default async function CustomerPage(props: PageProps<"/admin/customers/[id]">) {
   const { id } = await props.params;
+  if (await db.customer.findUnique({ where: { id }, select: { id: true } })) await availablePoints(db, id);
   const c = await db.customer.findUnique({
     where: { id },
     include: {
       orders: { orderBy: { createdAt: "desc" }, include: { items: true } },
       repairs: { orderBy: { createdAt: "desc" } },
       loyaltyTx: { orderBy: { createdAt: "desc" }, include: { staff: true, reward: true } },
-      careCards: { include: { redemptions: { include: { service: true, staff: true } } }, orderBy: { issuedAt: "desc" } },
       notes: { where: { kind: "CUSTOMER" }, orderBy: { createdAt: "desc" }, include: { author: true } },
     },
   });
   if (!c) notFound();
-  const rewards = await db.reward.findMany({ where: { active: true }, orderBy: { pointsCost: "asc" } });
+  const rewards = await db.reward.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] });
+  const now = new Date();
+  const lots = c.loyaltyTx.filter((t) => (t.remaining ?? 0) > 0 && t.expiresAt && t.expiresAt > now).sort((a, b) => +a.expiresAt! - +b.expiresAt!);
+  const openRepairs = c.repairs.filter((r) => r.status !== "CANCELLED" && !r.rewardDiscount);
   const spent = c.orders.filter((o) => o.paymentStatus === "PAID").reduce((s, o) => s + o.total, 0);
 
   return (
@@ -39,13 +43,18 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel title="Redeem a reward">
-          <ActionForm action={redeemRewardAction} className="flex gap-2">
+          <ActionForm action={redeemRewardAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <input type="hidden" name="customerId" value={c.id} />
             <select name="rewardId" aria-label="Reward" className="field">
               {rewards.map((r) => <option key={r.id} value={r.id} disabled={r.pointsCost > c.loyaltyPoints}>{r.name} — {r.pointsCost} pts</option>)}
             </select>
+            <select name="repairId" aria-label="Repair (for repair discounts)" className="field">
+              <option value="">Repair (for repair discounts)</option>
+              {openRepairs.map((r) => <option key={r.id} value={r.id}>{r.ref} · {r.brand} {r.model}</option>)}
+            </select>
             <Submit variant="gold">Redeem</Submit>
           </ActionForm>
+          <p className="mt-2 text-xs text-muted">Only unexpired points can be used; the soonest-expiring points are spent first. Repair discounts apply to labour only (final charge minus parts).</p>
           <ActionForm action={adjustPointsAction} resetOnSuccess className="mt-5 grid gap-2 border-t border-ink/10 pt-5 sm:grid-cols-[100px_140px_1fr_auto]">
             <input type="hidden" name="customerId" value={c.id} />
             <input name="points" type="number" placeholder="±pts" required aria-label="Points" className="field" />
@@ -55,16 +64,17 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
           </ActionForm>
         </Panel>
 
-        <Panel title="Care Cards">
-          {c.careCards.length === 0 ? <p className="text-sm text-muted">No Care Cards.</p> : c.careCards.map((card) => (
-            <div key={card.id} className="mb-3 rounded-xl bg-cream p-3 text-sm">
-              <div className="flex items-center justify-between"><b>{card.number}</b><Badge tone={statusTone(card.status)}>{card.status} · {card.redemptions.length}/{card.maxUses}</Badge></div>
-              <ul className="mt-2 space-y-1 text-xs">
-                {card.redemptions.map((r) => <li key={r.id}>✓ {r.service.name} · {r.staff.name} · {dt(r.createdAt)}</li>)}
-              </ul>
-            </div>
-          ))}
-          <Link href={`/admin/care-cards?q=${c.phone}`} className="text-sm text-blue">Open Care Card desk →</Link>
+        <Panel title="Points by expiry date">
+          <Table head={["Earned", "From", "Left", "Expires"]} empty="No unexpired points.">
+            {lots.map((l) => (
+              <tr key={l.id}>
+                <Td className="text-xs text-muted">{dt(l.createdAt)}</Td>
+                <Td className="text-xs">{l.reason}</Td>
+                <Td className="font-semibold">{l.remaining}</Td>
+                <Td className="text-xs">{l.expiresAt?.toLocaleDateString("en-PK")}</Td>
+              </tr>
+            ))}
+          </Table>
         </Panel>
 
         <Panel title="Purchase history">

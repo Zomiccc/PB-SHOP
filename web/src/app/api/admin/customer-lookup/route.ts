@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   if (!staff) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const phone = (new URL(req.url).searchParams.get("phone") ?? "").replace(/[\s-]/g, "");
   if (phone.length < 10) return NextResponse.json({ found: false });
-  const c = await db.customer.findUnique({ where: { phone }, include: { careCards: { where: { status: "ACTIVE" } } } });
+  const c = await db.customer.findUnique({ where: { phone } });
   if (!c) return NextResponse.json({ found: false });
-  return NextResponse.json({ found: true, id: c.id, name: c.name, passportNo: c.passportNo, points: c.loyaltyPoints, careCards: c.careCards.map((x) => x.number) });
+  return NextResponse.json({ found: true, id: c.id, name: c.name, passportNo: c.passportNo, points: c.loyaltyPoints });
 }

@@ -86,6 +86,42 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M3 9h18v-3H3v3ZM12 6v15M12 6s-1.5-3-4-3a2 2 0 0 0 0 4h4Zm0 0s1.5-3 4-3a2 2 0 0 1 0 4h-4Z" />
     </>
   ),
+  camera: (
+    <>
+      <path d="M4 8h3l2-3h6l2 3h3v11H4V8Z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </>
+  ),
+  clip: <path d="m20 11.5-8.2 8.2a5 5 0 0 1-7-7L13 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4L14.6 7.5" />,
+  mic: (
+    <>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </>
+  ),
+  play: <path d="M8 5v14l11-7L8 5Z" />,
+  pause: <path d="M8 5v14M16 5v14" />,
+  trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  bell: <path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2ZM10 20a2 2 0 0 0 4 0" />,
+  "bell-off": <path d="M6 16V11c0-1.2.4-2.4 1-3.3M9.5 5.5A6 6 0 0 1 18 11v4M4 18h13M10 20a2 2 0 0 0 4 0M3 3l18 18" />,
+  megaphone: <path d="M3 10v4l3 .5V9.5L3 10Zm3-.5L18 5v14L6 14.5M9 15l1 5h3l-1-4.5" />,
+  doc: <path d="M6 3h8l4 4v14H6V3Zm8 0v4h4M9 12h6M9 16h6" />,
+  "id-card": (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="8.5" cy="11" r="2" />
+      <path d="M5.5 16c.6-1.5 1.7-2.2 3-2.2s2.4.7 3 2.2M14 10h4M14 14h3" />
+    </>
+  ),
+  tag: <path d="M3 12V4h8l10 10-8 8L3 12Zm5-4.5h.01" />,
+  cash: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6 9v.01M18 15v.01" />
+    </>
+  ),
+  box: <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Zm0 0L12 12m0 0 8-4.5M12 12v9" />,
 };
 
 export function Icon({ name, className = "h-5 w-5", strokeWidth = 1.8 }: { name: keyof typeof paths | string; className?: string; strokeWidth?: number }) {

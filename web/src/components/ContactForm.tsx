@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "./ui/Icon";
+import { ACCEPT, FileField } from "./ui/FileField";
 
 type Errors = Record<string, string[] | undefined>;
 
@@ -17,7 +18,7 @@ export function ContactForm({ subject }: { subject?: string }) {
     setErrors({});
     setMsg(null);
     try {
-      const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget))) });
+      const res = await fetch("/api/contact", { method: "POST", body: new FormData(e.currentTarget) });
       const data = await res.json();
       if (!res.ok) {
         setErrors(data.fields ?? {});
@@ -54,6 +55,7 @@ export function ContactForm({ subject }: { subject?: string }) {
       <L label="Email" error={err("email")}><input name="email" type="email" autoComplete="email" className="field" aria-invalid={!!err("email")} /></L>
       <L label="Subject" error={err("subject")}><input name="subject" defaultValue={subject} className="field" /></L>
       <L label="Message" error={err("message")}><textarea name="message" rows={5} className="field resize-y" aria-invalid={!!err("message")} /></L>
+      <FileField name="attachments" label="Other documents / attachments (optional)" hint="Photos, receipts, PDFs · up to 3 files, 4 MB each" accept={ACCEPT.docs} multiple maxFiles={3} error={err("attachments")} />
       <button disabled={busy} className="btn btn-red w-full disabled:opacity-60">{busy ? "Sending…" : "Send message"}</button>
     </form>
   );

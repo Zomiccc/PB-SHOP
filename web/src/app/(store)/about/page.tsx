@@ -32,7 +32,7 @@ export default function AboutPage() {
           <Reveal className="space-y-5 text-lg text-muted">
             <p>PB Mobiles &amp; Repairing Lab brings together a phone shop and a proper repair workshop. That means the people selling you a phone are the same people who know how to look after it.</p>
             <p>Every used phone we sell passes through our lab first — tested, graded honestly and listed with battery health and notes. Every repair starts with a diagnosis, and nothing is done without your approval.</p>
-            <p>With the PB Phone Passport and Care Card, we stay with you long after you leave the counter.</p>
+            <p>With the PB Phone Passport, we stay with you long after you leave the counter.</p>
           </Reveal>
         </div>
       </section>

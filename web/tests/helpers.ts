@@ -14,7 +14,7 @@ export async function makeCustomer() {
   return db.customer.create({ data: { name: `Ali Khan ${id}`, phone: `0300${String(Math.floor(Math.random() * 1e7)).padStart(7, "0")}`, passportNo: `PBP-T${id}` } });
 }
 
-export async function makeVariant(opts: { stock?: number; price?: number; phone?: boolean; careCard?: boolean } = {}) {
+export async function makeVariant(opts: { stock?: number; price?: number; phone?: boolean; used?: boolean; cost?: number } = {}) {
   const id = uid();
   const product = await db.product.create({
     data: {
@@ -22,11 +22,11 @@ export async function makeVariant(opts: { stock?: number; price?: number; phone?
       name: `Test Phone ${id}`,
       brand: "Test",
       type: opts.phone === false ? "ACCESSORY" : "PHONE",
+      condition: opts.used ? "USED" : "NEW",
       description: "test",
-      careCardEligible: opts.careCard ?? true,
     },
   });
-  return db.variant.create({ data: { productId: product.id, sku: `T-${id}`, barcode: `99${id}`, price: opts.price ?? 100000, stockQty: opts.stock ?? 5 } });
+  return db.variant.create({ data: { productId: product.id, sku: `T-${id}`, barcode: `99${id}`, price: opts.price ?? 100000, costPrice: opts.cost ?? null, grade: opts.used ? "A" : null, stockQty: opts.stock ?? 5 } });
 }
 
 export async function makeOrder(variantId: string, qty: number, customerId?: string, total?: number) {
@@ -48,11 +48,7 @@ export async function makeOrder(variantId: string, qty: number, customerId?: str
   });
 }
 
-export async function setCareServices() {
-  await db.careCardRedemption.deleteMany();
-  await db.careCardService.deleteMany();
-  const names = ["Battery check", "Screen protector", "Charging port check", "Storage check"];
-  for (let i = 0; i < 4; i++) await db.careCardService.create({ data: { visitNumber: i + 1, name: names[i] } });
-  await db.careCardService.create({ data: { visitNumber: 5, name: "Reserved", configured: false, active: false } });
-  return db.careCardService.findMany({ orderBy: { visitNumber: "asc" } });
+export async function makeRepair(customerId?: string) {
+  const id = uid();
+  return db.repairRequest.create({ data: { ref: `PBR-T${id}`, customerId, name: "Ali Khan", phone: "03001234567", brand: "Apple", model: "iPhone 13", category: "SCREEN", description: "cracked screen" } });
 }

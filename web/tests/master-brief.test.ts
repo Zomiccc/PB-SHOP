@@ -29,7 +29,7 @@ describe("Strict single-grade rule (§8)", () => {
   it("lists every used SKU as its own card with a single grade", () => {
     const p = {
       id: "p1", slug: "iphone-13-used", name: "iPhone 13", brand: "Apple", type: "PHONE", condition: "USED", accessoryType: null,
-      description: "", specs: {}, images: [], finishHex: null, featured: false, careCardEligible: true, model3dUrl: null, model3dTextures: null,
+      description: "", specs: {}, images: [], finishHex: null, featured: false, model3dUrl: null, model3dTextures: null,
       sketchfabUid: null, metaTitle: null, metaDescription: null, fromPrice: 0, totalStock: 2,
       variants: [
         { id: "v1", sku: "PB-1", storage: "128GB", ram: null, color: "Blue", colorHex: null, price: 100, salePrice: null, stockQty: 1, lowStockThreshold: 0, grade: "A+", batteryHealth: 91, conditionNotes: null, warrantyInfo: null, returnInfo: null },

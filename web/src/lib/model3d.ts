@@ -15,6 +15,17 @@ import { saveUpload } from "./storage";
 export const VIEWS = ["front", "back", "left", "right", "top", "bottom"] as const;
 export type View = (typeof VIEWS)[number];
 
+/** Generation states shown to staff (master brief §11). APPROVED = published to the customer viewer. */
+export const MODEL_JOB_STATES = ["PROCESSING", "READY", "FAILED", "NEEDS_REVIEW", "APPROVED"] as const;
+
+/** The views missing from an upload — conversion only starts when all six are present. */
+export function missingViews(f: FormData) {
+  return VIEWS.filter((v) => {
+    const x = f.get(v);
+    return !(typeof x === "object" && x !== null && "size" in x && (x as File).size > 0);
+  });
+}
+
 interface AiProvider {
   name: string;
   start(photoUrls: Record<View, string>): Promise<{ providerJobId: string }>;

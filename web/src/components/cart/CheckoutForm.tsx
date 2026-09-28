@@ -10,13 +10,14 @@ import { ProductArt } from "../product/ProductArt";
 
 type Props = {
   shipping: { flatFee: number; freeOver: number };
-  pointsPerRupees: number;
+  /** Passport points per phone bought (master brief §4). */
+  phonePoints: { NEW: number; USED: number };
   defaults: { name?: string; phone?: string; email?: string };
 };
 
 type Errors = Record<string, string[] | undefined>;
 
-export function CheckoutForm({ shipping, pointsPerRupees, defaults }: Props) {
+export function CheckoutForm({ shipping, phonePoints, defaults }: Props) {
   const items = useCart((s) => s.items);
   // Cart rehydrates from localStorage after mount; the server always renders the loading state.
   const hydrated = useSyncExternalStore(
@@ -39,6 +40,7 @@ export function CheckoutForm({ shipping, pointsPerRupees, defaults }: Props) {
   const subtotal = cartSubtotal(items);
   const fee = fulfilment === "PICKUP" || subtotal >= shipping.freeOver ? 0 : shipping.flatFee;
   const total = subtotal + fee;
+  const points = items.reduce((s, i) => s + (i.kind === "PHONE" ? (i.name.endsWith("(Used)") ? phonePoints.USED : phonePoints.NEW) * i.qty : 0), 0);
   const err = (k: string) => errors[k]?.[0];
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -201,9 +203,11 @@ export function CheckoutForm({ shipping, pointsPerRupees, defaults }: Props) {
               <div className="flex justify-between text-white/70"><dt>Delivery</dt><dd>{fee ? pkr(fee) : "Free"}</dd></div>
               <div className="flex justify-between pt-2 text-lg font-bold"><dt>Total</dt><dd>{pkr(total)}</dd></div>
             </dl>
-            <p className="mt-3 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-gold">
-              <Icon name="gift" className="h-4 w-4" /> You&apos;ll earn about {Math.floor(subtotal / pointsPerRupees)} Passport points
-            </p>
+            {points > 0 && (
+              <p className="mt-3 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-gold">
+                <Icon name="gift" className="h-4 w-4" /> You&apos;ll earn {points} Phone Passport points
+              </p>
+            )}
             <label className="mt-5 flex items-start gap-3 text-xs text-white/70">
               <input type="checkbox" name="agree" className="mt-0.5 h-4 w-4 accent-[var(--color-gold)]" aria-invalid={!!err("agree")} />
               <span>

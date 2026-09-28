@@ -12,7 +12,7 @@ const SECTIONS = [
   { id: "repairs", title: "Repairs" },
   { id: "returns", title: "Returns & refunds" },
   { id: "warranty", title: "Warranties" },
-  { id: "loyalty", title: "Passport & Care Card" },
+  { id: "loyalty", title: "PB Phone Passport" },
   { id: "responsibilities", title: "Customer responsibilities" },
   { id: "liability", title: "Liability" },
   { id: "contact", title: "Contact" },
@@ -66,11 +66,12 @@ export default function TermsPage() {
         <li>Warranties do not cover accidental damage, liquid damage, misuse, or repairs by third parties after our service.</li>
       </ul>
 
-      <h2 id="loyalty">8. PB Phone Passport &amp; Care Card</h2>
+      <h2 id="loyalty">8. PB Phone Passport</h2>
       <ul>
         <li>Points are earned on eligible purchases and repairs, have no cash value, and expire as stated on the Loyalty page.</li>
-        <li>A PB Care Card is issued with eligible purchases and may be used up to 5 times; each listed free service may be redeemed once per card.</li>
-        <li>PB Mobiles may update rewards, rules and Care Card services; the current rules are always shown on the Loyalty page.</li>
+        <li>Points: 10 per completed repair, 20 per new phone and 15 per used phone bought. Each award expires six months after it is earned; expired points cannot be redeemed.</li>
+        <li>Points can be redeemed for repairs and accessories, e.g. 100 points for a phone case of your choice, 200 points for AirPods, or 500 points for 50% off a repair (labour only — parts are excluded).</li>
+        <li>PB Mobiles may update rewards and rules; the current rules are always shown on the Loyalty page.</li>
       </ul>
 
       <h2 id="responsibilities">9. Customer responsibilities</h2>

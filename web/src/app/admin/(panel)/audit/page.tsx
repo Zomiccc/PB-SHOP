@@ -10,10 +10,14 @@ export const metadata = { title: "Audit log" };
 const GROUPS: Record<string, { label: string; actions?: string[] }> = {
   all: { label: "Everything" },
   sales: { label: "Sales", actions: ["SALE_COMPLETED", "ORDER_MARKED_PAID", "ORDER_RETURNED", "ORDER_CANCELLED", "ORDER_STATUS_CHANGED", "SALE_NOTE_ADDED", "ZERO_STOCK_OVERRIDE", "ORDER_ON_HOLD_STOCK", "PAYMENT_CALLBACK_REJECTED"] },
-  stock: { label: "Stock", actions: ["STOCK_ADJUSTED", "ZERO_STOCK_OVERRIDE"] },
+  stock: { label: "Stock", actions: ["STOCK_ADJUSTED", "STOCK_PURCHASED", "ITEM_CREATED", "ZERO_STOCK_OVERRIDE"] },
   prices: { label: "Products & prices", actions: ["PRICE_CHANGED", "PRODUCT_UPDATED", "PRODUCT_CREATED", "VARIANT_CREATED", "VARIANT_UPDATED", "PRODUCT_ACTIVATED", "PRODUCT_DEACTIVATED", "MODEL_3D_APPROVED"] },
   repairs: { label: "Repairs", actions: ["REPAIR_STATUS_CHANGED", "REPAIR_NOTE_ADDED", "REPAIR_UPDATED", "REPAIR_CREATED"] },
-  care: { label: "Care Card & loyalty", actions: ["CARE_CARD_REDEEMED", "CARE_SERVICE_CHANGED", "CARE_SERVICE_CREATED", "LOYALTY_ADJUSTED", "REWARD_REDEEMED", "REWARD_CREATED", "REWARD_UPDATED"] },
+  passport: { label: "Phone Passport", actions: ["LOYALTY_ADJUSTED", "REWARD_REDEEMED", "REWARD_CREATED", "REWARD_UPDATED", "REWARD_ENABLED", "REWARD_DISABLED"] },
+  installments: { label: "Installments", actions: ["INSTALLMENT_LISTING_CREATED", "INSTALLMENT_LISTING_UPDATED", "INSTALLMENT_LISTING_DELETED", "INSTALLMENT_LISTING_MOVED", "INSTALLMENT_SALE_CREATED", "INSTALLMENT_SALE_UPDATED"] },
+  used: { label: "Used-phone buying", actions: ["USED_PHONE_BOUGHT", "USED_PHONE_ADDED_TO_STOCK"] },
+  documents: { label: "ID documents & files", actions: ["SENSITIVE_DOCUMENT_VIEWED", "DOCUMENTS_UPLOADED", "DOCUMENT_DELETED"] },
+  broadcasts: { label: "Broadcasts", actions: ["BROADCAST_CREATED", "BROADCAST_UPDATED", "BROADCAST_PUBLISHED", "BROADCAST_UNPUBLISHED", "BROADCAST_DELETED"] },
   admin: { label: "Settings & staff", actions: ["SETTING_CHANGED", "STAFF_CREATED", "STAFF_UPDATED", "STAFF_PASSWORD_RESET", "PASSWORD_CHANGED", "DATA_EXPORTED"] },
 };
 

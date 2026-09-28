@@ -1,18 +1,13 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { finalizeOrder, awardOrderBenefits } from "@/lib/orders";
 import { restoreOrderStock, adjustStock, StockError } from "@/lib/inventory";
-import { redeemCareService, CareCardError } from "@/lib/care-card";
 import { createPosSale, PosError } from "@/lib/pos";
 import { changeRepairStatus } from "@/lib/repairs";
 import { signSandbox, paymentProvider } from "@/lib/payments";
 import { ean13 } from "@/lib/barcode";
 import { privacyLabel } from "@/lib/format";
-import { makeCustomer, makeOrder, makeStaff, makeVariant, setCareServices } from "./helpers";
-
-beforeAll(async () => {
-  await setCareServices();
-});
+import { makeCustomer, makeOrder, makeStaff, makeVariant } from "./helpers";
 
 describe("Inventory & sales (§6, §19)", () => {
   it("decrements stock after a confirmed sale and logs the movement + audit", async () => {
@@ -68,66 +63,37 @@ describe("Inventory & sales (§6, §19)", () => {
   });
 });
 
-describe("Loyalty & Care Card issuing (§7, §18)", () => {
-  it("awards points and issues a Care Card for a paid eligible order", async () => {
+describe("Phone Passport points on orders (master brief §4)", () => {
+  it("awards 20 points per new phone for a paid order — no Care Card any more", async () => {
     const c = await makeCustomer();
     const v = await makeVariant({ stock: 2, price: 150000 });
-    const o = await makeOrder(v.id, 1, c.id);
+    const o = await makeOrder(v.id, 2, c.id);
     await finalizeOrder(o.id, { markPaid: true });
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(1500);
-    expect(await db.careCard.count({ where: { orderId: o.id } })).toBe(1);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(40);
   });
 
-  it("gives nothing to unpaid (COD) orders until they are marked paid", async () => {
+  it("gives nothing to unpaid (COD) orders until they are marked paid, and awards once", async () => {
     const c = await makeCustomer();
-    const v = await makeVariant({ stock: 2, price: 50000 });
+    const v = await makeVariant({ stock: 2, price: 50000, used: true });
     const o = await makeOrder(v.id, 1, c.id);
     await finalizeOrder(o.id, { markPaid: false });
     expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(0);
     await db.$transaction((tx) => awardOrderBenefits(tx, o.id, null));
     await db.$transaction((tx) => awardOrderBenefits(tx, o.id, null)); // idempotent
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(500);
-    expect(await db.careCard.count({ where: { orderId: o.id } })).toBe(1);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(15);
+  });
+
+  it("does not award points on accessories", async () => {
+    const c = await makeCustomer();
+    const v = await makeVariant({ stock: 2, price: 5000, phone: false });
+    await db.product.update({ where: { id: v.productId }, data: { loyaltyEligible: false } });
+    const o = await makeOrder(v.id, 1, c.id);
+    await finalizeOrder(o.id, { markPaid: true });
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(0);
   });
 
   it("uses a privacy-safe social-proof label", () => {
     expect(privacyLabel("Ahmed Raza Khan", "Lahore")).toBe("Ahmed R. from Lahore");
-  });
-});
-
-describe("Care Card redemption rules (§18)", () => {
-  async function card() {
-    const c = await makeCustomer();
-    return db.careCard.create({ data: { number: `PBC-T${Date.now()}${Math.random()}`, customerId: c.id } });
-  }
-
-  it("redeems each service once and records the employee", async () => {
-    const [s1] = await db.careCardService.findMany({ orderBy: { visitNumber: "asc" } });
-    const staff = await makeStaff();
-    const cc = await card();
-    await redeemCareService({ cardId: cc.id, serviceId: s1.id, staffId: staff.id });
-    await expect(redeemCareService({ cardId: cc.id, serviceId: s1.id, staffId: staff.id })).rejects.toBeInstanceOf(CareCardError);
-    const r = await db.careCardRedemption.findFirstOrThrow({ where: { careCardId: cc.id } });
-    expect(r.staffId).toBe(staff.id);
-    expect(await db.auditLog.count({ where: { entityId: cc.id, action: "CARE_CARD_REDEEMED" } })).toBe(1);
-  });
-
-  it("blocks the undefined 5th visit until the owner configures it", async () => {
-    const services = await db.careCardService.findMany({ orderBy: { visitNumber: "asc" } });
-    const staff = await makeStaff();
-    const cc = await card();
-    await expect(redeemCareService({ cardId: cc.id, serviceId: services[4].id, staffId: staff.id })).rejects.toThrow(/not currently available/);
-  });
-
-  it("is exhausted after the 5th use", async () => {
-    const staff = await makeStaff();
-    const services = await db.careCardService.findMany({ orderBy: { visitNumber: "asc" } });
-    await db.careCardService.update({ where: { id: services[4].id }, data: { name: "Free lens clean", configured: true, active: true } });
-    const cc = await card();
-    for (const s of services) await redeemCareService({ cardId: cc.id, serviceId: s.id, staffId: staff.id });
-    expect((await db.careCard.findUniqueOrThrow({ where: { id: cc.id } })).status).toBe("EXHAUSTED");
-    await expect(redeemCareService({ cardId: cc.id, serviceId: services[0].id, staffId: staff.id })).rejects.toBeInstanceOf(CareCardError);
-    await db.careCardService.update({ where: { id: services[4].id }, data: { configured: false, active: false } });
   });
 });
 
@@ -169,7 +135,7 @@ describe("Repairs (§8)", () => {
     for (const s of ["RECEIVED", "DIAGNOSING", "REPAIRING", "READY", "COMPLETED"]) await changeRepairStatus(r.id, s, staff.id);
     await changeRepairStatus(r.id, "COMPLETED", staff.id);
     expect(await db.repairStatusChange.count({ where: { repairId: r.id } })).toBe(5);
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(50);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(10);
   });
 });
 

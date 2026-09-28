@@ -6,16 +6,19 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { assertVariantGrade } from "../src/lib/grade";
+import { migrateLegacyBalances } from "../src/lib/loyalty";
 
 const db = new PrismaClient();
 
-type V = { storage?: string; ram?: string; color?: string; colorHex?: string; price: number; salePrice?: number; stock: number; grade?: string; battery?: number; notes?: string };
+type V = { storage?: string; ram?: string; color?: string; colorHex?: string; price: number; salePrice?: number; cost?: number; stock: number; grade?: string; battery?: number; notes?: string; partNumber?: string };
 type P = {
   name: string;
   brand: string;
-  type: "PHONE" | "TABLET" | "ACCESSORY";
+  type: "PHONE" | "TABLET" | "ACCESSORY" | "PART";
   condition?: "NEW" | "USED";
   accessoryType?: string;
+  partType?: string;
+  compatibleModel?: string;
   finishHex?: string;
   featured?: boolean;
   description: string;
@@ -137,6 +140,28 @@ const TABLETS: P[] = [
   { name: "iPad Pro 11-inch (M1)", brand: "Apple", type: "TABLET", condition: "USED", finishHex: "#9ea3a8", description: "Pro performance and ProMotion display, tested by the PB Lab.", variants: [{ storage: "128GB", ram: "8GB", color: "Silver", colorHex: "#c4c7cb", price: 149999, stock: 1, grade: "A", battery: 89, notes: "Minor scuff on the back edge." }, { storage: "256GB", ram: "8GB", color: "Space Grey", colorHex: "#4a4d52", price: 144999, stock: 1, grade: "B", battery: 84, notes: "Light scratches on the back." }] },
 ];
 
+// Phone spare parts (master brief §10) — repair-lab stock, sold at the till, never listed online.
+const PARTS: P[] = [
+  { name: "iPhone 13 OLED screen assembly", brand: "Apple", partType: "SCREEN", compatibleModel: "iPhone 13", description: "Replacement OLED display with frame.", variants: [{ price: 32000, cost: 24500, stock: 3, partNumber: "IP13-OLED" }] },
+  { name: "iPhone 12 / 12 Pro battery", brand: "Apple", partType: "BATTERY", compatibleModel: "iPhone 12, iPhone 12 Pro", description: "2815mAh replacement battery.", variants: [{ price: 7500, cost: 4200, stock: 6, partNumber: "IP12-BAT" }] },
+  { name: "Galaxy A54 USB-C charging port board", brand: "Samsung", partType: "CHARGING_PORT", compatibleModel: "Galaxy A54 5G", description: "Sub-board with USB-C port and microphone.", variants: [{ price: 4500, cost: 2300, stock: 4, partNumber: "SM-A546-SUB" }] },
+  { name: "Galaxy S23 Ultra back glass", brand: "Samsung", partType: "BACK_GLASS", compatibleModel: "Galaxy S23 Ultra", description: "Rear glass panel with adhesive.", variants: [{ price: 6500, cost: 3600, stock: 1, partNumber: "SM-S918-BG" }] },
+].map((p) => ({ ...p, type: "PART" as const, condition: "NEW" as const }));
+
+// Phone Passport rewards exactly as the master brief (§4) specifies. The owner can edit them in Settings.
+const REWARDS = [
+  { name: "Phone case of your choice", pointsCost: 100, kind: "ITEM", appliesTo: "ACCESSORY", description: "Any in-stock phone case.", sortOrder: 10 },
+  { name: "AirPods", pointsCost: 200, kind: "ITEM", appliesTo: "ACCESSORY", description: "One AirPods reward (subject to stock).", sortOrder: 20 },
+  { name: "50% off a repair", pointsCost: 500, kind: "REPAIR_DISCOUNT", appliesTo: "REPAIR", discountPercent: 50, exclusions: "Excludes parts — applies to the labour charge only.", sortOrder: 30 },
+];
+
+// SAMPLE installment plans so the homepage section can be reviewed — the owner replaces these in Admin → Installments.
+const INSTALLMENT_LISTINGS = [
+  { model: "Samsung Galaxy A55 5G · 8GB / 256GB", regularPrice: 129999, installmentTotal: 149499, interestPercent: 15, downPayment: 39999, durationMonths: 12, planLabel: "12 monthly payments", availability: "AVAILABLE", sortOrder: 10 },
+  { model: "iPhone 15 · 128GB", regularPrice: 259999, installmentTotal: 295999, interestPercent: 13.8, downPayment: 79999, durationMonths: 12, planLabel: "12 monthly payments", availability: "LIMITED", sortOrder: 20 },
+  { model: "Infinix Note 40 · 8GB / 256GB", regularPrice: 59999, installmentTotal: 67999, interestPercent: 13.3, downPayment: 17999, durationMonths: 6, planLabel: "6 monthly payments", availability: "AVAILABLE", sortOrder: 30 },
+];
+
 async function createProducts(list: P[], firstSeq: number, barcodePrefix: string) {
   let skuSeq = firstSeq;
   for (const p of list) {
@@ -149,11 +174,13 @@ async function createProducts(list: P[], firstSeq: number, barcodePrefix: string
         type: p.type,
         condition: p.condition ?? "NEW",
         accessoryType: p.accessoryType,
+        partType: p.partType,
+        compatibleModel: p.compatibleModel,
+        loyaltyEligible: p.type === "PHONE",
         description: p.description,
         specs: JSON.stringify(p.specs ?? {}),
         finishHex: p.finishHex,
         featured: !!p.featured,
-        careCardEligible: p.type !== "ACCESSORY",
         metaTitle: `${p.name}${isUsed ? " (Used)" : ""} | PB Mobiles`,
         metaDescription: p.description,
       },
@@ -171,17 +198,20 @@ async function createProducts(list: P[], firstSeq: number, barcodePrefix: string
           colorHex: v.colorHex,
           price: v.price,
           salePrice: v.salePrice,
+          // Demo purchase price (≈80% of retail) so the investment / profit reports have something to show.
+          costPrice: v.cost ?? Math.round(v.price * 0.8),
+          partNumber: v.partNumber,
           stockQty: v.stock,
-          lowStockThreshold: isUsed ? 0 : p.type === "ACCESSORY" ? 5 : 2,
+          lowStockThreshold: isUsed ? 0 : p.type === "ACCESSORY" || p.type === "PART" ? 3 : 2,
           grade: assertVariantGrade(p.condition ?? "NEW", v.grade), // single grade per SKU (§8)
           batteryHealth: v.battery,
           conditionNotes: v.notes,
-          warrantyInfo: isUsed ? "30-day PB Lab hardware warranty" : p.type === "ACCESSORY" ? "7-day replacement for manufacturing faults" : "Official brand warranty where applicable",
+          warrantyInfo: isUsed ? "30-day PB Lab hardware warranty" : p.type === "ACCESSORY" || p.type === "PART" ? "7-day replacement for manufacturing faults" : "Official brand warranty where applicable",
           returnInfo: isUsed ? "7-day return if the device does not match its listed grade" : "Unopened items returnable within 7 days",
         },
       });
       if (v.stock > 0) {
-        await db.stockMovement.create({ data: { variantId: variant.id, type: "RECEIVED", qtyChange: v.stock, qtyAfter: v.stock, reason: "Opening stock (seed)" } });
+        await db.stockMovement.create({ data: { variantId: variant.id, type: "PURCHASE", qtyChange: v.stock, qtyAfter: v.stock, unitPrice: v.cost ?? Math.round(v.price * 0.8), reference: "OPENING", reason: "Opening stock (demo)" } });
       }
       skuSeq++;
     }
@@ -191,25 +221,19 @@ async function createProducts(list: P[], firstSeq: number, barcodePrefix: string
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
   if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
-    // Existing databases still get the demo tablet category once (added in the master brief).
-    if ((await db.product.count({ where: { type: "TABLET" } })) === 0) {
-      const skus = await db.variant.findMany({ select: { sku: true } });
-      const next = Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
-      await createProducts(TABLETS, next, "22");
-      console.log(`Added ${TABLETS.length} demo tablets.`);
-    } else {
-      console.log("Database already has data — skipping seed.");
-    }
+    await upgradeExisting();
     return;
   }
   console.log("Resetting demo data…");
   // Order matters for FK constraints.
   await db.$transaction([
-    db.review.deleteMany(), db.careCardRedemption.deleteMany(), db.careCard.deleteMany(), db.loyaltyTransaction.deleteMany(), db.note.deleteMany(),
+    db.attachment.deleteMany(), db.pushSubscription.deleteMany(), db.broadcast.deleteMany(),
+    db.installmentSale.deleteMany(), db.installmentListing.deleteMany(), db.usedPhonePurchase.deleteMany(),
+    db.review.deleteMany(), db.loyaltyTransaction.deleteMany(), db.note.deleteMany(),
     db.stockMovement.deleteMany(), db.payment.deleteMany(), db.orderItem.deleteMany(), db.order.deleteMany(),
     db.repairStatusChange.deleteMany(), db.repairRequest.deleteMany(), db.model3DJob.deleteMany(), db.variant.deleteMany(),
-    db.product.deleteMany(), db.reward.deleteMany(), db.careCardService.deleteMany(), db.auditLog.deleteMany(),
-    db.staffLoginEvent.deleteMany(), db.staff.deleteMany(), db.customer.deleteMany(), db.chatMessage.deleteMany(),
+    db.product.deleteMany(), db.reward.deleteMany(), db.auditLog.deleteMany(),
+    db.staffLoginEvent.deleteMany(), db.chatMessage.deleteMany(), db.staff.deleteMany(), db.customer.deleteMany(),
     db.chatConversation.deleteMany(), db.contactMessage.deleteMany(), db.setting.deleteMany(),
   ]);
 
@@ -222,29 +246,48 @@ async function main() {
     await db.staff.create({ data: { name: `Employee 0${i}`, email: `employee${i}@pbmobiles.pk`, passwordHash: pw, role: "ADMIN" } });
   }
 
-  // §18 — visits 1–4 as specified; visit 5 is a configurable placeholder, not an invented service.
-  const services = [
-    { visitNumber: 1, name: "Free battery health check" },
-    { visitNumber: 2, name: "Free screen protector" },
-    { visitNumber: 3, name: "Free charging port check" },
-    { visitNumber: 4, name: "Free storage check" },
-    { visitNumber: 5, name: "Reserved — to be defined by owner", configured: false, active: false },
-  ];
-  for (const s of services) await db.careCardService.create({ data: s });
+  await db.reward.createMany({ data: REWARDS });
+  await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
 
-  await db.reward.createMany({
-    data: [
-      { name: "Free tempered glass fitting", pointsCost: 150 },
-      { name: "Rs 1,000 off any accessory", pointsCost: 500 },
-      { name: "Free diagnostic + priority repair slot", pointsCost: 300 },
-    ],
-  });
-
-  await createProducts([...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES], 1, "20");
+  await createProducts([...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES, ...PARTS], 1, "20");
 
   const count = await db.product.count();
-  console.log(`Seeded ${count} products, 7 staff accounts, 5 Care Card visit slots.`);
+  console.log(`Seeded ${count} products (incl. spare parts), 7 staff accounts, ${REWARDS.length} Passport rewards, ${INSTALLMENT_LISTINGS.length} sample installment plans.`);
   console.log(`Staff logins: owner@pbmobiles.pk, employee1-6@pbmobiles.pk — temporary password: ${tempPassword}`);
+}
+
+/**
+ * Deploys run the seed with SEED_ONLY_IF_EMPTY=1: real / demo activity is never wiped, but each
+ * database is brought up to the latest brief once (idempotent — safe on every build).
+ */
+async function upgradeExisting() {
+  const nextSeq = async () => {
+    const skus = await db.variant.findMany({ select: { sku: true } });
+    return Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
+  };
+  if ((await db.product.count({ where: { type: "TABLET" } })) === 0) {
+    await createProducts(TABLETS, await nextSeq(), "22");
+    console.log(`Added ${TABLETS.length} demo tablets.`);
+  }
+  if ((await db.product.count({ where: { type: "PART" } })) === 0) {
+    await createProducts(PARTS, await nextSeq(), "23");
+    console.log(`Added ${PARTS.length} demo spare parts.`);
+  }
+  // Updated brief: Care Card removed, new Passport rewards. Old rewards are switched off (kept for history).
+  if ((await db.reward.count({ where: { kind: "REPAIR_DISCOUNT" } })) === 0) {
+    await db.reward.updateMany({ data: { active: false } });
+    await db.reward.createMany({ data: REWARDS });
+    console.log("Installed the Phone Passport rewards from the updated brief.");
+  }
+  if ((await db.installmentListing.count()) === 0) {
+    await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
+    console.log("Added sample installment plans.");
+  }
+  // Only phones earn purchase points now (repairs earn separately).
+  await db.product.updateMany({ where: { type: { not: "PHONE" } }, data: { loyaltyEligible: false } });
+  const migrated = await migrateLegacyBalances();
+  if (migrated) console.log(`Moved ${migrated} existing points balance(s) onto the new six-month points lots.`);
+  console.log("Database already has data — upgrade checks done.");
 }
 
 main()

@@ -8,7 +8,7 @@ import { Icon } from "../ui/Icon";
 
 type Item = { href: string; label: string; icon: string; badge?: number; superOnly?: boolean };
 
-export function AdminNav({ role, name, counts, logout }: { role: string; name: string; counts: { lowStock: number; newRepairs: number; inbox: number; onHold: number; reviews: number }; logout: () => Promise<void> }) {
+export function AdminNav({ role, name, counts, logout }: { role: string; name: string; counts: { lowStock: number; newRepairs: number; inbox: number; onHold: number; reviews: number; chats: number; installments: number }; logout: () => Promise<void> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isSuper = role === "SUPER_ADMIN";
@@ -19,7 +19,8 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
       items: [
         { href: "/admin", label: "Dashboard", icon: "sparkle" },
         { href: "/admin/pos", label: "POS / Scan & sell", icon: "card" },
-        { href: "/admin/care-cards", label: "Care Card desk", icon: "shield" },
+        { href: "/admin/installments/sales/new", label: "Installment sale", icon: "id-card" },
+        { href: "/admin/used-phones/new", label: "Buy a used phone", icon: "cash" },
       ],
     },
     {
@@ -28,9 +29,12 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
         { href: "/admin/orders", label: "Orders", icon: "bag", badge: counts.onHold },
         { href: "/admin/repairs", label: "Repairs", icon: "wrench", badge: counts.newRepairs },
         { href: "/admin/products", label: "Products", icon: "phone" },
-        { href: "/admin/inventory", label: "Inventory", icon: "filter", badge: counts.lowStock },
+        { href: "/admin/inventory", label: "Inventory & items", icon: "box", badge: counts.lowStock },
+        { href: "/admin/installments", label: "Installments", icon: "id-card", badge: counts.installments },
+        { href: "/admin/used-phones", label: "Used-phone buying", icon: "cash" },
         { href: "/admin/customers", label: "Customers & loyalty", icon: "user" },
-        { href: "/admin/inbox", label: "Inbox", icon: "chat", badge: counts.inbox },
+        { href: "/admin/inbox", label: "Inbox & chat", icon: "chat", badge: counts.inbox + counts.chats },
+        { href: "/admin/broadcasts", label: "Broadcasts", icon: "megaphone" },
         { href: "/admin/reviews", label: "Reviews", icon: "star", badge: counts.reviews },
         { href: "/admin/reports", label: "Reports", icon: "star" },
       ],

@@ -33,7 +33,7 @@ export async function commitOrderStock(tx: Tx, orderId: string, staffId: string 
     }
     const updated = await tx.variant.update({ where: { id: v.id }, data: { stockQty: { decrement: item.qty } } });
     await tx.stockMovement.create({
-      data: { variantId: v.id, type: "SALE", qtyChange: -item.qty, qtyAfter: updated.stockQty, orderId, staffId, reason: `Order ${order.number}` },
+      data: { variantId: v.id, type: "SALE", qtyChange: -item.qty, qtyAfter: updated.stockQty, unitPrice: item.unitPrice, reference: order.number, orderId, staffId, reason: `Order ${order.number}` },
     });
   }
   await tx.order.update({ where: { id: orderId }, data: { stockCommitted: true } });
@@ -62,6 +62,8 @@ export async function restoreOrderStock(tx: Tx, orderId: string, staffId: string
         type,
         qtyChange: item.qty,
         qtyAfter: updated.stockQty,
+        unitPrice: item.unitPrice,
+        reference: order.number,
         orderId,
         staffId,
         reason: `${type === "RETURN" ? "Return" : "Cancellation"} of ${order.number}`,
@@ -96,4 +98,44 @@ export async function adjustStock(tx: Tx, variantId: string, qtyChange: number, 
     tx,
   );
   return after;
+}
+
+/**
+ * Stock bought in (master brief §10): increases stock and writes a PURCHASE movement with the unit
+ * purchase price, supplier reference, employee and time — the basis of the investment report.
+ */
+export async function receiveStock(
+  tx: Tx,
+  input: { variantId: string; qty: number; unitCost: number | null; staffId: string; reference?: string | null; notes?: string | null },
+) {
+  if (!Number.isInteger(input.qty) || input.qty <= 0) throw new StockError("Enter how many units were purchased");
+  if (input.unitCost != null && input.unitCost < 0) throw new StockError("Purchase price can't be negative");
+  const before = await tx.variant.findUniqueOrThrow({ where: { id: input.variantId }, include: { product: true } });
+  const after = await tx.variant.update({
+    where: { id: input.variantId },
+    data: { stockQty: { increment: input.qty }, ...(input.unitCost != null ? { costPrice: input.unitCost } : {}) },
+  });
+  await tx.stockMovement.create({
+    data: { variantId: input.variantId, type: "PURCHASE", qtyChange: input.qty, qtyAfter: after.stockQty, unitPrice: input.unitCost, reference: input.reference ?? null, reason: input.notes ?? null, staffId: input.staffId },
+  });
+  await audit(
+    {
+      staffId: input.staffId,
+      action: "STOCK_PURCHASED",
+      entityType: "VARIANT",
+      entityId: input.variantId,
+      recordLabel: `${before.product.name} / ${before.sku} / +${input.qty}`,
+      before: { stockQty: before.stockQty, costPrice: before.costPrice },
+      after: { stockQty: after.stockQty, costPrice: after.costPrice, reference: input.reference ?? null },
+    },
+    tx,
+  );
+  return after;
+}
+
+/** An IMEI belongs to one physical device, so it may appear on only one SKU. */
+export async function assertImeiFree(tx: Tx, imei: string | null | undefined, exceptVariantId?: string) {
+  if (!imei) return;
+  const clash = await tx.variant.findFirst({ where: { imei, NOT: exceptVariantId ? { id: exceptVariantId } : undefined }, include: { product: true } });
+  if (clash) throw new StockError(`IMEI ${imei} is already on ${clash.product.name} (${clash.sku})`, clash.sku);
 }

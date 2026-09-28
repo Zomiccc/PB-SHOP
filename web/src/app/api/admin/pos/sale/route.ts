@@ -10,6 +10,7 @@ const Sale = z.object({
   customerName: z.string().trim().max(80).optional(),
   note: z.string().max(2000).optional(),
   discount: z.number().int().min(0).optional(),
+  points: z.number().int().min(0).max(10000).optional(),
   override: z.object({ email: z.string().optional(), password: z.string().optional() }).optional(),
 });
 
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   }
   try {
     const order = await createPosSale(parsed.data, staff);
-    return NextResponse.json({ orderId: order.id, number: order.number, total: order.total, careCard: order.careCard?.number ?? null });
+    return NextResponse.json({ orderId: order.id, number: order.number, total: order.total });
   } catch (e) {
     if (e instanceof PosError) return NextResponse.json({ error: e.message, needsOverride: /zero-stock|only \d+ in stock/i.test(e.message) }, { status: 409 });
     throw e;

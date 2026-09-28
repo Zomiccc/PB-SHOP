@@ -36,7 +36,7 @@ export function QuickRepair() {
         </select>
       </div>
       <button className="btn btn-gold w-full justify-between">
-        Create my visit note <Icon name="arrow-up-right" className="h-4 w-4" />
+        Create your repair note <Icon name="arrow-up-right" className="h-4 w-4" />
       </button>
     </form>
   );

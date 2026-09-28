@@ -11,6 +11,8 @@ export type PosSaleInput = {
   customerName?: string;
   note?: string;
   discount?: number;
+  /** Passport points typed by staff for this sale; omit for the automatic amount. */
+  points?: number;
   /** Zero-stock exception. Owner at the till: no credentials needed. Employee: owner email + password. */
   override?: { email?: string; password?: string };
 };
@@ -19,7 +21,7 @@ export class PosError extends Error {}
 
 /**
  * In-store sale from the POS (§6, §19, §20): creates a POS order tied to the employee, confirms
- * payment, decrements stock, awards loyalty / Care Card when a customer is attached, saves the
+ * payment, decrements stock, awards Phone Passport points when a customer is attached, saves the
  * employee's sale note and audits it. Zero-stock sales need a super admin's credentials.
  */
 export async function createPosSale(input: PosSaleInput, staff: { id: string; role: string; email: string }) {
@@ -42,7 +44,7 @@ export async function createPosSale(input: PosSaleInput, staff: { id: string; ro
     const v = variants.find((x) => x.id === i.variantId);
     if (!v) throw new PosError("Item not found");
     const label = [v.storage, v.color, v.grade ? `Grade ${v.grade}` : null].filter(Boolean).join(" · ");
-    return { variantId: v.id, name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}${label ? ` — ${label}` : ""}`, sku: v.sku, grade: v.grade, unitPrice: v.salePrice ?? v.price, qty: i.qty };
+    return { variantId: v.id, name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}${label ? ` — ${label}` : ""}`, sku: v.sku, grade: v.grade, unitPrice: v.salePrice ?? v.price, unitCost: v.costPrice, qty: i.qty };
   });
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const discount = Math.max(0, Math.min(input.discount ?? 0, subtotal));
@@ -76,7 +78,7 @@ export async function createPosSale(input: PosSaleInput, staff: { id: string; ro
   });
 
   try {
-    await finalizeOrder(order.id, { staffId: staff.id, markPaid: true, overrideBy });
+    await finalizeOrder(order.id, { staffId: staff.id, markPaid: true, overrideBy, points: phone ? input.points : undefined });
   } catch (e) {
     // Roll back the unconfirmed sale so it never appears as revenue.
     await db.$transaction([
@@ -89,5 +91,5 @@ export async function createPosSale(input: PosSaleInput, staff: { id: string; ro
     throw e;
   }
   // Keep the POS order status as completed (finalizeOrder moves NEW → PROCESSING only).
-  return db.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true, careCard: true } });
+  return db.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true } });
 }

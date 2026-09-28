@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { DROP_OFF, PHONE_BRANDS, REPAIR_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/format";
 import { Icon } from "../ui/Icon";
+import { ACCEPT, FileField } from "../ui/FileField";
 
 type Errors = Record<string, string[] | undefined>;
 
@@ -14,9 +15,7 @@ export function RepairForm({ defaults }: { defaults: { device?: string; issue?: 
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
-  const [previews, setPreviews] = useState<string[]>([]);
   const [dropOff, setDropOff] = useState("WALK_IN");
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const guessedBrand = PHONE_BRANDS.find((b) => defaults.device?.toLowerCase().includes(b.toLowerCase())) ?? (defaults.device?.toLowerCase().includes("iphone") ? "Apple" : "");
   const guessedModel = defaults.device?.replace(new RegExp(guessedBrand, "i"), "").trim() ?? "";
@@ -53,7 +52,7 @@ export function RepairForm({ defaults }: { defaults: { device?: string; issue?: 
         <div className="grid h-14 w-14 place-items-center rounded-full bg-gold text-navy-950">
           <Icon name="check" className="h-7 w-7" strokeWidth={2.5} />
         </div>
-        <h3 className="display mt-6 text-4xl md:text-5xl">Visit note created.</h3>
+        <h3 className="display mt-6 text-4xl md:text-5xl">Repair note created.</h3>
         <p className="mt-3 text-white/70">Your repair reference is</p>
         <p className="display mt-2 text-5xl text-gold md:text-6xl">{done}</p>
         <ol className="mt-8 space-y-3 text-sm text-white/80">
@@ -138,37 +137,9 @@ export function RepairForm({ defaults }: { defaults: { device?: string; issue?: 
             aria-invalid={!!err("description")}
           />
         </Field>
-        <div className="mt-4">
-          <span className="label">Photos (optional, up to 4)</span>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-ink/15 px-4 py-6 text-sm text-muted transition hover:border-blue hover:text-blue"
-          >
-            <Icon name="upload" className="h-5 w-5" /> Add photos of the damage
-          </button>
-          <input
-            ref={fileRef}
-            id="rf-photos"
-            name="photos"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic"
-            multiple
-            className="sr-only"
-            onChange={(e) => {
-              const files = [...(e.target.files ?? [])].slice(0, 4);
-              setPreviews(files.map((f) => URL.createObjectURL(f)));
-            }}
-          />
-          {previews.length > 0 && (
-            <div className="mt-3 flex gap-2">
-              {previews.map((p) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={p} src={p} alt="Selected photo preview" className="h-20 w-20 rounded-lg object-cover" />
-              ))}
-            </div>
-          )}
-          {err("photos") && <p className="mt-2 text-sm text-red">{err("photos")}</p>}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <FileField name="photos" label="Photos of the damage (optional)" hint="Up to 4 photos · compressed automatically" accept={ACCEPT.photo} multiple maxFiles={4} error={err("photos")} />
+          <FileField name="attachments" label="Other documents / attachments" hint="Receipt, warranty card, earlier repair report… · PDF or photo" accept={ACCEPT.docs} multiple maxFiles={3} error={err("attachments")} />
         </div>
       </Section>
 
@@ -203,7 +174,7 @@ export function RepairForm({ defaults }: { defaults: { device?: string; issue?: 
       </label>
 
       <button disabled={busy} className="btn btn-red mt-8 w-full justify-between !py-4 disabled:opacity-60">
-        {busy ? "Creating your visit note…" : "Create my visit note"}
+        {busy ? "Creating your repair note…" : "Create your repair note"}
         <Icon name="arrow-up-right" className="h-4 w-4" />
       </button>
     </form>

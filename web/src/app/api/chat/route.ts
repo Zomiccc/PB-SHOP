@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { like } from "@/lib/search";
 import { BRAND } from "@/lib/constants";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
+import { loadThread, messageInclude, previewOf, toDTO } from "@/lib/chat";
+import { notifyStaffChat } from "@/lib/push";
 
 const Body = z.object({ message: z.string().trim().min(1).max(1000), conversationId: z.string().nullish() });
 
@@ -40,8 +42,8 @@ async function answer(raw: string): Promise<Reply> {
   if (/used|second|pre-?owned|grade/.test(m)) {
     return { reply: "Every used phone is tested by our lab, graded A+ to C, and listed with battery health and notes, plus a 30-day PB Lab warranty.", links: [{ label: "Used phones", href: "/used-phones" }] };
   }
-  if (/passport|loyal|point|reward|care card/.test(m)) {
-    return { reply: "The PB Phone Passport earns points on purchases and repairs. Eligible phones also come with a PB Care Card of up to 5 free service visits.", links: [{ label: "PB Phone Passport", href: "/loyalty" }] };
+  if (/passport|loyal|point|reward/.test(m)) {
+    return { reply: "The PB Phone Passport gives you 10 points per repair, 20 per new phone and 15 per used phone. Swap 100 points for a phone case, 200 for AirPods or 500 for 50% off a repair (excluding parts). Points last six months.", links: [{ label: "PB Phone Passport", href: "/loyalty" }] };
   }
   if (/tablet|ipad|galaxy tab|\bpad\b/.test(m)) {
     return { reply: "We stock new and lab-checked used tablets — iPad, Galaxy Tab, Xiaomi Pad and more.", links: [{ label: "Tablets", href: "/tablets" }] };
@@ -49,10 +51,16 @@ async function answer(raw: string): Promise<Reply> {
   if (/access|case|charger|cable|protector|power ?bank|earbud|airpod/.test(m)) {
     return { reply: "We stock cases, chargers, cables, screen protectors, power banks and earbuds.", links: [{ label: "Accessories", href: "/accessories" }] };
   }
-  const phone = await db.product.findFirst({
-    where: { active: true, type: "PHONE", OR: m.split(/\s+/).filter((w) => w.length > 2).slice(0, 6).map((w) => ({ name: like(w) })) },
-    include: { variants: true },
-  });
+  // Pick the phone whose name matches the most words — model numbers ("13", "s23") count double.
+  const words = m.replace(/[^\w\s+]/g, " ").split(/\s+/).filter((w) => w.length > 2 || /\d/.test(w)).slice(0, 8);
+  const candidates = words.length
+    ? await db.product.findMany({ where: { active: true, type: { in: ["PHONE", "TABLET"] }, OR: words.map((w) => ({ name: like(w) })) }, include: { variants: true }, take: 30 })
+    : [];
+  const score = (name: string) => {
+    const tokens = name.toLowerCase().split(/[^a-z0-9+]+/);
+    return words.reduce((s, w) => s + (tokens.includes(w) ? (/\d/.test(w) ? 2 : 1) : 0), 0) - (words.some((w) => /\d/.test(w)) && !words.some((w) => /\d/.test(w) && tokens.includes(w)) ? 5 : 0);
+  };
+  const phone = candidates.map((p) => ({ p, s: score(p.name) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s)[0]?.p;
   if (phone) {
     const stock = phone.variants.reduce((s, v) => s + v.stockQty, 0);
     return {
@@ -64,12 +72,17 @@ async function answer(raw: string): Promise<Reply> {
   return { reply: `Thanks! A member of our team will reply soon. For a faster answer you can WhatsApp us on ${BRAND.phone}.`, links: [{ label: "WhatsApp us", href: wa }] };
 }
 
-/** Conversation history — lets the widget show replies staff send from the admin inbox. */
+/**
+ * Conversation history for the widget (includes replies staff send from the dashboard).
+ * `read=1` when the chat is open on screen → staff see "read" ticks.
+ */
 export async function GET(req: Request) {
-  const id = new URL(req.url).searchParams.get("conversationId");
+  const url = new URL(req.url);
+  const id = url.searchParams.get("conversationId");
   if (!id) return NextResponse.json({ messages: [] });
-  const messages = await db.chatMessage.findMany({ where: { conversationId: id }, orderBy: { createdAt: "asc" }, take: 100 });
-  return NextResponse.json({ messages: messages.map((m) => ({ from: m.from, body: m.body })) });
+  const convo = await db.chatConversation.findUnique({ where: { id }, select: { id: true } });
+  if (!convo) return NextResponse.json({ messages: [], missing: true });
+  return NextResponse.json({ messages: await loadThread(id, "VISITOR", url.searchParams.get("read") === "1") });
 }
 
 export async function POST(req: Request) {
@@ -81,14 +94,17 @@ export async function POST(req: Request) {
   let convo = conversationId ? await db.chatConversation.findUnique({ where: { id: conversationId } }) : null;
   if (!convo) convo = await db.chatConversation.create({ data: { visitorId: crypto.randomUUID() } });
 
-  const reply = await answer(message);
-  await db.chatMessage.createMany({
-    data: [
-      { conversationId: convo.id, from: "VISITOR", body: message },
-      { conversationId: convo.id, from: "BOT", body: reply.reply },
-    ],
-  });
+  const mine = await db.chatMessage.create({ data: { conversationId: convo.id, from: "VISITOR", body: message }, include: messageInclude });
+  // Once a person from the shop has joined the conversation, the automatic assistant steps back.
+  let bot = null;
+  let links: { label: string; href: string }[] | undefined;
+  if (convo.status !== "HANDED_OFF") {
+    const reply = await answer(message);
+    links = reply.links;
+    bot = await db.chatMessage.create({ data: { conversationId: convo.id, from: "BOT", body: reply.reply }, include: messageInclude });
+  }
   await db.chatConversation.update({ where: { id: convo.id }, data: { updatedAt: new Date() } });
+  await notifyStaffChat(convo.id, previewOf("TEXT", message)).catch(() => 0);
 
-  return NextResponse.json({ conversationId: convo.id, ...reply });
+  return NextResponse.json({ conversationId: convo.id, message: toDTO(mine), bot: bot ? { ...toDTO(bot), links } : null, reply: bot?.body, links });
 }

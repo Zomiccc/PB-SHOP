@@ -1,3 +1,4 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "./db";
 
 /** EAN-13 check digit for a 12-digit base. */
@@ -12,8 +13,8 @@ export function ean13(base12: string) {
  * internal/in-store use, so these never collide with manufacturer barcodes (§6). Where a device
  * already has a manufacturer EAN, staff can type or scan it into the barcode field instead.
  */
-export async function suggestCodes() {
-  const all = await db.variant.findMany({ select: { sku: true, barcode: true } });
+export async function suggestCodes(client: Prisma.TransactionClient | PrismaClient = db) {
+  const all = await client.variant.findMany({ select: { sku: true, barcode: true } });
   const nums = all.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0));
   const next = Math.max(0, ...nums) + 1;
   const used = new Set(all.map((v) => v.barcode));

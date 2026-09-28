@@ -6,7 +6,7 @@ import { cn, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
 type Line = { variantId: string; name: string; detail: string; sku: string; price: number; stock: number; qty: number };
-type Customer = { found: boolean; name?: string; passportNo?: string; points?: number; careCards?: string[] };
+type Customer = { found: boolean; name?: string; passportNo?: string; points?: number };
 
 const METHODS = { CASH: "Cash", CARD: "Card (terminal)", MOBILE_WALLET: "JazzCash / Easypaisa", BANK_TRANSFER: "Bank transfer" } as const;
 
@@ -24,9 +24,10 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
   const [method, setMethod] = useState<keyof typeof METHODS>("CASH");
   const [discount, setDiscount] = useState(0);
   const [note, setNote] = useState("");
+  const [points, setPoints] = useState("");
   const [busy, setBusy] = useState(false);
   const [override, setOverride] = useState<{ open: boolean; email: string; password: string; error?: string }>({ open: false, email: "", password: "" });
-  const [done, setDone] = useState<{ orderId: string; number: string; total: number; careCard: string | null } | null>(null);
+  const [done, setDone] = useState<{ orderId: string; number: string; total: number } | null>(null);
   const [camera, setCamera] = useState(false);
   const scanRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +90,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
           customerName: name.trim() || undefined,
           note: note.trim() || undefined,
           discount: discount || undefined,
+          points: phone.trim() && points !== "" ? Math.max(0, Math.floor(Number(points) || 0)) : undefined,
           override: withOverride ? (isSuper ? {} : { email: override.email, password: override.password }) : undefined,
         }),
       });
@@ -113,6 +115,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
     setCustomer(null);
     setDiscount(0);
     setNote("");
+    setPoints("");
     setMethod("CASH");
     setFlash(null);
     setDone(null);
@@ -124,7 +127,6 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
         <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-600 text-white"><Icon name="check" className="h-8 w-8" strokeWidth={2.5} /></span>
         <h2 className="display mt-5 text-4xl">Sale complete</h2>
         <p className="mt-2 text-muted">{done.number} · {pkr(done.total)} · stock updated</p>
-        {done.careCard && <p className="mt-3 rounded-xl bg-navy-950 p-3 text-sm text-gold">Care Card {done.careCard} issued</p>}
         <div className="mt-8 flex justify-center gap-3">
           <Link href={`/admin/orders/${done.orderId}/receipt`} target="_blank" className="btn btn-primary">Print receipt</Link>
           <button onClick={reset} className="btn btn-red">New sale</button>
@@ -194,7 +196,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
           </div>
           {customer?.found && (
             <p className="mt-2 rounded-lg bg-navy-950 px-3 py-2 text-xs text-white">
-              Passport <b className="text-gold">{customer.passportNo}</b> · {customer.points} pts{customer.careCards?.length ? ` · Care Card ${customer.careCards.join(", ")}` : ""}
+              Passport <b className="text-gold">{customer.passportNo}</b> · {customer.points} pts
             </p>
           )}
           {customer && !customer.found && <p className="mt-2 text-xs text-muted">New customer — a Passport will be created.</p>}
@@ -210,6 +212,13 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
             ))}
           </div>
           <label className="mt-3 block"><span className="label">Discount (PKR)</span><input type="number" min={0} value={discount || ""} onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))} className="field" /></label>
+          {phone.trim() && (
+            <label className="mt-3 block">
+              <span className="label">Passport points to give</span>
+              <input type="number" min={0} max={10000} value={points} onChange={(e) => setPoints(e.target.value)} placeholder="Automatic (20 new phone · 15 used phone)" className="field" />
+              <span className="mt-1 block text-xs text-white/50">Leave empty for the automatic points, or type the number you want to give (0 = none). Recorded in the audit log.</span>
+            </label>
+          )}
           <label className="mt-3 block"><span className="label">Sale note (§17)</span><textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="What was sold, special instructions…" className="field" /></label>
         </div>
 

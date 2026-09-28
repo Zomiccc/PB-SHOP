@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <h2 id="collect">What we collect</h2>
       <ul>
         <li>Contact details you give us: name, mobile number, email and delivery address.</li>
-        <li>Order, repair, loyalty and Care Card history linked to your PB Phone Passport.</li>
+        <li>Order, repair and Phone Passport points history linked to your PB Phone Passport.</li>
         <li>Repair photos you choose to upload, and messages sent through chat or the contact form.</li>
         <li>Basic technical data (browser, pages visited) to keep the site secure and working.</li>
       </ul>

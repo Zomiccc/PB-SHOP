@@ -2,17 +2,17 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getStaff } from "@/lib/staff";
 
-/** Barcode / SKU lookup for the POS (§6, §19): exact match, instant. */
+/** Item Number (SKU) / barcode / IMEI lookup for the POS (master brief §10): exact match, instant. */
 export async function GET(req: Request) {
   const staff = await getStaff();
   if (!staff || staff.mustChangePassword) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const code = (new URL(req.url).searchParams.get("code") ?? "").trim();
   if (!code) return NextResponse.json({ error: "No code" }, { status: 400 });
   const v = await db.variant.findFirst({
-    where: { OR: [{ barcode: code }, { sku: code.toUpperCase() }] },
+    where: { OR: [{ barcode: code }, { sku: code.toUpperCase() }, { imei: code.replace(/\s/g, "") }] },
     include: { product: true },
   });
-  if (!v) return NextResponse.json({ error: `No product with barcode/SKU “${code}”` }, { status: 404 });
+  if (!v) return NextResponse.json({ error: `No item with Item Number, barcode or IMEI “${code}”` }, { status: 404 });
   return NextResponse.json({
     variantId: v.id,
     name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}`,

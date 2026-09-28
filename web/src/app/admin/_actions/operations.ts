@@ -7,7 +7,7 @@ import { requireStaff } from "@/lib/staff";
 import { awardOrderBenefits, nextRepairRef } from "@/lib/orders";
 import { restoreOrderStock } from "@/lib/inventory";
 import { changeRepairStatus } from "@/lib/repairs";
-import { redeemCareService } from "@/lib/care-card";
+import { earnPoints, repairDiscount, spendPoints, syncBalance } from "@/lib/loyalty";
 import { notify } from "@/lib/notify";
 import { newPassportNo } from "@/lib/auth";
 import type { FormState } from "./auth";
@@ -34,7 +34,7 @@ export async function setFulfilmentAction(_: FormState, f: FormData): Promise<Fo
   });
 }
 
-/** Cash-on-delivery / pending order confirmed as paid → points + Care Card are granted now. */
+/** Cash-on-delivery / pending order confirmed as paid → Phone Passport points are granted now. */
 export async function markPaidAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
@@ -48,28 +48,31 @@ export async function markPaidAction(_: FormState, f: FormData): Promise<FormSta
       await audit({ staffId: staff.id, action: "ORDER_MARKED_PAID", entityType: "ORDER", entityId: o.id, recordLabel: `Order ${o.number}`, before: { paymentStatus: o.paymentStatus }, after: { paymentStatus: "PAID", ref: optStr(f, "ref") } }, tx);
     });
     revalidatePath(`/admin/orders/${o.id}`);
-    return "Marked as paid — loyalty points and Care Card applied";
+    return "Marked as paid — Phone Passport points applied";
   });
 }
 
-/** Finalised cancellation or return: restores stock, reverses points, voids the Care Card (§6, §19). */
+/** Finalised cancellation or return: restores stock and reverses the order's Passport points (§10). */
 export async function cancelOrReturnAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
     const kind = str(f, "kind") === "RETURN" ? "RETURN" : "CANCEL";
     const reason = str(f, "reason");
     if (reason.length < 3) throw new Error("Give a reason");
-    const o = await db.order.findUniqueOrThrow({ where: { id: str(f, "orderId") }, include: { careCard: { include: { redemptions: true } } } });
+    const o = await db.order.findUniqueOrThrow({ where: { id: str(f, "orderId") } });
     if (["CANCELLED", "RETURNED"].includes(o.fulfilmentStatus)) throw new Error("Order is already closed");
     await db.$transaction(async (tx) => {
       await restoreOrderStock(tx, o.id, staff.id, kind);
-      const earned = await tx.loyaltyTransaction.findMany({ where: { orderId: o.id, type: "EARN" } });
-      const pts = earned.reduce((s, t) => s + t.points, 0);
+      // Reverse this order's points: unspent points on its own lots first, then from the rest of the balance.
+      const lots = await tx.loyaltyTransaction.findMany({ where: { orderId: o.id, type: "EARN" } });
+      const pts = lots.reduce((s, t) => s + t.points, 0);
       if (pts > 0 && o.customerId) {
-        await tx.loyaltyTransaction.create({ data: { customerId: o.customerId, type: "ADJUST", points: -pts, orderId: o.id, reason: `${kind === "RETURN" ? "Return" : "Cancellation"} of ${o.number}`, staffId: staff.id } });
-        await tx.customer.update({ where: { id: o.customerId }, data: { loyaltyPoints: { decrement: pts } } });
+        for (const lot of lots) await tx.loyaltyTransaction.update({ where: { id: lot.id }, data: { remaining: 0 } });
+        const unspent = lots.reduce((s, t) => s + (t.remaining ?? 0), 0);
+        await tx.loyaltyTransaction.create({ data: { customerId: o.customerId, type: "ADJUST", points: -unspent, orderId: o.id, reason: `${kind === "RETURN" ? "Return" : "Cancellation"} of ${o.number}`, staffId: staff.id } });
+        if (pts - unspent > 0) await spendPoints(tx, { customerId: o.customerId, points: pts - unspent, type: "ADJUST", reason: `${kind === "RETURN" ? "Return" : "Cancellation"} of ${o.number} (points already used)`, orderId: o.id, staffId: staff.id, allowPartial: true });
+        else await syncBalance(tx, o.customerId);
       }
-      if (o.careCard && o.careCard.redemptions.length === 0) await tx.careCard.update({ where: { id: o.careCard.id }, data: { status: "VOID" } });
       await tx.order.update({
         where: { id: o.id },
         data: { fulfilmentStatus: kind === "RETURN" ? "RETURNED" : "CANCELLED", paymentStatus: o.paymentStatus === "PAID" ? "REFUNDED" : "CANCELLED" },
@@ -131,9 +134,10 @@ export async function repairDetailsAction(_: FormState, f: FormData): Promise<Fo
   const staff = await requireStaff();
   return run(async () => {
     const r = await db.repairRequest.findUniqueOrThrow({ where: { id: str(f, "repairId") } });
-    const data = { quote: int(f, "quote"), finalPrice: int(f, "finalPrice"), assignedToId: optStr(f, "assignedToId"), imei: optStr(f, "imei") };
+    const data = { quote: int(f, "quote"), finalPrice: int(f, "finalPrice"), partsCost: int(f, "partsCost"), assignedToId: optStr(f, "assignedToId"), imei: optStr(f, "imei") };
+    if (data.partsCost != null && data.partsCost < 0) throw new Error("Parts cost can't be negative");
     await db.repairRequest.update({ where: { id: r.id }, data });
-    await audit({ staffId: staff.id, action: "REPAIR_UPDATED", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}`, before: { quote: r.quote, finalPrice: r.finalPrice, assignedToId: r.assignedToId, imei: r.imei }, after: data });
+    await audit({ staffId: staff.id, action: "REPAIR_UPDATED", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}`, before: { quote: r.quote, finalPrice: r.finalPrice, partsCost: r.partsCost, assignedToId: r.assignedToId, imei: r.imei }, after: data });
     revalidatePath(`/admin/repairs/${r.id}`);
     return "Repair updated";
   });
@@ -171,42 +175,70 @@ export async function adjustPointsAction(_: FormState, f: FormData): Promise<For
     if (!pts) throw new Error("Enter points (negative to deduct)");
     if (reason.length < 3) throw new Error("A reason is required");
     const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") } });
-    if (c.loyaltyPoints + pts < 0) throw new Error("Balance can't go below zero");
     await db.$transaction(async (tx) => {
-      await tx.loyaltyTransaction.create({ data: { customerId: c.id, type: str(f, "type") === "PROMO" ? "PROMO" : "ADJUST", points: pts, reason, staffId: staff.id } });
-      await tx.customer.update({ where: { id: c.id }, data: { loyaltyPoints: { increment: pts } } });
-      await audit({ staffId: staff.id, action: "LOYALTY_ADJUSTED", entityType: "LOYALTY", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before: { points: c.loyaltyPoints }, after: { points: c.loyaltyPoints + pts, reason } }, tx);
+      // Additions are new lots with their own six-month expiry; deductions use the soonest-expiring points.
+      if (pts > 0) await earnPoints(tx, { customerId: c.id, points: pts, source: "MANUAL", type: str(f, "type") === "PROMO" ? "PROMO" : "ADJUST", reason, staffId: staff.id });
+      else await spendPoints(tx, { customerId: c.id, points: -pts, type: "ADJUST", reason, staffId: staff.id });
+      const after = await tx.customer.findUniqueOrThrow({ where: { id: c.id } });
+      await audit({ staffId: staff.id, action: "LOYALTY_ADJUSTED", entityType: "LOYALTY", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before: { points: c.loyaltyPoints }, after: { points: after.loyaltyPoints, change: pts, reason } }, tx);
     });
     revalidatePath(`/admin/customers/${c.id}`);
     return "Points updated";
   });
 }
 
+/** Staff give a chosen number of Passport points for a paid purchase (client request). Audited. */
+export async function givePointsForOrderAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return run(async () => {
+    const pts = int(f, "points");
+    if (!pts || pts < 1 || pts > 10000) throw new Error("Enter between 1 and 10,000 points");
+    const o = await db.order.findUniqueOrThrow({ where: { id: str(f, "orderId") }, include: { customer: true } });
+    if (!o.customerId || !o.customer) throw new Error("This order isn't linked to a Passport (no customer phone)");
+    if (o.paymentStatus !== "PAID") throw new Error("Points can only be given once the order is paid");
+    const reason = optStr(f, "reason");
+    await db.$transaction(async (tx) => {
+      await earnPoints(tx, { customerId: o.customerId!, points: pts, source: "MANUAL", reason: `Purchase ${o.number}${reason ? ` — ${reason}` : " (points given by staff)"}`, orderId: o.id, staffId: staff.id });
+      await audit({ staffId: staff.id, action: "LOYALTY_ADJUSTED", entityType: "LOYALTY", entityId: o.customerId, recordLabel: `${o.customer!.name} · order ${o.number}`, before: { points: o.customer!.loyaltyPoints }, after: { points: o.customer!.loyaltyPoints + pts, given: pts, reason } }, tx);
+    });
+    revalidatePath(`/admin/orders/${o.id}`);
+    return `${pts} points given to ${o.customer.name}`;
+  });
+}
+
+/**
+ * Redeems a Phone Passport reward (master brief §4). Only unexpired points can be used.
+ * Repair rewards (e.g. 500 pts = 50% off) are applied to a repair and never discount the parts.
+ */
 export async function redeemRewardAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
     const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") } });
     const reward = await db.reward.findUniqueOrThrow({ where: { id: str(f, "rewardId") } });
-    if (!reward.active) throw new Error("Reward is not active");
-    if (c.loyaltyPoints < reward.pointsCost) throw new Error(`Needs ${reward.pointsCost} points — customer has ${c.loyaltyPoints}`);
+    if (!reward.active) throw new Error("This reward is switched off");
+    const repairId = optStr(f, "repairId");
+    let discount: number | null = null;
+    let repairRef: string | null = null;
+    if (reward.kind === "REPAIR_DISCOUNT") {
+      if (!repairId) throw new Error("Choose the repair this discount is for");
+      const r = await db.repairRequest.findUniqueOrThrow({ where: { id: repairId } });
+      if (r.customerId && r.customerId !== c.id) throw new Error("That repair belongs to another customer");
+      if (r.rewardDiscount) throw new Error(`Repair ${r.ref} already has a Passport discount`);
+      const charge = r.finalPrice ?? r.quote;
+      if (charge == null) throw new Error(`Set the quote or final charge on repair ${r.ref} first`);
+      discount = repairDiscount(charge, r.partsCost, reward.discountPercent ?? 0);
+      repairRef = r.ref;
+    }
     await db.$transaction(async (tx) => {
-      await tx.loyaltyTransaction.create({ data: { customerId: c.id, type: "REDEEM", points: -reward.pointsCost, rewardId: reward.id, reason: reward.name, staffId: staff.id } });
-      await tx.customer.update({ where: { id: c.id }, data: { loyaltyPoints: { decrement: reward.pointsCost } } });
-      await audit({ staffId: staff.id, action: "REWARD_REDEEMED", entityType: "LOYALTY", entityId: c.id, recordLabel: `${c.name} · ${reward.name}`, before: { points: c.loyaltyPoints }, after: { points: c.loyaltyPoints - reward.pointsCost } }, tx);
+      const before = c.loyaltyPoints;
+      await spendPoints(tx, { customerId: c.id, points: reward.pointsCost, type: "REDEEM", reason: repairRef ? `${reward.name} — repair ${repairRef}` : reward.name, rewardId: reward.id, repairId, staffId: staff.id });
+      if (repairId && discount != null) await tx.repairRequest.update({ where: { id: repairId }, data: { rewardDiscount: discount } });
+      const after = await tx.customer.findUniqueOrThrow({ where: { id: c.id } });
+      await audit({ staffId: staff.id, action: "REWARD_REDEEMED", entityType: "LOYALTY", entityId: c.id, recordLabel: `${c.name} · ${reward.name}`, before: { points: before }, after: { points: after.loyaltyPoints, repair: repairRef, discount } }, tx);
     });
     revalidatePath(`/admin/customers/${c.id}`);
-    return `Redeemed: ${reward.name}`;
-  });
-}
-
-// ─────────────── Care Card desk ───────────────
-
-export async function redeemCareAction(_: FormState, f: FormData): Promise<FormState> {
-  const staff = await requireStaff();
-  return run(async () => {
-    const r = await redeemCareService({ cardId: str(f, "cardId"), serviceId: str(f, "serviceId"), staffId: staff.id, repairId: optStr(f, "repairId"), note: optStr(f, "note") });
-    revalidatePath("/admin/care-cards");
-    return `Redeemed (${r.used}/${r.max} uses)${r.exhausted ? " — card is now fully used" : ""}`;
+    if (repairId) revalidatePath(`/admin/repairs/${repairId}`);
+    return discount != null ? `Redeemed: ${reward.name} — Rs ${discount.toLocaleString("en-PK")} off repair ${repairRef} (parts excluded)` : `Redeemed: ${reward.name}`;
   });
 }
 
@@ -221,18 +253,5 @@ export async function contactStatusAction(_: FormState, f: FormData): Promise<Fo
     await audit({ staffId: staff.id, action: "CONTACT_STATUS", entityType: "CONTACT", entityId: str(f, "id"), after: { status } });
     revalidatePath("/admin/inbox");
     return "Updated";
-  });
-}
-
-export async function chatReplyAction(_: FormState, f: FormData): Promise<FormState> {
-  const staff = await requireStaff();
-  return run(async () => {
-    const body = str(f, "body");
-    if (!body) throw new Error("Write a reply");
-    const id = str(f, "conversationId");
-    await db.chatMessage.create({ data: { conversationId: id, from: "STAFF", body: `${body}\n— ${staff.name}` } });
-    await db.chatConversation.update({ where: { id }, data: { status: "HANDED_OFF" } });
-    revalidatePath("/admin/inbox");
-    return "Reply sent — the visitor sees it next time they open chat";
   });
 }

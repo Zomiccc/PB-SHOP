@@ -23,7 +23,7 @@ export default async function RepairPrintPage(props: PageProps<"/admin/repairs/[
       assignedTo: true,
       notes: { where: { kind: "REPAIR" }, orderBy: { createdAt: "asc" }, include: { author: true } },
       statusChanges: { orderBy: { createdAt: "asc" }, include: { staff: true } },
-      careRedemptions: { include: { service: true, careCard: true } },
+      attachments: { select: { id: true, kind: true, fileName: true } },
     },
   });
   if (!r) notFound();
@@ -86,7 +86,10 @@ export default async function RepairPrintPage(props: PageProps<"/admin/repairs/[
         <section className="mt-5 grid grid-cols-3 gap-6">
           <Block title="Charges">
             <Row k="Quote" v={r.quote != null ? pkr(r.quote) : "—"} />
-            <Row k="Final charge" v={r.finalPrice != null ? pkr(r.finalPrice) : "—"} strong />
+            <Row k="Final charge" v={r.finalPrice != null ? pkr(r.finalPrice) : "—"} strong={!r.rewardDiscount} />
+            {r.partsCost != null && <Row k="Of which parts" v={pkr(r.partsCost)} />}
+            {!!r.rewardDiscount && <Row k="Passport discount" v={`− ${pkr(r.rewardDiscount)}`} />}
+            {!!r.rewardDiscount && (r.finalPrice ?? r.quote) != null && <Row k="Amount due" v={pkr((r.finalPrice ?? r.quote)! - r.rewardDiscount)} strong />}
           </Block>
           <Block title="Staff">
             <Row k="Technician" v={r.assignedTo?.name ?? "—"} />
@@ -100,9 +103,9 @@ export default async function RepairPrintPage(props: PageProps<"/admin/repairs/[
           </Block>
         </section>
 
-        {r.careRedemptions.length > 0 && (
-          <Block title="Care Card services used" className="mt-5">
-            {r.careRedemptions.map((c) => <p key={c.id}>{c.careCard.number} — {c.service.name}</p>)}
+        {r.attachments.length > 0 && (
+          <Block title="Documents on file" className="mt-5">
+            <p className="text-[9.5pt]">{r.attachments.map((a) => a.fileName).join(" · ")}</p>
           </Block>
         )}
 

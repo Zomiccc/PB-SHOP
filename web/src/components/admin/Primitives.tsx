@@ -13,9 +13,9 @@ export function PageTitle({ title, sub, children }: { title: string; sub?: strin
   );
 }
 
-export function Panel({ title, action, children, className }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+export function Panel({ title, action, children, className, id }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <section className={cn("rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] md:p-6", className)}>
+    <section id={id} className={cn("rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] md:p-6", className)}>
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between gap-3">
           {title && <h2 className="font-semibold">{title}</h2>}

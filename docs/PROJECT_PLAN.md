@@ -1,6 +1,25 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
-## Master brief (updated) — changes implemented
+## Updated Master Developer Requirements (final version) — implemented
+
+| Brief § | Requirement | Where / status |
+|---|---|---|
+| §1, §18 | Homepage: "Create your repair note" CTA (old "Visit note" wording removed), dedicated **Used phones** tile, Tablets, Accessories, repair CTA, Passport, featured rows, reviews, broadcast bar, chat; strong CTAs (Shop Phones / Used / Tablets / Accessories / Create your repair note) | `/` ✅ |
+| §2 | Tablets with **New + Used** filters | `/tablets` ✅ |
+| §3 | **Separate installment section** on the homepage — no buy/apply/checkout button; store visit + CNIC notice; admin add/edit/remove/**reorder**; model, regular price, installment total, interest, down payment, duration/plan, availability | `/#installments`, Admin → Installments ✅ |
+| §4 | **Care Card removed completely** (tables dropped by `scripts/remove-care-card.mjs`). **Phone Passport**: 10 pts/repair, 20/new phone, 15/used phone; rewards 100 = phone case, 200 = AirPods, 500 = 50% off repairs excl. parts; **six-month expiry per earning event**; expired points can't be redeemed; Super Admin edits rewards/points/exclusions/expiry, all audited | `/loyalty`, `/account`, Admin → Customers / Settings ✅ + tests |
+| §5 | Installment purchase workflow with **CNIC front + back (required)** + other documents | Admin → Installment sale ✅ |
+| §6 | Used-phone selling workflow: seller, IMEI, single grade, agreed price, notes, CNIC front + back, other documents; optional add-to-stock as its own SKU | Admin → Buy a used phone ✅ |
+| §7, §17 | Attachments on repair, contact, installment, used-phone and chat forms; real file-type check, size limit, private storage, permission-checked downloads; ID views audited | `/api/files/[id]` ✅ + tests |
+| §8 | Repair form photos + other attachments; Print Repair Information (now with parts / Passport discount) | ✅ |
+| §9 | **Broadcasts**: create / edit / publish / unpublish / delete, CTA link, start/end dates, audited; dark bar at the top of the homepage | Admin → Broadcasts ✅ + tests |
+| §10 | **Add Item → category dropdown** (Phones, Tablets, Phone Spare Parts, Accessories) with category forms; Item Number/SKU + barcode; purchase price; IMEI; PURCHASE movements with price/ref/employee; Item Number / barcode / IMEI lookup (inventory + POS); investment, revenue, profit/margin; reports filtered by item/category/date/employee/transaction type | Admin → Inventory, Reports ✅ + tests |
+| §13 | Chat: staff message customers, **Enable notifications** both sides (Web Push + in-tab), **attachments** and **voice notes with waveform** both ways, delivery/read ticks | Chat widget, Admin → Inbox & chat ✅ + tests |
+| §14 | Audit covers rewards, installments, broadcasts, used-phone buying, documents | Admin → Audit log ✅ |
+
+**Needs from the client for this update:** real installment plans (the three listed are samples), whether tablets should earn Passport points (currently phones only, as written), VAPID keys for closed-app phone notifications (`npx web-push generate-vapid-keys`), and object storage (R2/S3) before real CNIC volumes.
+
+## Master brief (previous update) — changes implemented
 
 | Master brief § | Requirement | Status |
 |---|---|---|
@@ -38,10 +57,10 @@ Source of truth: the client's *PB Mobiles Website Developer Requirements* PDF (�
 | §15 | Purchase pop-ups from real paid orders only, privacy-safe names, frequency/duration, on/off | Storefront, Admin → Settings |
 | §16 | 7 individual accounts (6 employees + owner), forced password change, login/logout/failed-login log, super-admin audit with before/after | Admin → Staff, Audit log |
 | §17 | Sale notes + structured repair notes (issue, findings, work, parts), timestamped, author-linked, audited | Orders, Repairs, POS |
-| §18 | Care Card: auto-issued, 5 uses, once per service, exhausted after 5th, every redemption logged, **only owner edits services**, visit 5 left configurable | Admin → Care Card desk, Settings |
-| §20 | Combined workflows (product → 6 photos → 3D → publish; scan → sell → stock → note → audit; repair → note → Care Card) | Tested end-to-end |
+| §18 | ~~Care Card~~ — removed by the final master brief (replaced by the Phone Passport rewards above) | — |
+| §20 | Combined workflows (product → 6 photos → 3D → publish; scan → sell → stock → note → audit; repair → note → Passport points) | Tested end-to-end |
 
-**Quality checks run:** TypeScript clean · ESLint clean · production build passes · 18 automated business-rule tests pass (stock, overrides, returns, loyalty, COD, Care Card rules, POS, repairs, payment signatures, barcodes) · full browser QA of admin + storefront flows.
+**Quality checks run:** TypeScript clean · ESLint clean · production build passes · 57 automated tests pass (stock, purchases, IMEI, overrides, returns, Passport earning/expiry/redemption, installments, broadcasts, attachments & ID permissions, chat receipts & voice notes, POS, repairs, payments, barcodes, grades, 3D colour, six-photo validation) · browser QA of admin + storefront flows.
 
 **Two modes for 6-photo 3D:**
 1. **Textured model (default):** the six photos wrap a precise phone body. It's instant, free, and always clean.
@@ -70,9 +89,7 @@ AI tools struggle with shiny, plain phones, which is why the textured model is t
 - [ ] Names + emails of the **6 employees and the owner**
 
 ### Business rules to confirm (all editable later in Settings)
-- [ ] **Care Card 5th visit** service (brief defines only 4)
-- [ ] Which products issue a Care Card / earn points
-- [ ] Loyalty: Rs per point (default 100), repair points (50), point value, expiry (12 months), reward list
+- [ ] Should tablets earn Phone Passport points (brief lists phones and repairs only)?
 - [ ] Warranty & return periods (new / used / repairs / accessories)
 - [ ] Delivery cities, delivery fee (default Rs 250), free-delivery threshold (Rs 50,000), COD yes/no
 - [ ] **Legal approval** of the Terms, Privacy and Returns drafts

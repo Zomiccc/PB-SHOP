@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s | PB Mobiles",
   },
   description:
-    "Shop new and used phones, genuine accessories and expert phone repairs at PB Mobiles & Repairing Lab. Secure online payment, Care Card benefits and the PB Phone Passport.",
+    "Shop new and used phones, genuine accessories and expert phone repairs at PB Mobiles & Repairing Lab. Secure online payment and PB Phone Passport rewards.",
   openGraph: {
     type: "website",
     siteName: "PB Mobiles & Repairing Lab",

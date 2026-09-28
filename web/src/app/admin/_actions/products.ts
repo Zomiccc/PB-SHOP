@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff, clientIp } from "@/lib/staff";
-import { adjustStock } from "@/lib/inventory";
+import { adjustStock, assertImeiFree, receiveStock } from "@/lib/inventory";
 import { saveUpload } from "@/lib/storage";
 import { slugify, parseJson } from "@/lib/format";
 import type { FormState } from "./auth";
@@ -14,7 +14,7 @@ import { bool, diff, int, optStr, run, str } from "./util";
 
 function productData(f: FormData) {
   const t = str(f, "type");
-  const type = t === "ACCESSORY" ? "ACCESSORY" : t === "TABLET" ? "TABLET" : "PHONE";
+  const type = t === "ACCESSORY" ? "ACCESSORY" : t === "TABLET" ? "TABLET" : t === "PART" ? "PART" : "PHONE";
   const specsText = str(f, "specs");
   const specs: Record<string, string> = {};
   for (const line of specsText.split("\n")) {
@@ -28,13 +28,14 @@ function productData(f: FormData) {
     name,
     brand: str(f, "brand"),
     type,
-    condition: type === "ACCESSORY" ? "NEW" : str(f, "condition") === "USED" ? "USED" : "NEW",
+    condition: type === "ACCESSORY" || type === "PART" ? "NEW" : str(f, "condition") === "USED" ? "USED" : "NEW",
     accessoryType: type === "ACCESSORY" ? str(f, "accessoryType") || "OTHER" : null,
+    partType: type === "PART" ? str(f, "partType") || "OTHER" : null,
+    compatibleModel: type === "PART" ? optStr(f, "compatibleModel") : null,
     description: str(f, "description"),
     specs: JSON.stringify(specs),
     finishHex: optStr(f, "finishHex"),
     featured: bool(f, "featured"),
-    careCardEligible: bool(f, "careCardEligible"),
     loyaltyEligible: bool(f, "loyaltyEligible"),
     sketchfabUid: optStr(f, "sketchfabUid"),
     metaTitle: optStr(f, "metaTitle"),
@@ -120,6 +121,9 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       colorHex: optStr(f, "colorHex"),
       price,
       salePrice,
+      costPrice: int(f, "costPrice"),
+      imei: optStr(f, "imei")?.replace(/\s/g, "") ?? null,
+      partNumber: optStr(f, "partNumber"),
       lowStockThreshold: int(f, "lowStockThreshold") ?? 2,
       ram: optStr(f, "ram"),
       grade,
@@ -130,6 +134,8 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       allowBackorder,
       active: !bool(f, "inactive"),
     };
+    if (data.costPrice != null && data.costPrice < 0) throw new Error("Purchase price can't be negative");
+    await assertImeiFree(db, data.imei, id || undefined);
     const clash = await db.variant.findFirst({ where: { OR: [{ sku }, { barcode }], NOT: id ? { id } : undefined } });
     if (clash) throw new Error(clash.sku === sku ? `SKU ${sku} is already used` : `Barcode ${barcode} is already used`);
 
@@ -147,7 +153,8 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       await db.$transaction(async (tx) => {
         const v = await tx.variant.create({ data: { ...data, productId, stockQty: 0 } });
         await audit({ staffId: staff.id, action: "VARIANT_CREATED", entityType: "VARIANT", entityId: v.id, recordLabel: `${product.name} / ${sku}`, after: data }, tx);
-        if (opening > 0) await adjustStock(tx, v.id, opening, staff.id, "Opening stock");
+        // Opening stock is a purchase: logged with the purchase price for the investment report.
+        if (opening > 0) await receiveStock(tx, { variantId: v.id, qty: opening, unitCost: data.costPrice, staffId: staff.id, notes: "Opening stock" });
       });
     }
     revalidatePath(`/admin/products/${productId}`);

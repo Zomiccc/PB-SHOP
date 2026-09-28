@@ -11,7 +11,7 @@ export default async function TrackPage(props: PageProps<"/repair/track">) {
   const { ref } = await props.searchParams;
   return (
     <>
-      <PageHero eyebrow="Repair status" title="Track your" accent="repair." intro="Enter the reference from your visit note (e.g. PBR-1042) and the mobile number you booked with." />
+      <PageHero eyebrow="Repair status" title="Track your" accent="repair." intro="Enter the reference from your repair note (e.g. PBR-1042) and the mobile number you booked with." />
       <section className="container-pb pb-24">
         <TrackRepair initialRef={typeof ref === "string" ? ref : ""} />
       </section>

@@ -7,6 +7,7 @@ import { REPAIR_STATUSES } from "@/lib/constants";
 import { AuthForms, LogoutButton } from "@/components/account/AuthForms";
 import { PassportCard } from "@/components/home/PassportCard";
 import { Icon } from "@/components/ui/Icon";
+import { availablePoints } from "@/lib/loyalty";
 
 export const metadata: Metadata = { title: "My Account & PB Phone Passport", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export default async function AccountPage() {
         <div>
           <p className="eyebrow text-red">PB Phone Passport</p>
           <h1 className="display mt-5 text-5xl md:text-7xl">Your phone, looked after.</h1>
-          <p className="mt-5 max-w-md text-lg text-muted">Log in to see your points, orders, repair history and Care Card visits — all in one place.</p>
+          <p className="mt-5 max-w-md text-lg text-muted">Log in to see your points, what&apos;s expiring, your rewards, orders and repair history — all in one place.</p>
           <div className="mt-10 hidden lg:block">
             <PassportCard />
           </div>
@@ -32,14 +33,20 @@ export default async function AccountPage() {
     );
   }
 
-  const [orders, repairs, loyalty, cards, rewards, services] = await Promise.all([
+  // Expire anything that's due before showing the balance (expired points can't be redeemed).
+  const points = await availablePoints(db, customer.id);
+  const now = new Date();
+  const [orders, repairs, history, lots, rewards] = await Promise.all([
     db.order.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 10, include: { items: true } }),
     db.repairRequest.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 10 }),
-    db.loyaltyTransaction.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 15 }),
-    db.careCard.findMany({ where: { customerId: customer.id }, include: { redemptions: { include: { service: true } } }, orderBy: { issuedAt: "desc" } }),
-    db.reward.findMany({ where: { active: true }, orderBy: { pointsCost: "asc" } }),
-    db.careCardService.findMany({ orderBy: { visitNumber: "asc" } }),
+    db.loyaltyTransaction.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 40, include: { reward: true } }),
+    db.loyaltyTransaction.findMany({ where: { customerId: customer.id, remaining: { gt: 0 }, expiresAt: { gt: now } }, orderBy: { expiresAt: "asc" } }),
+    db.reward.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
   ]);
+  const earned = history.filter((t) => t.points > 0);
+  const used = history.filter((t) => t.points < 0);
+  const soon = lots.filter((l) => l.expiresAt && l.expiresAt.getTime() - now.getTime() < 30 * 86_400_000);
+  const date = (d: Date) => d.toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
   const statusLabel = (k: string) => REPAIR_STATUSES.find((s) => s.key === k)?.label ?? k;
 
   return (
@@ -51,7 +58,7 @@ export default async function AccountPage() {
             <h1 className="display mt-4 text-5xl md:text-7xl">{customer.name.split(" ")[0]}.</h1>
             <div className="mt-8 flex gap-8">
               <div>
-                <p className="display text-5xl text-gold">{customer.loyaltyPoints}</p>
+                <p className="display text-5xl text-gold">{points}</p>
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/50">Points</p>
               </div>
               <div>
@@ -68,41 +75,34 @@ export default async function AccountPage() {
               <LogoutButton />
             </div>
           </div>
-          <PassportCard name={customer.name} number={customer.passportNo} points={customer.loyaltyPoints} />
+          <PassportCard name={customer.name} number={customer.passportNo} points={points} />
         </div>
       </section>
 
       <div className="container-pb grid gap-8 py-16 lg:grid-cols-2">
-        {/* Care Cards */}
-        <Block title="PB Care Cards" icon="shield">
-          {cards.length === 0 ? (
-            <Empty text="Care Cards are issued with eligible phone purchases." />
+        {/* Points & expiry */}
+        <Block title="Your points" icon="star">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-navy-950 p-4"><p className="display text-4xl text-gold">{points}</p><p className="text-xs text-muted">available now</p></div>
+            <div className="rounded-2xl bg-navy-950 p-4"><p className="display text-4xl">{soon.reduce((s, l) => s + (l.remaining ?? 0), 0)}</p><p className="text-xs text-muted">expiring in 30 days</p></div>
+          </div>
+          {lots.length === 0 ? (
+            <Empty text="Points you earn appear here with their expiry dates." />
           ) : (
-            cards.map((c) => {
-              const used = c.redemptions.length;
-              return (
-                <div key={c.id} className="rounded-2xl bg-navy-950 p-5 text-white">
-                  <div className="flex items-center justify-between">
-                    <p className="font-mono text-sm text-gold">{c.number}</p>
-                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs">{c.status === "EXHAUSTED" ? "Fully used" : `${c.maxUses - used} of ${c.maxUses} uses left`}</span>
-                  </div>
-                  <ol className="mt-4 space-y-2">
-                    {services.map((s) => {
-                      const r = c.redemptions.find((x) => x.serviceId === s.id);
-                      return (
-                        <li key={s.id} className="flex items-center gap-3 text-sm">
-                          <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full font-mono text-[0.65rem] ${r ? "bg-gold text-navy-950" : "border border-white/25"}`}>
-                            {r ? <Icon name="check" className="h-3.5 w-3.5" strokeWidth={3} /> : s.visitNumber}
-                          </span>
-                          <span className={r ? "text-white/50 line-through" : s.configured ? "" : "text-white/40"}>{s.configured ? s.name : "Fifth visit benefit — to be announced"}</span>
-                          {r && <span className="ml-auto text-xs text-white/40">{r.createdAt.toLocaleDateString("en-PK")}</span>}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-              );
-            })
+            <ul className="divide-y divide-ink/10 text-sm">
+              {lots.map((l) => (
+                <li key={l.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0">
+                    <span className="block truncate">{l.reason ?? "Points"}</span>
+                    <span className="text-xs text-muted">Earned {date(l.createdAt)}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <b className="text-gold">{l.remaining} pts</b>
+                    <span className={`block text-xs ${soon.includes(l) ? "text-red" : "text-muted"}`}>expires {l.expiresAt ? date(l.expiresAt) : "—"}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </Block>
 
@@ -110,9 +110,12 @@ export default async function AccountPage() {
         <Block title="Rewards" icon="gift">
           <ul className="divide-y divide-ink/10">
             {rewards.map((r) => (
-              <li key={r.id} className="flex items-center justify-between py-3 text-sm">
-                <span>{r.name}</span>
-                <span className={customer.loyaltyPoints >= r.pointsCost ? "font-semibold text-emerald-400" : "text-muted"}>{r.pointsCost} pts</span>
+              <li key={r.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                <span>
+                  {r.name}
+                  {r.exclusions && <span className="block text-xs text-muted">{r.exclusions}</span>}
+                </span>
+                <span className={`shrink-0 ${points >= r.pointsCost ? "font-semibold text-emerald-400" : "text-muted"}`}>{points >= r.pointsCost ? "Ready · " : ""}{r.pointsCost} pts</span>
               </li>
             ))}
           </ul>
@@ -160,22 +163,38 @@ export default async function AccountPage() {
           )}
         </Block>
 
-        {/* Points */}
-        <Block title="Points activity" icon="star" className="lg:col-span-2">
-          {loyalty.length === 0 ? (
-            <Empty text="Points appear here after eligible purchases and repairs." />
+        {/* Earning history */}
+        <Block title="Earning history" icon="sparkle">
+          {earned.length === 0 ? (
+            <Empty text="Points appear here after repairs and phone purchases." />
           ) : (
             <ul className="divide-y divide-ink/10">
-              {loyalty.map((t) => (
-                <li key={t.id} className="flex justify-between py-3 text-sm">
+              {earned.map((t) => (
+                <li key={t.id} className="flex justify-between gap-3 py-3 text-sm">
                   <span>
                     {t.reason ?? t.type}
-                    <span className="block text-xs text-muted">
-                      {t.createdAt.toLocaleDateString("en-PK")}
-                      {t.expiresAt && ` · expires ${t.expiresAt.toLocaleDateString("en-PK")}`}
-                    </span>
+                    <span className="block text-xs text-muted">{date(t.createdAt)}{t.expiresAt && ` · expires ${date(t.expiresAt)}`}</span>
                   </span>
-                  <b className={t.points >= 0 ? "text-emerald-400" : "text-red"}>{t.points > 0 ? `+${t.points}` : t.points}</b>
+                  <b className="shrink-0 text-emerald-400">+{t.points}</b>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Block>
+
+        {/* Redemptions & expiry */}
+        <Block title="Redemptions & expired points" icon="gift">
+          {used.length === 0 ? (
+            <Empty text="Rewards you redeem (and any expired points) are listed here." />
+          ) : (
+            <ul className="divide-y divide-ink/10">
+              {used.map((t) => (
+                <li key={t.id} className="flex justify-between gap-3 py-3 text-sm">
+                  <span>
+                    {t.type === "REDEEM" ? t.reward?.name ?? t.reason : t.reason ?? t.type}
+                    <span className="block text-xs text-muted">{date(t.createdAt)} · {t.type === "REDEEM" ? "redeemed" : t.type === "EXPIRE" ? "expired" : "adjustment"}</span>
+                  </span>
+                  <b className="shrink-0 text-red">{t.points}</b>
                 </li>
               ))}
             </ul>

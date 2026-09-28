@@ -41,6 +41,24 @@ export const ACCESSORY_TYPES = {
 } as const;
 export type AccessoryType = keyof typeof ACCESSORY_TYPES;
 
+/** Phone spare parts (master brief §10) — repair-lab stock, sellable at the till, not listed online. */
+export const PART_TYPES = {
+  SCREEN: "Screen / display",
+  BATTERY: "Battery",
+  CHARGING_PORT: "Charging port / board",
+  CAMERA: "Camera",
+  BACK_GLASS: "Back glass / housing",
+  SPEAKER: "Speaker / microphone",
+  OTHER: "Other part",
+} as const;
+
+export const ITEM_CATEGORIES = {
+  PHONE: "Phones",
+  TABLET: "Tablets",
+  PART: "Phone Spare Parts",
+  ACCESSORY: "Accessories",
+} as const;
+
 export const USED_GRADES = {
   "A+": "Like new — no visible marks",
   A: "Excellent — faint signs of use",

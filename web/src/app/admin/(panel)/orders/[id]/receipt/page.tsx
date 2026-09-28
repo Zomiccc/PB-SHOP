@@ -9,7 +9,7 @@ export const metadata = { title: "Receipt" };
 /** 80mm thermal-printer friendly receipt. */
 export default async function ReceiptPage(props: PageProps<"/admin/orders/[id]/receipt">) {
   const { id } = await props.params;
-  const o = await db.order.findUnique({ where: { id }, include: { items: true, payments: { take: 1, orderBy: { createdAt: "desc" } }, staff: true, careCard: true, customer: true } });
+  const o = await db.order.findUnique({ where: { id }, include: { items: true, payments: { take: 1, orderBy: { createdAt: "desc" } }, staff: true, customer: true } });
   if (!o) notFound();
   return (
     <div className="fixed inset-0 z-[100] overflow-auto bg-white p-6 print:p-0">
@@ -35,7 +35,6 @@ export default async function ReceiptPage(props: PageProps<"/admin/orders/[id]/r
         {o.discount > 0 && <p className="flex justify-between"><span>Discount</span><span>-{pkr(o.discount)}</span></p>}
         <p className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{pkr(o.total)}</span></p>
         <p>Paid by: {o.payments[0]?.method ?? "-"} ({o.paymentStatus})</p>
-        {o.careCard && <p className="mt-2">Care Card: {o.careCard.number} (5 free service visits)</p>}
         {o.customer && <p>Passport: {o.customer.passportNo}</p>}
         <p className="my-2 border-t border-dashed border-black" />
         <p className="text-center">Thank you for shopping with us!</p>

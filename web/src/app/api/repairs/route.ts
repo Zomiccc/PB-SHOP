@@ -3,7 +3,7 @@ import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { nextRepairRef } from "@/lib/orders";
-import { saveUpload, StorageUnavailableError, UploadError } from "@/lib/storage";
+import { AttachmentError, filesFrom, inspectUpload, saveAttachment, type AttachmentKind } from "@/lib/attachments";
 import { REPAIR_CATEGORIES, DROP_OFF } from "@/lib/constants";
 import { getCurrentCustomer } from "@/lib/auth";
 import { notify, notifyStaff } from "@/lib/notify";
@@ -44,15 +44,18 @@ export async function POST(req: Request) {
     }
   }
 
-  const files = form.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0).slice(0, 4);
-  const photos: string[] = [];
-  try {
-    for (const f of files) photos.push(await saveUpload(f, "repairs"));
-  } catch (e) {
-    // Demo servers without storage still accept the repair — just without photos.
-    if (e instanceof StorageUnavailableError) photos.length = 0;
-    else if (e instanceof UploadError) return NextResponse.json({ error: e.message, fields: { photos: [e.message] } }, { status: 422 });
-    else throw e;
+  // Photos + other documents are validated (real file type, size) before anything is saved (master brief §7).
+  const uploads: { file: File; kind: AttachmentKind; field: string }[] = [
+    ...filesFrom(form, "photos").slice(0, 4).map((file) => ({ file, kind: "PHOTO" as const, field: "photos" })),
+    ...filesFrom(form, "attachments").slice(0, 3).map((file) => ({ file, kind: "OTHER" as const, field: "attachments" })),
+  ];
+  for (const u of uploads) {
+    try {
+      await inspectUpload(u.file, u.kind);
+    } catch (e) {
+      if (e instanceof AttachmentError) return NextResponse.json({ error: e.message, fields: { [u.field]: [e.message] } }, { status: 422 });
+      throw e;
+    }
   }
 
   const customer = await getCurrentCustomer();
@@ -73,16 +76,16 @@ export async function POST(req: Request) {
         imei: data.imei || null,
         category: data.category,
         description: data.description,
-        photos: JSON.stringify(photos),
         preferredAt,
         dropOff: data.dropOff,
       },
     });
     await tx.repairStatusChange.create({ data: { repairId: r.id, from: null, to: "NEW" } });
+    for (const u of uploads) await saveAttachment(u.file, { kind: u.kind, repairId: r.id }, tx);
     return r;
   });
 
-  await notify({ to: { phone, email: data.email || null }, subject: `Repair ${repair.ref}`, text: `PB Mobiles: your visit note is created. Repair reference ${repair.ref} for your ${data.brand} ${data.model}. Track it at pbmobiles.pk/repair/track` });
+  await notify({ to: { phone, email: data.email || null }, subject: `Repair ${repair.ref}`, text: `PB Mobiles: your repair note is created. Repair reference ${repair.ref} for your ${data.brand} ${data.model}. Track it at pbmobiles.pk/repair/track` });
   await notifyStaff(`New repair ${repair.ref}`, `${data.name} (${phone}) — ${data.brand} ${data.model}: ${data.category}
 ${data.description}`);
   return NextResponse.json({ ref: repair.ref }, { status: 201 });

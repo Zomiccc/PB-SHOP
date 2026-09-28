@@ -1,5 +1,5 @@
 import type { Product } from "@prisma/client";
-import { ACCESSORY_TYPES, PHONE_BRANDS } from "@/lib/constants";
+import { ACCESSORY_TYPES, PART_TYPES, PHONE_BRANDS } from "@/lib/constants";
 import { parseJson } from "@/lib/format";
 import { saveProductAction } from "@/app/admin/_actions/products";
 import { ActionForm, Submit } from "./ui";
@@ -23,6 +23,7 @@ export function ProductForm({ product }: { product?: Product }) {
             <option value="PHONE">Phone</option>
             <option value="TABLET">Tablet</option>
             <option value="ACCESSORY">Accessory</option>
+            <option value="PART">Phone spare part (not listed online)</option>
           </select>
         </Field>
         <Field label="Condition (phones & tablets)" hint="Used devices need exactly one grade per SKU.">
@@ -36,6 +37,12 @@ export function ProductForm({ product }: { product?: Product }) {
             {Object.entries(ACCESSORY_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </Field>
+        <Field label="Spare-part type">
+          <select name="partType" defaultValue={product?.partType ?? "OTHER"} className="field">
+            {Object.entries(PART_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="Compatible model(s) — spare parts"><input name="compatibleModel" defaultValue={product?.compatibleModel ?? ""} placeholder="iPhone 13 / 13 Pro" className="field" /></Field>
         <Field label="Finish colour (3D tint)" hint="Hex, e.g. #1c3552 — used when no 3D model is attached">
           <input name="finishHex" defaultValue={product?.finishHex ?? ""} placeholder="#1c3552" className="field" />
         </Field>
@@ -46,7 +53,6 @@ export function ProductForm({ product }: { product?: Product }) {
       </Field>
       <div className="flex flex-wrap gap-5 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4" /> Featured on home page</label>
-        <label className="flex items-center gap-2"><input type="checkbox" name="careCardEligible" defaultChecked={product?.careCardEligible ?? true} className="h-4 w-4" /> Issues a PB Care Card</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="loyaltyEligible" defaultChecked={product?.loyaltyEligible ?? true} className="h-4 w-4" /> Earns Passport points</label>
       </div>
       <details className="rounded-xl bg-cream p-4">

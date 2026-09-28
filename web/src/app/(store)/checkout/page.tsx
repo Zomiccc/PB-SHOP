@@ -6,7 +6,7 @@ import { getCurrentCustomer } from "@/lib/auth";
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
 
 export default async function CheckoutPage() {
-  const [shipping, loyalty, customer] = await Promise.all([getSetting("shipping"), getSetting("loyalty"), getCurrentCustomer()]);
+  const [shipping, passport, customer] = await Promise.all([getSetting("shipping"), getSetting("passport"), getCurrentCustomer()]);
   return (
     <>
       <div className="container-pb pb-8 pt-12">
@@ -15,7 +15,7 @@ export default async function CheckoutPage() {
       </div>
       <CheckoutForm
         shipping={shipping}
-        pointsPerRupees={loyalty.pointsPerRupees}
+        phonePoints={{ NEW: passport.newPhonePoints, USED: passport.usedPhonePoints }}
         defaults={{ name: customer?.name, phone: customer?.phone, email: customer?.email ?? undefined }}
       />
     </>

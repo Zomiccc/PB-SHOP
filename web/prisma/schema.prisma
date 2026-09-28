@@ -1,7 +1,8 @@
 // PB Mobiles & Repairing Lab — database schema
 //
 // Per the brief's "Developer Priority" note, inventory/barcode, audit logs, employee notes,
-// Care Cards, roles and 6-photo 3D generation are modelled from day one, not bolted on later.
+// Phone Passport points lots, installments, ID documents, broadcasts, roles and 6-photo 3D generation
+// are modelled from day one, not bolted on later. (The old Care Card system was removed by the master brief.)
 //
 // Dev uses SQLite so the project runs with zero setup. Production should switch the
 // provider to "postgresql" (Neon / Supabase / RDS). Enum-like columns are plain strings
@@ -38,9 +39,14 @@ model Staff {
   ordersHandled   Order[]              @relation("OrderStaff")
   repairsAssigned RepairRequest[]      @relation("RepairAssignee")
   repairChanges   RepairStatusChange[]
-  careRedemptions CareCardRedemption[]
   loyaltyTx       LoyaltyTransaction[]
   modelJobs       Model3DJob[]
+  installments    InstallmentSale[]
+  usedPurchases   UsedPhonePurchase[]
+  attachments     Attachment[]
+  broadcasts      Broadcast[]
+  chatMessages    ChatMessage[]
+  pushSubs        PushSubscription[]
 }
 
 model StaffLoginEvent {
@@ -60,8 +66,8 @@ model AuditLog {
   id          String   @id @default(cuid())
   staffId     String?
   staff       Staff?   @relation(fields: [staffId], references: [id])
-  action      String // e.g. PRODUCT_PRICE_CHANGED, STOCK_ADJUSTED, SALE_COMPLETED, CARE_SERVICE_CHANGED
-  entityType  String // PRODUCT | VARIANT | ORDER | REPAIR | CUSTOMER | CARE_CARD | CARE_SERVICE | SETTING | LOYALTY
+  action      String // e.g. PRODUCT_PRICE_CHANGED, STOCK_ADJUSTED, SALE_COMPLETED, REWARD_UPDATED, BROADCAST_PUBLISHED
+  entityType  String // PRODUCT | VARIANT | ORDER | REPAIR | CUSTOMER | SETTING | LOYALTY | REWARD | INSTALLMENT | BROADCAST | USED_PURCHASE | ATTACHMENT
   entityId    String?
   recordLabel String? // human label: "iPhone 13 / SKU PB-013", "Repair #1042"
   before      String? // JSON snapshot
@@ -83,7 +89,7 @@ model Customer {
   email         String?  @unique
   passwordHash  String? // null for walk-in / guest customers created at POS
   passportNo    String   @unique // PB Phone Passport number shown to customer
-  loyaltyPoints Int      @default(0)
+  loyaltyPoints Int      @default(0) // cached balance = sum of unexpired, unspent earning lots
   marketingOptIn Boolean @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -91,17 +97,21 @@ model Customer {
   orders       Order[]
   repairs      RepairRequest[]
   loyaltyTx    LoyaltyTransaction[]
-  careCards    CareCard[]
-  redemptions  CareCardRedemption[]
   notes        Note[]
+  installments InstallmentSale[]
 }
 
+/// Every points event. Positive events (EARN / PROMO / positive ADJUST) are "lots": each keeps its own
+/// expiry date and `remaining` balance, so six-month expiry is exact per earning event (master brief §4).
+/// Spending, deductions and expiry consume lots oldest-first (see src/lib/loyalty.ts).
 model LoyaltyTransaction {
   id         String    @id @default(cuid())
   customerId String
   customer   Customer  @relation(fields: [customerId], references: [id])
   type       String // EARN | REDEEM | ADJUST | EXPIRE | PROMO
+  source     String? // REPAIR | NEW_PHONE | USED_PHONE | MANUAL (earning events)
   points     Int // positive = earned, negative = spent/expired
+  remaining  Int? // lots only: points of this event not yet spent or expired
   reason     String?
   orderId    String?
   order      Order?    @relation(fields: [orderId], references: [id])
@@ -115,66 +125,25 @@ model LoyaltyTransaction {
   createdAt  DateTime  @default(now())
 
   @@index([customerId, createdAt])
+  @@index([customerId, expiresAt])
 }
 
+/// Phone Passport rewards — created/edited/enabled by the Super Admin; every change audited.
 model Reward {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  pointsCost  Int
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  pointsCost      Int
+  kind            String   @default("ITEM") // ITEM (e.g. AirPods, a case) | REPAIR_DISCOUNT
+  appliesTo       String   @default("ACCESSORY") // ACCESSORY | REPAIR
+  discountPercent Int? // REPAIR_DISCOUNT only, e.g. 50
+  exclusions      String? // e.g. "Excludes parts"
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 
   transactions LoyaltyTransaction[]
-}
-
-// ─────────────────────────────── Care Card (§18) ───────────────────────────────
-
-/// Visit definitions 1–5. Only SUPER_ADMIN may create/edit/reorder/activate these.
-/// Visit 5 ships as a configurable placeholder — the brief deliberately leaves it undefined.
-model CareCardService {
-  id          String   @id @default(cuid())
-  visitNumber Int      @unique // 1..5
-  name        String
-  description String?
-  active      Boolean  @default(true)
-  configured  Boolean  @default(true) // false = placeholder awaiting owner definition
-  updatedAt   DateTime @updatedAt
-
-  redemptions CareCardRedemption[]
-}
-
-model CareCard {
-  id         String   @id @default(cuid())
-  number     String   @unique // e.g. PBC-000123
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id])
-  orderId    String?  @unique
-  order      Order?   @relation(fields: [orderId], references: [id])
-  maxUses    Int      @default(5)
-  status     String   @default("ACTIVE") // ACTIVE | EXHAUSTED | VOID
-  issuedAt   DateTime @default(now())
-
-  redemptions CareCardRedemption[]
-}
-
-model CareCardRedemption {
-  id          String          @id @default(cuid())
-  careCardId  String
-  careCard    CareCard        @relation(fields: [careCardId], references: [id])
-  serviceId   String
-  service     CareCardService @relation(fields: [serviceId], references: [id])
-  customerId  String
-  customer    Customer        @relation(fields: [customerId], references: [id])
-  staffId     String
-  staff       Staff           @relation(fields: [staffId], references: [id])
-  repairId    String?
-  repair      RepairRequest?  @relation(fields: [repairId], references: [id])
-  note        String?
-  createdAt   DateTime        @default(now())
-
-  /// "Once per card" is enforced in app logic (src/lib/care-card.ts) so the super admin can relax it via settings.
-  @@index([careCardId])
 }
 
 // ─────────────────────────────── Catalogue & inventory (§5, §6, §19) ───────────────────────────────
@@ -184,16 +153,17 @@ model Product {
   slug            String   @unique
   name            String
   brand           String
-  type            String // PHONE | TABLET | ACCESSORY
+  type            String // PHONE | TABLET | ACCESSORY | PART (phone spare parts)
   condition       String   @default("NEW") // NEW | USED  (accessories are NEW)
   accessoryType   String? // CASE | CHARGER | CABLE | SCREEN_PROTECTOR | POWER_BANK | EARBUDS | OTHER
+  partType        String? // spare parts: SCREEN | BATTERY | CHARGING_PORT | CAMERA | BACK_GLASS | SPEAKER | OTHER
+  compatibleModel String? // spare parts: e.g. "iPhone 13 / 13 Pro"
   description     String
   specs           String   @default("{}") // JSON key/value spec sheet
   images          String   @default("[]") // JSON array of image URLs
   finishHex       String? // colour used to tint the procedural 3D phone when no GLB exists
   featured        Boolean  @default(false)
   active          Boolean  @default(true) // deactivate instead of hard delete
-  careCardEligible Boolean @default(false)
   loyaltyEligible Boolean  @default(true)
 
   // 3D (§4, §14)
@@ -223,14 +193,17 @@ model Variant {
   id                String   @id @default(cuid())
   productId         String
   product           Product  @relation(fields: [productId], references: [id])
-  sku               String   @unique
+  sku               String   @unique // the Item Number printed on labels and typed/scanned at the till
   barcode           String   @unique
+  imei              String? // phones / tablets: one physical device per SKU (uniqueness checked in src/lib/inventory.ts)
+  partNumber        String? // spare parts: manufacturer part number; accessories: article number
   storage           String?
   ram               String? // tablets / phones where applicable, e.g. "8GB"
   color             String?
   colorHex          String?
   price             Int // PKR, whole rupees
   salePrice         Int?
+  costPrice         Int? // purchase price per unit (investment / profit reports)
   stockQty          Int      @default(0)
   lowStockThreshold Int      @default(2)
   allowBackorder    Boolean  @default(false) // zero-stock exception, set only by authorised admin
@@ -246,10 +219,12 @@ model Variant {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  movements  StockMovement[]
-  orderItems OrderItem[]
+  movements     StockMovement[]
+  orderItems    OrderItem[]
+  usedPurchases UsedPhonePurchase[]
 
   @@index([productId])
+  @@index([imei])
 }
 
 /// Every stock change: additions, sales, returns, cancellations, manual adjustments (§6, §19).
@@ -257,10 +232,12 @@ model StockMovement {
   id        String   @id @default(cuid())
   variantId String
   variant   Variant  @relation(fields: [variantId], references: [id])
-  type      String // RECEIVED | SALE | RETURN | CANCEL | ADJUST
+  type      String // PURCHASE | RECEIVED | SALE | RETURN | CANCEL | ADJUST
   qtyChange Int
   qtyAfter  Int
-  reason    String?
+  unitPrice Int? // sale price per unit (SALE / RETURN) or purchase price per unit (PURCHASE)
+  reference String? // supplier invoice, order number, used-phone purchase ref…
+  reason    String? // notes
   orderId   String?
   order     Order?   @relation(fields: [orderId], references: [id])
   staffId   String? // null only for automated online sales
@@ -268,6 +245,7 @@ model StockMovement {
   createdAt DateTime @default(now())
 
   @@index([variantId, createdAt])
+  @@index([type, createdAt])
 }
 
 /// Automatic 6-photo → 3D pipeline (§14). Photos are kept so the model can be regenerated.
@@ -327,7 +305,6 @@ model Order {
   payments   Payment[]
   notes      Note[]
   movements  StockMovement[]
-  careCard   CareCard?
   loyaltyTx  LoyaltyTransaction[]
 
   @@index([createdAt])
@@ -344,6 +321,7 @@ model OrderItem {
   sku       String
   grade     String? // snapshot of the SKU's single grade at sale time (receipts/invoices)
   unitPrice Int
+  unitCost  Int? // purchase price snapshot for profit / margin
   qty       Int
 }
 
@@ -386,6 +364,8 @@ model RepairRequest {
   status        String    @default("NEW") // NEW | RECEIVED | DIAGNOSING | AWAITING | REPAIRING | READY | COMPLETED | CANCELLED
   quote         Int?
   finalPrice    Int?
+  partsCost     Int? // part of the charge that is parts (Passport repair discounts exclude parts)
+  rewardDiscount Int? // Phone Passport discount applied to this repair
   assignedToId  String?
   assignedTo    Staff?    @relation("RepairAssignee", fields: [assignedToId], references: [id])
   completedAt   DateTime?
@@ -394,8 +374,8 @@ model RepairRequest {
 
   statusChanges   RepairStatusChange[]
   notes           Note[]
-  careRedemptions CareCardRedemption[]
   loyaltyTx       LoyaltyTransaction[]
+  attachments     Attachment[]
 
   @@index([status, createdAt])
 }
@@ -443,6 +423,8 @@ model ContactMessage {
   message   String
   status    String   @default("NEW") // NEW | REPLIED | CLOSED
   createdAt DateTime @default(now())
+
+  attachments Attachment[]
 }
 
 model ChatConversation {
@@ -451,20 +433,49 @@ model ChatConversation {
   name      String?
   phone     String?
   status    String        @default("OPEN") // OPEN | HANDED_OFF | CLOSED
+  visitorReadAt DateTime? // last time the customer saw the thread (read receipts)
+  staffReadAt   DateTime? // last time staff opened the thread
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
+  pushSubs  PushSubscription[]
 
   @@index([visitorId])
 }
 
+/// Chat message: sender, timestamp, delivery/read state, and attachment / voice-note metadata (master brief §13).
 model ChatMessage {
   id             String           @id @default(cuid())
   conversationId String
   conversation   ChatConversation @relation(fields: [conversationId], references: [id])
   from           String // VISITOR | BOT | STAFF
+  staffId        String? // which employee sent a STAFF message
+  staff          Staff?           @relation(fields: [staffId], references: [id])
+  kind           String           @default("TEXT") // TEXT | FILE | VOICE
   body           String
+  durationSec    Float? // voice notes
+  waveform       String? // voice notes: JSON array of 0–1 peaks for the waveform
+  deliveredAt    DateTime? // recipient's device fetched it
+  readAt         DateTime? // recipient opened the thread
   createdAt      DateTime         @default(now())
+
+  attachments Attachment[]
+
+  @@index([conversationId, createdAt])
+}
+
+/// Browser / phone push subscription (Web Push). Customers subscribe per conversation; staff per account.
+model PushSubscription {
+  id             String            @id @default(cuid())
+  endpoint       String            @unique
+  p256dh         String
+  auth           String
+  audience       String // VISITOR | STAFF
+  conversationId String?
+  conversation   ChatConversation? @relation(fields: [conversationId], references: [id])
+  staffId        String?
+  staff          Staff?            @relation(fields: [staffId], references: [id])
+  createdAt      DateTime          @default(now())
 }
 
 /// Key/value config: social-proof toggle/frequency, loyalty earn rates, expiry, shipping fee, etc.
@@ -494,4 +505,138 @@ model Review {
 
   @@index([status, createdAt])
   @@index([productId, status])
+}
+
+// ─────────────────────────────── Installments (master brief §3, §5) ───────────────────────────────
+
+/// Phones on installments shown in the homepage section. Informational only: no online checkout —
+/// customers visit the store with their CNIC. Managed (add / edit / reorder / remove) in Admin → Installments.
+model InstallmentListing {
+  id               String   @id @default(cuid())
+  model            String // e.g. "Samsung Galaxy A55 8/256GB"
+  productId        String? // optional link to the catalogue product page
+  imageUrl         String?
+  regularPrice     Int
+  installmentTotal Int // total payable on the plan
+  interestPercent  Float    @default(0)
+  downPayment      Int
+  durationMonths   Int
+  planLabel        String? // e.g. "12 monthly payments"
+  availability     String   @default("AVAILABLE") // AVAILABLE | LIMITED | OUT_OF_STOCK
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sales InstallmentSale[]
+}
+
+/// A new phone sold on installments in store (staff workflow). CNIC front + back are required.
+model InstallmentSale {
+  id              String              @id @default(cuid())
+  ref             String              @unique // PBI-1001
+  listingId       String?
+  listing         InstallmentListing? @relation(fields: [listingId], references: [id])
+  customerId      String?
+  customer        Customer?           @relation(fields: [customerId], references: [id])
+  customerName    String
+  customerPhone   String
+  cnicNumber      String
+  address         String?
+  phoneModel      String
+  imei            String?
+  totalPrice      Int
+  downPayment     Int
+  monthlyPayment  Int
+  durationMonths  Int
+  status          String              @default("PENDING") // PENDING | APPROVED | ACTIVE | COMPLETED | CANCELLED
+  notes           String?
+  staffId         String
+  staff           Staff               @relation(fields: [staffId], references: [id])
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  attachments Attachment[]
+}
+
+// ─────────────────────────────── Buying used phones (master brief §6) ───────────────────────────────
+
+/// A person selling their used phone to PB Mobiles. CNIC front + back are required.
+model UsedPhonePurchase {
+  id            String   @id @default(cuid())
+  ref           String   @unique // PBU-1001
+  sellerName    String
+  sellerPhone   String
+  sellerCnic    String
+  sellerAddress String?
+  brand         String
+  model         String
+  imei          String
+  storage       String?
+  color         String?
+  grade         String // exactly one grade (src/lib/grade.ts)
+  batteryHealth Int?
+  agreedPrice   Int
+  notes         String?
+  variantId     String? // SKU created in inventory for resale
+  variant       Variant? @relation(fields: [variantId], references: [id])
+  staffId       String
+  staff         Staff    @relation(fields: [staffId], references: [id])
+  createdAt     DateTime @default(now())
+
+  attachments Attachment[]
+
+  @@index([imei])
+}
+
+// ─────────────────────────────── Documents & attachments (master brief §7) ───────────────────────────────
+
+/// Uploaded document or file. Never served from a public URL: /api/files/[id] checks permissions first.
+/// CNIC/ID images are `sensitive` and visible to signed-in staff only.
+/// Files are kept in the database (`data`) so uploads work without object storage; with
+/// STORAGE_BUCKET set they go to a private bucket (`storageKey`).
+model Attachment {
+  id                String             @id @default(cuid())
+  kind              String // CNIC_FRONT | CNIC_BACK | OTHER | PHOTO | CHAT_FILE | VOICE_NOTE
+  fileName          String
+  mimeType          String
+  size              Int
+  sensitive         Boolean            @default(false)
+  data              Bytes?
+  storageKey        String?
+  repairId          String?
+  repair            RepairRequest?     @relation(fields: [repairId], references: [id])
+  contactMessageId  String?
+  contactMessage    ContactMessage?    @relation(fields: [contactMessageId], references: [id])
+  installmentSaleId String?
+  installmentSale   InstallmentSale?   @relation(fields: [installmentSaleId], references: [id])
+  usedPurchaseId    String?
+  usedPurchase      UsedPhonePurchase? @relation(fields: [usedPurchaseId], references: [id])
+  chatMessageId     String?
+  chatMessage       ChatMessage?       @relation(fields: [chatMessageId], references: [id])
+  uploadedById      String? // staff uploader (null = uploaded by a customer)
+  uploadedBy        Staff?             @relation(fields: [uploadedById], references: [id])
+  createdAt         DateTime           @default(now())
+
+  @@index([repairId])
+  @@index([installmentSaleId])
+  @@index([usedPurchaseId])
+  @@index([chatMessageId])
+}
+
+// ─────────────────────────────── Broadcasts (master brief §9) ───────────────────────────────
+
+/// Announcement shown in the dark bar at the top of the homepage while published and within its dates.
+model Broadcast {
+  id          String    @id @default(cuid())
+  message     String
+  ctaLabel    String?
+  ctaHref     String?
+  active      Boolean   @default(false) // published
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdById String?
+  createdBy   Staff?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

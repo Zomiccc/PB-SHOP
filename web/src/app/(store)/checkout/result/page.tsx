@@ -16,7 +16,7 @@ export default async function ResultPage(props: PageProps<"/checkout/result">) {
   const token = typeof sp.t === "string" ? sp.t : "";
   const order =
     number && verifyOrderToken(number, token)
-      ? await db.order.findUnique({ where: { number }, include: { items: true, payments: { orderBy: { createdAt: "desc" }, take: 1 }, careCard: true } })
+      ? await db.order.findUnique({ where: { number }, include: { items: true, payments: { orderBy: { createdAt: "desc" }, take: 1 } } })
       : null;
 
   if (!order) {
@@ -54,11 +54,6 @@ export default async function ResultPage(props: PageProps<"/checkout/result">) {
         <ClearCart />
         {order.fulfilmentStatus === "ON_HOLD" && (
           <p className="mt-6 rounded-xl bg-gold/15 p-3 text-sm text-gold-soft">One item sold out while you were paying. Our team will call you to arrange a substitute or full refund.</p>
-        )}
-        {order.careCard && (
-          <p className="mt-6 flex items-center gap-2 rounded-xl bg-navy-950 p-3 text-sm text-gold">
-            <Icon name="shield" className="h-4 w-4" /> PB Care Card {order.careCard.number} issued with this order.
-          </p>
         )}
         {details}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
