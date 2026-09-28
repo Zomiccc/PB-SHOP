@@ -21,6 +21,7 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
         { href: "/admin/pos", label: "POS / Scan & sell", icon: "card" },
         { href: "/admin/installments/sales/new", label: "Installment sale", icon: "id-card" },
         { href: "/admin/used-phones/new", label: "Buy a used phone", icon: "cash" },
+        { href: "/admin/cards", label: "Passport cards", icon: "id-card" },
       ],
     },
     {

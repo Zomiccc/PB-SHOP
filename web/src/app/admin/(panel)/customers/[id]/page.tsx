@@ -32,6 +32,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
   return (
     <>
       <PageTitle title={c.name} sub={`${c.phone}${c.email ? ` · ${c.email}` : ""} · Passport ${c.passportNo}`}>
+        <Link href={`/admin/customers/${c.id}/card`} className="btn btn-gold !py-2.5 !text-sm">Passport card</Link>
         <Link href="/admin/customers" className="text-sm text-blue">← Customers</Link>
       </PageTitle>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -223,3 +223,6 @@ html.lenis, html.lenis body { height: auto; }
   .print-area { position: absolute; inset: 0 auto auto 0; }
   @page { margin: 4mm; }
 }
+
+/* Printed Passport cards keep their dark background and gold colours. */
+.print-exact, .print-exact * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

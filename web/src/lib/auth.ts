@@ -53,6 +53,15 @@ export async function getCurrentCustomer() {
   return db.customer.findUnique({ where: { id: session.sub } });
 }
 
+/** A Passport ID that no other customer has (checked against the database). */
+export async function uniquePassportNo(client: { customer: { findUnique: (a: { where: { passportNo: string } }) => Promise<unknown> } }) {
+  for (let i = 0; i < 20; i++) {
+    const no = newPassportNo();
+    if (!(await client.customer.findUnique({ where: { passportNo: no } }))) return no;
+  }
+  throw new Error("Could not allocate a Passport ID — try again");
+}
+
 export function newPassportNo() {
   const n = Math.floor(100000 + Math.random() * 900000);
   return `PBP-${n}`;
