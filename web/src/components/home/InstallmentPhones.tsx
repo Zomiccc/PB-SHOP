@@ -16,7 +16,7 @@ const TONE: Record<string, string> = {
  * Separate "Phones on installments" section (master brief §3). Deliberately has NO buy / apply /
  * checkout button: installment sales are completed in store with the customer's CNIC.
  */
-export function InstallmentPhones({ listings, heading = true }: { listings: InstallmentListing[]; heading?: boolean }) {
+export function InstallmentPhones({ listings, heading = true, showCalculatorLink = true }: { listings: InstallmentListing[]; heading?: boolean; showCalculatorLink?: boolean }) {
   if (!listings.length) return null;
   return (
     <section id="installments" className="relative overflow-hidden py-14 md:py-20">
@@ -66,6 +66,9 @@ export function InstallmentPhones({ listings, heading = true }: { listings: Inst
                     <Fact k="Interest / markup" v={`${l.interestPercent}%`} />
                     <Fact k="Duration" v={`${l.durationMonths} months`} />
                   </div>
+                  <Link href={`/installments?plan=${l.id}#calculator`} className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3 text-sm font-semibold text-gold transition hover:bg-gold/10">
+                    <Icon name="card" className="h-4 w-4" /> Calculate my plan
+                  </Link>
                 </li>
               </Reveal>
             );
@@ -73,6 +76,11 @@ export function InstallmentPhones({ listings, heading = true }: { listings: Inst
         </ul>
         <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
           <span>Prices and plans may change; the store confirms the final plan after checking your CNIC.</span>
+          {showCalculatorLink && (
+            <Link href="/installments" className="inline-flex items-center gap-1 font-semibold text-gold hover:text-gold-soft">
+              <Icon name="card" className="h-4 w-4" /> Open the installment calculator
+            </Link>
+          )}
           <Link href="/contact" className="inline-flex items-center gap-1 text-gold hover:text-gold-soft">
             <Icon name="pin" className="h-4 w-4" /> Find the store
           </Link>

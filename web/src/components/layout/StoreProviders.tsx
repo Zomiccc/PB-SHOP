@@ -33,8 +33,13 @@ export function StoreProviders({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const t = setTimeout(() => ScrollTrigger.refresh(), 150);
+    // Links like /installments#calculator land on that section; everything else starts at the top.
+    const target = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+    if (!target) window.scrollTo(0, 0);
+    const t = setTimeout(() => {
+      ScrollTrigger.refresh();
+      target?.scrollIntoView({ block: "start" });
+    }, 150);
     return () => clearTimeout(t);
   }, [pathname]);
 

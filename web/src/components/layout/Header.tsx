@@ -67,7 +67,7 @@ export function Header() {
         <div className="container-pb flex h-[var(--header-h)] items-center justify-between gap-6">
           <Logo dark={dark} />
 
-          <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+          <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
             {NAV.map((item) => {
               const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               return (
@@ -117,7 +117,7 @@ export function Header() {
               onClick={() => setMenu((m) => !m)}
               aria-expanded={menu}
               aria-label="Menu"
-              className={cn("grid h-10 w-10 place-items-center rounded-full lg:hidden", dark ? "text-white" : "text-ink")}
+              className={cn("grid h-10 w-10 place-items-center rounded-full xl:hidden", dark ? "text-white" : "text-ink")}
             >
               <Icon name={menu ? "close" : "menu"} className="h-5 w-5" />
             </button>
@@ -135,7 +135,7 @@ export function Header() {
               transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
               // Scrolls inside itself on short screens so the last links are always reachable.
               data-lenis-prevent
-              className="max-h-[calc(100svh-var(--header-h))] overflow-y-auto overscroll-contain border-t border-ink/10 bg-cream lg:hidden"
+              className="max-h-[calc(100svh-var(--header-h))] overflow-y-auto overscroll-contain border-t border-ink/10 bg-cream xl:hidden"
             >
               <div className="container-pb flex flex-col py-4">
                 {NAV.map((item, i) => (

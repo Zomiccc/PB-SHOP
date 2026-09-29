@@ -10,7 +10,6 @@ import { cn, pkr } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { ProductArt } from "./ProductArt";
-import { FinanceCalculator } from "../FinanceCalculator";
 import { lowestInstallment, type FinancingConfig } from "@/lib/finance";
 import { Icon } from "../ui/Icon";
 
@@ -279,18 +278,16 @@ export function ProductDetail({ product, phonePoints, financing, initialVariantI
           const low = lowestInstallment(price, financing);
           if (!low) return null;
           return (
-            <details className="group mt-6 rounded-2xl bg-card shadow-[var(--shadow-card)] open:shadow-[var(--shadow-lift)]">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
-                <span>
-                  <span className="block text-xs text-muted">Or pay in installments</span>
-                  <span className="font-semibold">From <b className="text-red">{pkr(low.perInstallment)}</b>/{financing.period === "WEEKLY" ? "week" : "month"}</span>
-                </span>
-                <span className="rounded-full bg-navy-950 px-3 py-1.5 text-xs font-semibold text-white group-open:bg-gold group-open:text-navy-950">Calculate</span>
-              </summary>
-              <div className="p-2 pt-0">
-                <FinanceCalculator key={variant.id} config={financing} initialPrice={price} productName={`${product.name}${variant.storage ? ` ${variant.storage}` : ""}`} compact />
-              </div>
-            </details>
+            <Link
+              href={`/installments?price=${price}&name=${encodeURIComponent(`${product.name}${variant.storage ? ` ${variant.storage}` : ""}`)}#calculator`}
+              className="group mt-6 flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] ring-1 ring-gold/25 transition hover:ring-gold/60"
+            >
+              <span>
+                <span className="block text-xs text-muted">Or pay in installments (in store, with your CNIC)</span>
+                <span className="font-semibold">From <b className="text-gold">{pkr(low.perInstallment)}</b>/{financing.period === "WEEKLY" ? "week" : "month"}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-1.5 text-xs font-semibold text-[#120d02]">Calculate <Icon name="arrow-right" className="h-3.5 w-3.5" /></span>
+            </Link>
           );
         })()}
 

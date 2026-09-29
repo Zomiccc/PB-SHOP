@@ -14,11 +14,12 @@ type PhoneOption = { slug: string; name: string; price: number };
  * app (flat monthly markup on the financed amount, rounded to the rupee). Informational only — installment
  * purchases are completed in store with the customer's CNIC (master brief §3).
  */
-export function FinanceCalculator({ config, phones, initialPrice, productName, compact = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; productName?: string; compact?: boolean }) {
+export function FinanceCalculator({ config, phones, initialPrice, initialSlug, productName, compact = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; initialSlug?: string; productName?: string; compact?: boolean }) {
   const terms = termList(config);
   const downOptions = downPaymentList(config);
   const eligiblePhones = (phones ?? []).filter((p) => p.price >= config.minPrice);
-  const [slug, setSlug] = useState(eligiblePhones[0]?.slug ?? "");
+  // Start on the phone picked on the page (or a price from a product page → "Other amount").
+  const [slug, setSlug] = useState(initialSlug && eligiblePhones.some((p) => p.slug === initialSlug) ? initialSlug : initialPrice ? "" : eligiblePhones[0]?.slug ?? "");
   const [customPrice, setCustomPrice] = useState(initialPrice ?? eligiblePhones[0]?.price ?? 100000);
   const price = phones && slug ? (eligiblePhones.find((p) => p.slug === slug)?.price ?? customPrice) : customPrice;
   const [dpPercent, setDpPercent] = useState(downOptions.includes(30) ? 30 : downOptions[0]);
