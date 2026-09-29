@@ -12,7 +12,7 @@ export const metadata = { title: "Settings & rules" };
 export default async function SettingsPage() {
   await requireStaffPage({ superAdmin: true });
   const [financing, social, passport, shipping, rewards] = await Promise.all([
-    getSetting("financing"),
+    getSetting("installmentCalc"),
     getSetting("socialProof"),
     getSetting("passport"),
     getSetting("shipping"),
@@ -25,13 +25,14 @@ export default async function SettingsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel title="Installment calculator" className="xl:col-span-2">
           <p className="mb-4 text-sm text-muted">
-            Shown on <a href="/installments" target="_blank" className="text-blue underline">/installments</a> and on every phone page. Enter the financing partner&apos;s real rates from the agent app — the defaults are samples.
+            Shown on <a href="/installments" target="_blank" className="text-blue underline">/installments</a> and on every phone page. Defaults match the partner app&apos;s standard plan (6% per month flat, no extra fees, 10% minimum down payment).
           </p>
           <ActionForm action={saveSettingAction} className="space-y-4">
-            <input type="hidden" name="key" value="financing" />
+            <input type="hidden" name="key" value="installmentCalc" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Financing partner name"><input name="partnerName" defaultValue={financing.partnerName} className="field" /></Field>
               <Field label="Min. down payment %"><input name="minDownPaymentPercent" type="number" step="0.01" min={0} max={100} defaultValue={financing.minDownPaymentPercent} className="field" /></Field>
+              <Field label="Down-payment choices %" hint="Comma-separated, e.g. 10,20,30,40,50"><input name="downPaymentOptions" defaultValue={financing.downPaymentOptions} className="field" /></Field>
               <Field label="Plans (number of terms)" hint="Comma-separated, e.g. 3,6,9,12"><input name="termOptions" defaultValue={financing.termOptions} className="field" /></Field>
               <Field label="Repayment period">
                 <select name="period" defaultValue={financing.period} className="field">

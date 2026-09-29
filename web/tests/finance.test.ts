@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { lowestInstallment, minDownPayment, quote, termList, type FinancingConfig } from "@/lib/finance";
+import { downPaymentList, lowestInstallment, minDownPayment, quote, termList, type FinancingConfig } from "@/lib/finance";
+import { SETTING_DEFAULTS } from "@/lib/settings";
 
 const cfg: FinancingConfig = {
   enabled: true,
   partnerName: "Partner",
   minDownPaymentPercent: 30,
+  downPaymentOptions: "30,40,50",
   termOptions: "12, 3,6,9,6",
   period: "MONTHLY",
   markupPercentPerMonth: 3,
@@ -27,7 +29,7 @@ describe("Installment calculator", () => {
     expect(q.serviceFee).toBe(1400);
     expect(q.riskFee).toBe(700);
     expect(q.totalRepayable).toBe(84700);
-    expect(q.perInstallment).toBe(14117); // ceil(84,700 / 6)
+    expect(q.perInstallment).toBe(14117); // 84,700 / 6, rounded
     expect(q.dueToday).toBe(31000); // down payment + deposit
   });
 
@@ -46,5 +48,27 @@ describe("Installment calculator", () => {
     expect(lowestInstallment(15000, cfg)).toBeNull();
     expect(lowestInstallment(100000, { ...cfg, enabled: false })).toBeNull();
     expect(lowestInstallment(100000, cfg)?.terms).toBe(12);
+  });
+});
+
+describe("Matches the partner (Palm) app exactly", () => {
+  const palm = SETTING_DEFAULTS.installmentCalc;
+
+  it("Tecno Spark 40 Pro, Rs 73,999: 30% down, 9 terms → Rs 8,863 per month", () => {
+    const q = quote(73999, 22200, 9, palm);
+    expect(q.downPayment).toBe(22200);
+    expect(q.financed).toBe(51799);
+    expect(q.perInstallment).toBe(8863);
+    expect(q.serviceFee + q.riskFee + q.guaranteeDeposit).toBe(0); // no extra charges in the app
+  });
+
+  it("down-payment choices round like the app (Rs 22,200 / 29,600 / 37,000)", () => {
+    expect([30, 40, 50].map((p) => Math.round((73999 * p) / 100))).toEqual([22200, 29600, 37000]);
+  });
+
+  it("minimum down payment is 10%", () => {
+    expect(palm.minDownPaymentPercent).toBe(10);
+    expect(downPaymentList(palm)[0]).toBe(10);
+    expect(minDownPayment(73999, palm)).toBe(7400);
   });
 });

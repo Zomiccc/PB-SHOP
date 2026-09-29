@@ -1,8 +1,10 @@
 /**
- * Phone installment (financing) calculator — same structure as the financing partner's agent-app
- * calculator: price → down payment → financed amount → fees → repayment per term.
- * All rates are configured by the owner in Admin → Settings (Setting "financing"); the partner's
- * real rates must be entered there. Pure functions: used on the server and in the browser.
+ * Phone installment (financing) calculator — matches the financing partner's (Palm) agent-app
+ * "Product Price Center": price → down payment option → financed amount → flat monthly markup →
+ * monthly payment, all rounded to the rupee. Verified against the app: Rs 73,999, 30% down
+ * (Rs 22,200), 9 terms at 6% per month → Rs 8,863 per month.
+ * Rates are configured by the owner in Admin → Settings (Setting "installmentCalc").
+ * Pure functions: used on the server and in the browser.
  */
 
 export type FinancingConfig = {
@@ -10,6 +12,8 @@ export type FinancingConfig = {
   partnerName: string;
   /** Minimum down payment as % of price. */
   minDownPaymentPercent: number;
+  /** Comma-separated down-payment choices in %, e.g. "10,20,30,40,50" (as in the partner app). */
+  downPaymentOptions: string;
   /** Comma-separated number of repayment terms offered, e.g. "3,6,9,12". */
   termOptions: string;
   /** "MONTHLY" or "WEEKLY" repayments. */
@@ -52,8 +56,19 @@ export function termList(cfg: Pick<FinancingConfig, "termOptions">) {
   return [...new Set(list)].sort((a, b) => a - b);
 }
 
+/** Down-payment choices (%), never below the minimum. */
+export function downPaymentList(cfg: Pick<FinancingConfig, "downPaymentOptions" | "minDownPaymentPercent">) {
+  const list = (cfg.downPaymentOptions ?? "")
+    .split(/[,\s]+/)
+    .map((t) => Number(t))
+    .filter((n) => Number.isFinite(n) && n >= cfg.minDownPaymentPercent && n < 100);
+  const out = [...new Set(list)].sort((a, b) => a - b);
+  return out.length ? out : [cfg.minDownPaymentPercent];
+}
+
+/** Rounded to the rupee, like the partner app (30% of Rs 73,999 = Rs 22,200). */
 export function minDownPayment(price: number, cfg: FinancingConfig) {
-  return Math.ceil((price * cfg.minDownPaymentPercent) / 100);
+  return Math.round((price * cfg.minDownPaymentPercent) / 100);
 }
 
 /** Months covered by a plan — weekly plans are converted so the monthly markup applies fairly. */
@@ -68,7 +83,7 @@ export function quote(price: number, downPaymentIn: number, terms: number, cfg: 
   const serviceFee = Math.round((financed * cfg.serviceFeePercent) / 100);
   const riskFee = Math.round((financed * cfg.riskFeePercent) / 100);
   const totalRepayable = financed + markup + serviceFee + riskFee;
-  const perInstallment = terms > 0 ? Math.ceil(totalRepayable / terms) : totalRepayable;
+  const perInstallment = terms > 0 ? Math.round(totalRepayable / terms) : totalRepayable;
   const dueToday = downPayment + cfg.guaranteeDeposit;
   const totalCost = downPayment + perInstallment * terms;
   return {

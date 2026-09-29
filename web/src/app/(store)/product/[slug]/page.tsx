@@ -26,7 +26,7 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
   const { v } = await props.searchParams;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-  const [related, passport, financing, reviews, stats] = await Promise.all([getRelated(product), getSetting("passport"), getSetting("financing"), approvedReviews({ productId: product.id, take: 12 }), reviewStats(product.id)]);
+  const [related, passport, financing, reviews, stats] = await Promise.all([getRelated(product), getSetting("passport"), getSetting("installmentCalc"), approvedReviews({ productId: product.id, take: 12 }), reviewStats(product.id)]);
 
   // Structured data for search engines (§10 SEO-friendly structure).
   const jsonLd = {

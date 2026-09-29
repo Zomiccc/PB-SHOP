@@ -5,12 +5,14 @@ import { pkr } from "@/lib/format";
 import { Badge, Field, PageTitle, Panel, Table, Td, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
-import { addNoteAction, adjustPointsAction, redeemRewardAction } from "../../../_actions/operations";
+import { addNoteAction, adjustPointsAction, deleteCustomerAction, redeemRewardAction } from "../../../_actions/operations";
+import { requireStaffPage } from "@/lib/staff";
 import { availablePoints } from "@/lib/loyalty";
 
 export const metadata = { title: "Customer" };
 
 export default async function CustomerPage(props: PageProps<"/admin/customers/[id]">) {
+  const me = await requireStaffPage();
   const { id } = await props.params;
   if (await db.customer.findUnique({ where: { id }, select: { id: true } })) await availablePoints(db, id);
   const c = await db.customer.findUnique({
@@ -128,6 +130,17 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
           <NotesList notes={c.notes} />
         </Panel>
       </div>
+
+      {me.role === "SUPER_ADMIN" && (
+        <Panel title="Delete customer" className="mt-6 ring-1 ring-red/30">
+          <p className="text-sm text-muted">Permanently removes this Phone Passport profile, their points history, customer notes and website login. Orders, repairs and installment sales are kept as business records but no longer linked to them. This can&apos;t be undone and is recorded in the audit log.</p>
+          <ActionForm action={deleteCustomerAction} className="mt-4 flex flex-wrap items-center gap-2" confirm={`Delete ${c.name} permanently?`}>
+            <input type="hidden" name="customerId" value={c.id} />
+            <input name="confirm" placeholder="Type DELETE" aria-label="Type DELETE to confirm" autoComplete="off" className="field !w-40" />
+            <Submit variant="red">Delete customer</Submit>
+          </ActionForm>
+        </Panel>
+      )}
     </>
   );
 }

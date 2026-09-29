@@ -33,7 +33,8 @@ export function InstallmentPhones({ listings, heading = true }: { listings: Inst
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-gold/10 p-4 text-sm ring-1 ring-gold/35">
           <Icon name="id-card" className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
           <p>
-            <b className="text-gold-soft">Store visit required.</b> {STORE_VISIT_NOTICE.replace("Installment purchases are completed in store only. ", "")}
+            <b className="text-gold-soft">Store visit required.</b> {STORE_VISIT_NOTICE.replace("Installment purchases are completed in store only. ", "")} Your ID is used only to verify your purchase and is kept private.{" "}
+            <Link href="/privacy#id-documents" className="text-gold underline underline-offset-2">How we protect your ID</Link>
           </p>
         </div>
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">

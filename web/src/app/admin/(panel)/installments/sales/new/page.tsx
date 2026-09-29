@@ -5,6 +5,7 @@ import { monthlyPayment } from "@/lib/installments";
 import { Field, PageTitle, Panel } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { ACCEPT, FileField } from "@/components/ui/FileField";
+import { ID_CONSENT_TEXT, IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { createInstallmentSaleAction } from "../../../../_actions/workflows";
 
 export const metadata = { title: "New installment sale" };
@@ -48,6 +49,12 @@ export default async function NewInstallmentSalePage() {
             <FileField name="attachments" label="Other documents / attachments" multiple maxFiles={5} accept={ACCEPT.docs} hint="Guarantor CNIC, salary slip, utility bill…" tone="panel" />
           </div>
           <p className="mt-3 text-xs text-muted">ID documents are stored privately. Only signed-in staff can open them, and every view is recorded in the audit log.</p>
+          <div className="mt-5"><IdPrivacyNotice tone="panel" /></div>
+          <label className="mt-4 flex items-start gap-3 rounded-xl bg-gold/10 p-3 text-sm ring-1 ring-gold/40">
+            <input type="checkbox" name="idConsent" required className="mt-0.5 h-4 w-4 shrink-0" />
+            <span><b>The customer agrees:</b> “{ID_CONSENT_TEXT}”</span>
+          </label>
+
         </Panel>
         <Panel className="xl:col-span-2">
           <Field label="Notes (optional)"><textarea name="notes" rows={2} className="field" /></Field>

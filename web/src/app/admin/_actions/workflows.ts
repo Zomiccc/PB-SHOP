@@ -21,6 +21,7 @@ const CNIC_RX = /^\d{5}-?\d{7}-?\d$/;
 
 /** CNIC front + back are mandatory; "other documents" optional. All are validated before anything is saved. */
 async function collectIdDocuments(f: FormData) {
+  if (!bool(f, "idConsent")) throw new Error("Show the customer the ID privacy notice and tick their agreement before taking their CNIC");
   const front = filesFrom(f, "cnicFront")[0];
   const back = filesFrom(f, "cnicBack")[0];
   if (!front) throw new Error("Upload the ID card — front");
@@ -70,6 +71,7 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
           ...plan,
           monthlyPayment: monthlyPayment({ installmentTotal: plan.totalPrice, downPayment: plan.downPayment, durationMonths: plan.durationMonths }),
           notes: optStr(f, "notes"),
+          idConsentAt: new Date(),
           staffId: staff.id,
         },
       });
@@ -144,6 +146,7 @@ export async function createUsedPurchaseAction(_: FormState, f: FormData): Promi
           grade,
           batteryHealth: int(f, "batteryHealth"),
           agreedPrice,
+          idConsentAt: new Date(),
           notes: optStr(f, "notes"),
           staffId: staff.id,
         },

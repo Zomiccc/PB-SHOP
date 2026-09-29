@@ -13,19 +13,21 @@ export const SETTING_DEFAULTS = {
     exclusions: "Points are earned on repairs and phone purchases only — not on accessories, delivery fees, or orders that are cancelled or returned. Repair rewards exclude the cost of parts.",
   },
   shipping: { flatFee: 250, freeOver: 50000 },
-  // SAMPLE rates — replace with the financing partner's real rates in Admin → Settings.
-  financing: {
+  // Installment calculator — defaults match the partner (Palm) app's standard plan: 6% flat per month,
+  // no extra fees. New key so older saved sample rates don't override these.
+  installmentCalc: {
     enabled: true,
     partnerName: "our financing partner",
-    minDownPaymentPercent: 30,
+    minDownPaymentPercent: 10,
+    downPaymentOptions: "10,20,30,40,50",
     termOptions: "3,6,9,12",
     period: "MONTHLY",
-    markupPercentPerMonth: 3,
-    serviceFeePercent: 2,
-    riskFeePercent: 1,
+    markupPercentPerMonth: 6,
+    serviceFeePercent: 0,
+    riskFeePercent: 0,
     guaranteeDeposit: 0,
-    minPrice: 20000,
-    disclaimer: "Estimate only. Final installment, fees and approval are confirmed by the financing partner after KYC.",
+    minPrice: 10000,
+    disclaimer: "The results shown are for estimation purposes only. Your actual repayment plan will be confirmed after approval.",
   },
 };
 

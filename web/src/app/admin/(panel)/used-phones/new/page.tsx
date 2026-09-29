@@ -3,6 +3,7 @@ import { PHONE_BRANDS, USED_GRADES } from "@/lib/constants";
 import { Field, PageTitle, Panel } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { ACCEPT, FileField } from "@/components/ui/FileField";
+import { ID_CONSENT_TEXT, IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { createUsedPurchaseAction } from "../../../_actions/workflows";
 
 export const metadata = { title: "Buy a used phone" };
@@ -50,6 +51,12 @@ export default function NewUsedPurchasePage() {
             <FileField name="attachments" label="Other documents / attachments" multiple maxFiles={5} accept={ACCEPT.docs} tone="panel" hint="Purchase receipt, box photo, PTA proof…" />
           </div>
           <p className="mt-3 text-xs text-muted">Stored privately; only signed-in staff can open ID documents and every view is audited.</p>
+          <div className="mt-5"><IdPrivacyNotice tone="panel" /></div>
+          <label className="mt-4 flex items-start gap-3 rounded-xl bg-gold/10 p-3 text-sm ring-1 ring-gold/40">
+            <input type="checkbox" name="idConsent" required className="mt-0.5 h-4 w-4 shrink-0" />
+            <span><b>The seller agrees:</b> “{ID_CONSENT_TEXT}”</span>
+          </label>
+
         </Panel>
         <Panel title="4. Resale" className="xl:col-span-2">
           <div className="grid gap-3 sm:grid-cols-[auto_200px_1fr] sm:items-end">

@@ -2,142 +2,155 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { minDownPayment, quote, termList, type FinancingConfig } from "@/lib/finance";
+import { downPaymentList, quote, termList, type FinancingConfig } from "@/lib/finance";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "./ui/Icon";
 
 type PhoneOption = { slug: string; name: string; price: number };
 
 /**
- * Installment calculator: choose a phone (or type a price), set the down payment, pick a plan,
- * and see the per-installment amount with a full breakdown. Rates come from Admin → Settings.
+ * Installment calculator laid out like the financing partner's app ("Product Price Center"):
+ * pick a down-payment option, pick the number of terms, see the monthly payment. Same formula as the
+ * app (flat monthly markup on the financed amount, rounded to the rupee). Informational only — installment
+ * purchases are completed in store with the customer's CNIC (master brief §3).
  */
 export function FinanceCalculator({ config, phones, initialPrice, productName, compact = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; productName?: string; compact?: boolean }) {
   const terms = termList(config);
+  const downOptions = downPaymentList(config);
   const eligiblePhones = (phones ?? []).filter((p) => p.price >= config.minPrice);
   const [slug, setSlug] = useState(eligiblePhones[0]?.slug ?? "");
   const [customPrice, setCustomPrice] = useState(initialPrice ?? eligiblePhones[0]?.price ?? 100000);
   const price = phones && slug ? (eligiblePhones.find((p) => p.slug === slug)?.price ?? customPrice) : customPrice;
-  const minDp = minDownPayment(price, config);
-  const [dpPercent, setDpPercent] = useState(config.minDownPaymentPercent);
-  const [term, setTerm] = useState(terms[terms.length - 1] ?? 6);
+  const [dpPercent, setDpPercent] = useState(downOptions.includes(30) ? 30 : downOptions[0]);
+  const [term, setTerm] = useState(terms.includes(9) ? 9 : terms[terms.length - 1] ?? 6);
 
   const q = quote(price, Math.round((price * dpPercent) / 100), term, config);
-  const unit = config.period === "WEEKLY" ? "week" : "month";
+  const unit = config.period === "WEEKLY" ? "Week" : "Month";
   const tooCheap = price < config.minPrice;
 
   return (
-    <div className={cn("overflow-hidden rounded-[var(--radius-card)] bg-navy-950 text-white", compact ? "" : "shadow-[var(--shadow-lift)]")}>
-      <div className="grid gap-0 lg:grid-cols-[1.1fr_1fr]">
-        {/* Inputs */}
-        <div className="space-y-6 p-5 md:p-7">
-          <div className="flex items-center justify-between gap-3">
-            <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-gold">Installment calculator</p>
-            <Icon name="card" className="h-5 w-5 text-gold" />
-          </div>
-
-          {phones ? (
-            <label className="block">
-              <span className="label !text-white/60">Phone</span>
-              <select value={slug} onChange={(e) => setSlug(e.target.value)} className="field field-dark">
-                {eligiblePhones.map((p) => (
-                  <option key={p.slug} value={p.slug}>{p.name} — {pkr(p.price)}</option>
-                ))}
-                <option value="">Other amount…</option>
-              </select>
-            </label>
-          ) : productName ? (
-            <p className="text-sm text-white/70">{productName} · <b className="text-white">{pkr(price)}</b></p>
-          ) : null}
-
-          {(!phones || !slug) && !productName && (
-            <label className="block">
-              <span className="label !text-white/60">Phone price (Rs)</span>
-              <input type="number" inputMode="numeric" min={0} value={customPrice || ""} onChange={(e) => setCustomPrice(Math.max(0, Number(e.target.value) || 0))} className="field field-dark" />
-            </label>
-          )}
-
-          <div>
-            <div className="flex items-end justify-between">
-              <span className="label !mb-0 !text-white/60">Down payment</span>
-              <span className="text-sm font-semibold">{pkr(q.downPayment)} <span className="text-white/50">({dpPercent}%)</span></span>
-            </div>
-            <input
-              type="range"
-              min={config.minDownPaymentPercent}
-              max={90}
-              step={5}
-              value={dpPercent}
-              onChange={(e) => setDpPercent(Number(e.target.value))}
-              aria-label="Down payment percentage"
-              className="mt-3 w-full accent-[var(--color-gold)]"
-            />
-            <p className="mt-1 text-xs text-white/45">Minimum {config.minDownPaymentPercent}% ({pkr(minDp)})</p>
-          </div>
-
-          <fieldset>
-            <legend className="label !text-white/60">Plan</legend>
-            <div className="flex flex-wrap gap-2">
-              {terms.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTerm(t)}
-                  aria-pressed={term === t}
-                  className={cn("rounded-full border px-4 py-2 text-sm font-semibold transition", term === t ? "border-gold bg-gold text-navy-950" : "border-white/20 hover:border-white/50")}
-                >
-                  {t} {unit}s
-                </button>
-              ))}
-            </div>
-          </fieldset>
-        </div>
-
-        {/* Result */}
-        <div className="border-t border-white/10 bg-white/[0.03] p-5 md:p-7 lg:border-l lg:border-t-0">
-          {tooCheap ? (
-            <p className="text-sm text-white/70">Installments are available on phones from {pkr(config.minPrice)}.</p>
-          ) : (
-            <>
-              <p className="text-sm text-white/60">Pay per {unit}</p>
-              <p className="display mt-1 text-5xl text-gold" aria-live="polite">{pkr(q.perInstallment)}</p>
-              <p className="mt-1 text-sm text-white/60">for {q.terms} {unit}s</p>
-
-              <dl className="mt-6 space-y-2 text-sm">
-                <Row label="Due today" value={pkr(q.dueToday)} strong hint={q.guaranteeDeposit ? `Down payment + ${pkr(q.guaranteeDeposit)} guarantee deposit` : "Down payment"} />
-                <Row label="Phone price" value={pkr(q.price)} />
-                <Row label="Financed amount" value={pkr(q.financed)} />
-                {q.markup > 0 && <Row label="Markup" value={pkr(q.markup)} />}
-                {q.serviceFee > 0 && <Row label="Service fee" value={pkr(q.serviceFee)} />}
-                {q.riskFee > 0 && <Row label="Risk management fee" value={pkr(q.riskFee)} />}
-                <Row label="Total of installments" value={pkr(q.perInstallment * q.terms)} />
-                <Row label="Total you pay" value={pkr(q.totalCost + q.guaranteeDeposit)} strong hint={q.extraCost > 0 ? `${pkr(q.extraCost)} more than the cash price${q.guaranteeDeposit ? " (deposit refundable per partner terms)" : ""}` : undefined} />
-              </dl>
-
-              {!compact && (
-                <Link href="/contact?subject=Installment%20enquiry" className="btn btn-red mt-6 w-full">
-                  Apply in store <Icon name="arrow-up-right" className="h-4 w-4" />
-                </Link>
-              )}
-              <p className="mt-4 text-xs leading-relaxed text-white/45">
-                Financing by {config.partnerName}. {config.disclaimer}
-              </p>
-            </>
-          )}
-        </div>
+    <div className={cn("overflow-hidden rounded-[var(--radius-card)] bg-[#07090d] text-white ring-1 ring-gold/30", compact ? "" : "shadow-[var(--shadow-lift)]")}>
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 md:px-7">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-gold">Installment calculator</p>
+        <Icon name="card" className="h-5 w-5 text-gold" />
       </div>
+
+      {/* Product + price */}
+      <div className="border-b border-white/10 px-5 py-4 md:px-7">
+        {phones ? (
+          <label className="block">
+            <span className="label !text-white/60">Phone</span>
+            <select value={slug} onChange={(e) => setSlug(e.target.value)} className="field field-dark">
+              {eligiblePhones.map((p) => (
+                <option key={p.slug} value={p.slug}>{p.name} — {pkr(p.price)}</option>
+              ))}
+              <option value="">Other amount…</option>
+            </select>
+          </label>
+        ) : productName ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold">{productName}</p>
+            <p className="text-right"><b className="text-lg">{pkr(price)}</b><span className="block text-xs text-white/50">Total price</span></p>
+          </div>
+        ) : null}
+        {(!phones || !slug) && !productName && (
+          <label className="mt-3 block">
+            <span className="label !text-white/60">Phone price (Rs)</span>
+            <input type="number" inputMode="numeric" min={0} value={customPrice || ""} onChange={(e) => setCustomPrice(Math.max(0, Number(e.target.value) || 0))} className="field field-dark" />
+          </label>
+        )}
+      </div>
+
+      {tooCheap ? (
+        <p className="px-5 py-6 text-sm text-white/70 md:px-7">Installments are available on phones from {pkr(config.minPrice)}.</p>
+      ) : (
+        <>
+          <div className="grid lg:grid-cols-2">
+            {/* Down payment */}
+            <fieldset className="px-5 pt-4 md:px-7">
+              <legend className="pt-4 font-semibold">Down Payment</legend>
+              <div className="mt-2 divide-y divide-white/8">
+                {downOptions.map((pct) => (
+                  <Choice key={pct} checked={dpPercent === pct} onSelect={() => setDpPercent(pct)} name="dp" label={`${pct}% Order Amount, ${pkr(Math.round((price * pct) / 100))}`} />
+                ))}
+              </div>
+            </fieldset>
+            {/* Terms */}
+            <fieldset className="px-5 pt-4 md:px-7 lg:border-l lg:border-white/10">
+              <legend className="pt-4 font-semibold">Payment Term</legend>
+              <div className="mt-2 divide-y divide-white/8">
+                {terms.map((t) => (
+                  <Choice key={t} checked={term === t} onSelect={() => setTerm(t)} name="term" label={`${t} terms, 1 ${unit} / Term`} />
+                ))}
+              </div>
+            </fieldset>
+          </div>
+
+          <div className="mt-4 grid border-t border-white/10 sm:grid-cols-2">
+            <Highlight label="Down Payment" value={pkr(q.downPayment)} />
+            <Highlight label={`${unit}ly Payment`} value={pkr(q.perInstallment)} big />
+          </div>
+
+          <details className="group border-t border-white/10 px-5 py-4 md:px-7">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
+              Repayment Plan <span className="flex items-center gap-1 text-white/60">View <Icon name="arrow-right" className="h-3.5 w-3.5 transition group-open:rotate-90" /></span>
+            </summary>
+            <dl className="mt-4 space-y-2 text-sm">
+              <Row label="Total price" value={pkr(q.price)} />
+              <Row label="Down payment (due in store)" value={pkr(q.dueToday)} />
+              <Row label="Financed amount" value={pkr(q.financed)} />
+              {q.markup > 0 && <Row label={`Markup (${config.markupPercentPerMonth}% per ${unit.toLowerCase()})`} value={pkr(q.markup)} />}
+              {q.serviceFee > 0 && <Row label="Service fee" value={pkr(q.serviceFee)} />}
+              {q.riskFee > 0 && <Row label="Risk management fee" value={pkr(q.riskFee)} />}
+              <Row label={`${q.terms} × ${pkr(q.perInstallment)}`} value={pkr(q.perInstallment * q.terms)} />
+              <Row label="Total you pay" value={pkr(q.totalCost + q.guaranteeDeposit)} strong />
+            </dl>
+          </details>
+
+          <div className="border-t border-white/10 px-5 py-4 md:px-7">
+            <p className="text-xs leading-relaxed text-blue-soft">{config.disclaimer}</p>
+            {!compact && (
+              <p className="mt-3 flex items-start gap-2 rounded-xl bg-gold/10 p-3 text-xs text-gold-soft ring-1 ring-gold/30">
+                <Icon name="id-card" className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Installment purchases are completed in store — bring your original CNIC. Your ID is only used to verify your purchase.{" "}
+                  <Link href="/privacy#id-documents" className="underline underline-offset-2">How we protect your ID</Link>
+                </span>
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function Row({ label, value, strong, hint }: { label: string; value: string; strong?: boolean; hint?: string }) {
+function Choice({ checked, onSelect, label, name }: { checked: boolean; onSelect: () => void; label: string; name: string }) {
   return (
-    <div className="border-b border-white/5 pb-2">
-      <div className="flex justify-between gap-4">
-        <dt className="text-white/60">{label}</dt>
-        <dd className={strong ? "font-bold text-white" : "text-white/90"}>{value}</dd>
-      </div>
-      {hint && <p className="mt-0.5 text-xs text-white/40">{hint}</p>}
+    <label className="flex cursor-pointer items-center gap-3 py-3.5 text-[0.95rem]">
+      <input type="radio" name={name} checked={checked} onChange={onSelect} className="sr-only" />
+      <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition", checked ? "border-gold bg-gold text-[#120d02]" : "border-white/35")} aria-hidden>
+        {checked && <Icon name="check" className="h-3 w-3" strokeWidth={3.5} />}
+      </span>
+      <span className={checked ? "text-white" : "text-white/80"}>{label}</span>
+    </label>
+  );
+}
+
+function Highlight({ label, value, big }: { label: string; value: string; big?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-3 px-5 py-4 md:px-7", big ? "bg-gold/15" : "bg-white/[0.04] sm:border-r sm:border-white/10")}>
+      <span className={big ? "font-semibold text-gold-soft" : "text-white/80"}>{label}</span>
+      <span className={cn("font-bold", big ? "text-2xl text-gold" : "text-lg")} aria-live="polite">{value}</span>
+    </div>
+  );
+}
+
+function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-white/5 pb-2">
+      <dt className="text-white/60">{label}</dt>
+      <dd className={strong ? "font-bold text-white" : "text-white/90"}>{value}</dd>
     </div>
   );
 }

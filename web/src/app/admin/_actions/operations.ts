@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
@@ -254,4 +255,32 @@ export async function contactStatusAction(_: FormState, f: FormData): Promise<Fo
     revalidatePath("/admin/inbox");
     return "Updated";
   });
+}
+
+/**
+ * Deletes a customer's Phone Passport profile (owner only). Their points history, customer notes and
+ * login are removed; orders, repairs and installment sales stay (they are business / tax records) but
+ * are unlinked from the profile. Audited.
+ */
+export async function deleteCustomerAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff({ superAdmin: true });
+  const res = await run(async () => {
+    const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") }, include: { _count: { select: { orders: true, repairs: true, installments: true } } } });
+    if (str(f, "confirm").trim().toUpperCase() !== "DELETE") throw new Error('Type DELETE to confirm');
+    await db.$transaction(async (tx) => {
+      await tx.order.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
+      await tx.repairRequest.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
+      await tx.installmentSale.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
+      await tx.note.deleteMany({ where: { customerId: c.id, kind: "CUSTOMER" } });
+      await tx.note.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
+      await tx.loyaltyTransaction.deleteMany({ where: { customerId: c.id } });
+      await tx.customer.delete({ where: { id: c.id } });
+      await audit(
+        { staffId: staff.id, action: "CUSTOMER_DELETED", entityType: "CUSTOMER", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before: { name: c.name, phone: `${c.phone.slice(0, 4)}*****${c.phone.slice(-2)}`, points: c.loyaltyPoints, orders: c._count.orders, repairs: c._count.repairs, installments: c._count.installments } },
+        tx,
+      );
+    });
+  });
+  if (res?.ok) redirect("/admin/customers?deleted=1");
+  return res;
 }

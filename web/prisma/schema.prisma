@@ -550,6 +550,7 @@ model InstallmentSale {
   monthlyPayment  Int
   durationMonths  Int
   status          String              @default("PENDING") // PENDING | APPROVED | ACTIVE | COMPLETED | CANCELLED
+  idConsentAt     DateTime? // customer agreed to the ID privacy notice (shown before the CNIC was taken)
   notes           String?
   staffId         String
   staff           Staff               @relation(fields: [staffId], references: [id])
@@ -577,6 +578,7 @@ model UsedPhonePurchase {
   grade         String // exactly one grade (src/lib/grade.ts)
   batteryHealth Int?
   agreedPrice   Int
+  idConsentAt   DateTime? // seller agreed to the ID privacy notice
   notes         String?
   variantId     String? // SKU created in inventory for resale
   variant       Variant? @relation(fields: [variantId], references: [id])

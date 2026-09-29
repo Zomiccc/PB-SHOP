@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { FinanceCalculator } from "@/components/FinanceCalculator";
 import { Icon } from "@/components/ui/Icon";
+import { IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { listProducts } from "@/lib/catalog";
 import { getSetting } from "@/lib/settings";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function InstallmentsPage() {
-  const [config, phones] = await Promise.all([getSetting("financing"), listProducts({ type: "PHONE" })]);
+  const [config, phones] = await Promise.all([getSetting("installmentCalc"), listProducts({ type: "PHONE" })]);
   const options = phones
     .filter((p) => p.totalStock > 0)
     .map((p) => ({ slug: p.slug, name: `${p.name}${p.condition === "USED" ? " (Used)" : ""}`, price: p.fromPrice }))
@@ -50,6 +51,9 @@ export default async function InstallmentsPage() {
               </li>
             ))}
           </ol>
+          <div className="mt-10">
+            <IdPrivacyNotice />
+          </div>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link href="/new-phones" className="btn btn-gold">Browse phones</Link>
             <Link href="/contact?subject=Installment%20enquiry" className="btn btn-ghost-light">Ask about installments</Link>
