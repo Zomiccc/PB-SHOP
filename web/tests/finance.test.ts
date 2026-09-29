@@ -72,3 +72,16 @@ describe("Matches the partner (Palm) app exactly", () => {
     expect(minDownPayment(73999, palm)).toBe(7400);
   });
 });
+
+import { brandSlugFor } from "@/lib/brands";
+
+describe("Installment brand picker", () => {
+  it("detects the brand from the model name", () => {
+    expect(brandSlugFor(null, "TECNO Spark 40 Pro · 8GB / 256GB")).toBe("tecno");
+    expect(brandSlugFor(null, "Infinix Note 40")).toBe("infinix");
+    expect(brandSlugFor(null, "iPhone 15 · 128GB")).toBe("apple");
+    expect(brandSlugFor(null, "Galaxy A55")).toBe("samsung");
+    expect(brandSlugFor("Villaon", "V20")).toBe("villaon");
+    expect(brandSlugFor(null, "realme C75")).toBe("realme");
+  });
+});

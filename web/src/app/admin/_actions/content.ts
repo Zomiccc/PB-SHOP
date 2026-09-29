@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
 import { parsePkt, safeHref } from "@/lib/broadcasts";
 import { AVAILABILITY, planProblem } from "@/lib/installments";
+import { brandSlugFor } from "@/lib/brands";
 import type { FormState } from "./auth";
 import { bool, diff, int, optStr, run, str } from "./util";
 
@@ -86,6 +87,7 @@ function listingData(f: FormData) {
   if (model.length < 2) throw new Error("Enter the phone model");
   const interest = Number(str(f, "interestPercent") || "0");
   const data = {
+    brand: optStr(f, "brand") ?? brandSlugFor(null, model),
     model,
     productId: optStr(f, "productId"),
     imageUrl: optStr(f, "imageUrl"),

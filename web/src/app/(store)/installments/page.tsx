@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { FinanceCalculator } from "@/components/FinanceCalculator";
-import { InstallmentPhones } from "@/components/home/InstallmentPhones";
+import { InstallmentPicker } from "@/components/InstallmentPicker";
+import { INSTALLMENT_BRANDS } from "@/lib/brands";
 import { Icon } from "@/components/ui/Icon";
 import { IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { listProducts } from "@/lib/catalog";
@@ -23,14 +24,16 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
   const sp = await props.searchParams;
   const [config, listings, phones] = await Promise.all([getSetting("installmentCalc"), activeListings(), listProducts({ type: "PHONE" })]);
 
-  // Calculator choices: the installment phones first, then other in-stock phones.
-  const listingOptions = listings.filter((l) => l.availability !== "OUT_OF_STOCK").map((l) => ({ slug: `plan-${l.id}`, name: l.model, price: l.regularPrice }));
+  // Any-price calculator: in-stock shop phones (the brand picker covers the installment phones).
   const shopOptions = phones
     .filter((p) => p.totalStock > 0)
     .map((p) => ({ slug: p.slug, name: `${p.name}${p.condition === "USED" ? " (Used)" : ""}`, price: p.fromPrice }))
     .sort((a, b) => b.price - a.price);
-  const options = [...listingOptions, ...shopOptions];
-  const plan = typeof sp.plan === "string" ? `plan-${sp.plan}` : undefined;
+  const plan = typeof sp.plan === "string" ? sp.plan : undefined;
+  const brand = typeof sp.brand === "string" ? sp.brand : undefined;
+  // Brands in the client's order, plus any other brand an admin has listed.
+  const extra = [...new Set(listings.map((l) => l.brand).filter((b): b is string => !!b && !INSTALLMENT_BRANDS.some((x) => x.slug === b)))].map((slug) => ({ slug, name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), bg: "#1a1d24", fg: "#ffffff" }));
+  const pickerListings = listings.map((l) => ({ id: l.id, brand: l.brand, model: l.model, imageUrl: l.imageUrl, regularPrice: l.regularPrice, installmentTotal: l.installmentTotal, downPayment: l.downPayment, durationMonths: l.durationMonths, interestPercent: l.interestPercent, planLabel: l.planLabel, availability: l.availability }));
   const price = typeof sp.price === "string" && Number(sp.price) > 0 ? Math.round(Number(sp.price)) : undefined;
 
   return (
@@ -39,8 +42,8 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
 
       <nav aria-label="On this page" className="container-pb -mt-4 mb-8 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {[
-          { href: "#installments", label: "Phones on installments" },
-          { href: "#calculator", label: "Installment calculator" },
+          { href: "#step-brand", label: "Choose brand & model" },
+          { href: "#any-price", label: "Calculate any price" },
           { href: "#how", label: "How it works" },
           { href: "#id-documents", label: "Your ID is safe" },
         ].map((l) => (
@@ -48,28 +51,34 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
         ))}
       </nav>
 
-      {listings.length > 0 ? (
-        <InstallmentPhones listings={listings} showCalculatorLink={false} />
-      ) : (
-        <section id="installments" className="container-pb pb-10">
-          <p className="rounded-2xl bg-card p-6 text-sm text-muted ring-1 ring-white/10">Installment phones are being updated — use the calculator below or ask us in store.</p>
-        </section>
-      )}
-
-      <section id="calculator" className="scroll-mt-24 pb-16 pt-4">
+      <section className="pb-12">
         <div className="container-pb">
-          <p className="eyebrow text-gold">Calculator</p>
-          <h2 className="display mt-3 text-3xl md:text-5xl">Work out your monthly payment</h2>
-          <p className="mt-2 max-w-xl text-sm text-muted">Pick a phone (or enter any price), choose your down payment and number of months.</p>
-          <div className="mt-6">
-            {config.enabled ? (
-              <FinanceCalculator key={plan ?? price ?? "calc"} config={config} phones={options} initialSlug={plan} initialPrice={price} />
-            ) : (
-              <p className="card p-8 text-center text-muted">The installment calculator is coming soon. Ask us in store or on chat.</p>
-            )}
-          </div>
+          {config.enabled ? (
+            <InstallmentPicker brands={[...INSTALLMENT_BRANDS, ...extra]} listings={pickerListings} config={config} initialBrand={brand} initialPlan={plan} />
+          ) : (
+            <p className="card p-8 text-center text-muted">Installment plans are coming soon. Ask us in store or on chat.</p>
+          )}
         </div>
       </section>
+
+      {config.enabled && (
+        <section id="any-price" className="scroll-mt-24 pb-16">
+          <div className="container-pb">
+            <details className="group rounded-[var(--radius-card)] bg-card ring-1 ring-white/10" open={!!price}>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5">
+                <span>
+                  <span className="block font-semibold">Calculate any other phone or price</span>
+                  <span className="text-sm text-muted">Any phone in our shop, or type a price.</span>
+                </span>
+                <Icon name="arrow-right" className="h-4 w-4 transition group-open:rotate-90" />
+              </summary>
+              <div className="p-2 pt-0 md:p-4 md:pt-0">
+                <FinanceCalculator key={price ?? "any"} config={config} phones={shopOptions} initialPrice={price} />
+              </div>
+            </details>
+          </div>
+        </section>
+      )}
 
       <section id="how" className="scroll-mt-24 bg-navy-950 py-20 text-white">
         <div className="container-pb">

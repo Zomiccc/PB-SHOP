@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { assertVariantGrade } from "../src/lib/grade";
 import { migrateLegacyBalances } from "../src/lib/loyalty";
+import { brandSlugFor } from "../src/lib/brands";
 
 const db = new PrismaClient();
 
@@ -157,9 +158,11 @@ const REWARDS = [
 
 // SAMPLE installment plans so the homepage section can be reviewed — the owner replaces these in Admin → Installments.
 const INSTALLMENT_LISTINGS = [
-  { model: "Samsung Galaxy A55 5G · 8GB / 256GB", regularPrice: 129999, installmentTotal: 149499, interestPercent: 15, downPayment: 39999, durationMonths: 12, planLabel: "12 monthly payments", availability: "AVAILABLE", sortOrder: 10 },
-  { model: "iPhone 15 · 128GB", regularPrice: 259999, installmentTotal: 295999, interestPercent: 13.8, downPayment: 79999, durationMonths: 12, planLabel: "12 monthly payments", availability: "LIMITED", sortOrder: 20 },
-  { model: "Infinix Note 40 · 8GB / 256GB", regularPrice: 59999, installmentTotal: 67999, interestPercent: 13.3, downPayment: 17999, durationMonths: 6, planLabel: "6 monthly payments", availability: "AVAILABLE", sortOrder: 30 },
+  // Figures from the financing partner app for the Tecno Spark 40 Pro (30% down, 9 × Rs 8,863).
+  { brand: "tecno", model: "TECNO Spark 40 Pro · 8GB / 256GB", regularPrice: 73999, installmentTotal: 101967, interestPercent: 6, downPayment: 22200, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "AVAILABLE", sortOrder: 5 },
+  { brand: "samsung", model: "Samsung Galaxy A55 5G · 8GB / 256GB", regularPrice: 129999, installmentTotal: 149499, interestPercent: 15, downPayment: 39999, durationMonths: 12, planLabel: "12 monthly payments", availability: "AVAILABLE", sortOrder: 10 },
+  { brand: "apple", model: "iPhone 15 · 128GB", regularPrice: 259999, installmentTotal: 295999, interestPercent: 13.8, downPayment: 79999, durationMonths: 12, planLabel: "12 monthly payments", availability: "LIMITED", sortOrder: 20 },
+  { brand: "infinix", model: "Infinix Note 40 · 8GB / 256GB", regularPrice: 59999, installmentTotal: 67999, interestPercent: 13.3, downPayment: 17999, durationMonths: 6, planLabel: "6 monthly payments", availability: "AVAILABLE", sortOrder: 30 },
 ];
 
 async function createProducts(list: P[], firstSeq: number, barcodePrefix: string) {
@@ -282,6 +285,13 @@ async function upgradeExisting() {
   if ((await db.installmentListing.count()) === 0) {
     await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
     console.log("Added sample installment plans.");
+  }
+  // Brand picker: give existing listings a brand, and add the Tecno example from the partner app once.
+  for (const l of await db.installmentListing.findMany({ where: { brand: null } })) {
+    await db.installmentListing.update({ where: { id: l.id }, data: { brand: brandSlugFor(null, l.model) } });
+  }
+  if ((await db.installmentListing.count({ where: { brand: "tecno" } })) === 0) {
+    await db.installmentListing.create({ data: INSTALLMENT_LISTINGS[0] });
   }
   // Only phones earn purchase points now (repairs earn separately).
   await db.product.updateMany({ where: { type: { not: "PHONE" } }, data: { loyaltyEligible: false } });

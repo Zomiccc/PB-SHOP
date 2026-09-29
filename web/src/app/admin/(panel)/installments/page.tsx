@@ -3,6 +3,7 @@ import type { InstallmentListing } from "@prisma/client";
 import { db } from "@/lib/db";
 import { pkr } from "@/lib/format";
 import { AVAILABILITY, maskCnic, monthlyPayment } from "@/lib/installments";
+import { INSTALLMENT_BRANDS, brandBySlug } from "@/lib/brands";
 import { Badge, Field, PageTitle, Panel, Table, Td, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { deleteListingAction, moveListingAction, saveListingAction } from "../../_actions/content";
@@ -32,6 +33,7 @@ export default async function InstallmentsAdminPage() {
               <details key={l.id} className="rounded-xl border border-ink/10 open:bg-cream/50">
                 <summary className="flex cursor-pointer flex-wrap items-center gap-3 p-3 text-sm">
                   <span className="font-mono text-xs text-muted">#{i + 1}</span>
+                  <span className="rounded bg-ink/10 px-1.5 py-0.5 font-mono text-[0.65rem] uppercase">{brandBySlug(l.brand)?.name ?? l.brand ?? "—"}</span>
                   <b>{l.model}</b>
                   <span className="text-muted">{pkr(monthlyPayment(l))}/mo · {l.durationMonths} mo</span>
                   <Badge tone={l.availability === "AVAILABLE" ? "green" : l.availability === "LIMITED" ? "gold" : "red"}>{AVAILABILITY[l.availability as keyof typeof AVAILABILITY]}</Badge>
@@ -89,7 +91,15 @@ function ListingForm({ l }: { l?: InstallmentListing }) {
   return (
     <ActionForm action={saveListingAction} resetOnSuccess={!l} className="space-y-3">
       <input type="hidden" name="id" value={l?.id ?? ""} />
-      <Field label="Phone model"><input name="model" defaultValue={l?.model} required placeholder="Samsung Galaxy A55 5G · 8GB / 256GB" className="field" /></Field>
+      <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+        <Field label="Brand">
+          <select name="brand" defaultValue={l?.brand ?? ""} className="field">
+            <option value="">Detect from model</option>
+            {INSTALLMENT_BRANDS.map((b) => <option key={b.slug} value={b.slug}>{b.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Phone model"><input name="model" defaultValue={l?.model} required placeholder="Infinix Hot 50 · 8GB / 256GB" className="field" /></Field>
+      </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Regular price (Rs)"><input name="regularPrice" type="number" min={1} defaultValue={l?.regularPrice} required className="field" /></Field>
         <Field label="Installment total (Rs)"><input name="installmentTotal" type="number" min={1} defaultValue={l?.installmentTotal} required className="field" /></Field>

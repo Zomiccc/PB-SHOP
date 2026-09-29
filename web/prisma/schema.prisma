@@ -513,6 +513,7 @@ model Review {
 /// customers visit the store with their CNIC. Managed (add / edit / reorder / remove) in Admin → Installments.
 model InstallmentListing {
   id               String   @id @default(cuid())
+  brand            String? // brand slug for the installment picker, e.g. "infinix", "tecno" (src/lib/brands.ts)
   model            String // e.g. "Samsung Galaxy A55 8/256GB"
   productId        String? // optional link to the catalogue product page
   imageUrl         String?

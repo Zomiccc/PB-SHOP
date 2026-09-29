@@ -279,7 +279,7 @@ export function ProductDetail({ product, phonePoints, financing, initialVariantI
           if (!low) return null;
           return (
             <Link
-              href={`/installments?price=${price}&name=${encodeURIComponent(`${product.name}${variant.storage ? ` ${variant.storage}` : ""}`)}#calculator`}
+              href={`/installments?price=${price}&name=${encodeURIComponent(`${product.name}${variant.storage ? ` ${variant.storage}` : ""}`)}#any-price`}
               className="group mt-6 flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] ring-1 ring-gold/25 transition hover:ring-gold/60"
             >
               <span>

@@ -5,6 +5,8 @@ import { AVAILABILITY, STORE_VISIT_NOTICE, monthlyPayment, type Availability } f
 import { ProductArt } from "../product/ProductArt";
 import { Icon } from "../ui/Icon";
 import { Reveal } from "../ui/Reveal";
+import { INSTALLMENT_BRANDS } from "@/lib/brands";
+import { BrandMark } from "../InstallmentPicker";
 
 const TONE: Record<string, string> = {
   AVAILABLE: "bg-emerald-500/15 text-emerald-300",
@@ -37,6 +39,18 @@ export function InstallmentPhones({ listings, heading = true, showCalculatorLink
             <Link href="/privacy#id-documents" className="text-gold underline underline-offset-2">How we protect your ID</Link>
           </p>
         </div>
+        {showCalculatorLink && (
+          <div className="mt-6">
+            <p className="text-sm font-semibold">Shop installments by brand</p>
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+              {INSTALLMENT_BRANDS.map((b) => (
+                <Link key={b.slug} href={`/installments?brand=${b.slug}#step-model`} className="w-24 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 transition hover:ring-gold/60" aria-label={`${b.name} phones on installments`}>
+                  <BrandMark b={b} />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
           {listings.map((l, i) => {
             const monthly = monthlyPayment(l);
