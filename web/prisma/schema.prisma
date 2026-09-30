@@ -97,6 +97,9 @@ model Customer {
   // Card expiry: an admin/system field. Never printed on the physical card; shown on the digital card
   // only when the owner turns that on (Setting "passportCard") — Passport brief §1.
   cardExpiresAt DateTime?
+  // Joined the Passport (online sign-up / staff-issued card / claimed profile). Makes them eligible for the
+  // welcome reward, which is credited on their first paid purchase or completed repair (Passport brief §4).
+  passportJoinedAt DateTime?
   // Referral (Passport brief §3): who referred this customer, and when the referrer was credited.
   referredById       String?
   referredBy         Customer?  @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)

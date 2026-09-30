@@ -3,7 +3,7 @@ import { audit } from "./audit";
 import { getSetting } from "./settings";
 import { notify } from "./notify";
 import { earnPoints } from "./loyalty";
-import { creditReferral } from "./passport";
+import { firstTransactionRewards } from "./passport";
 import { REPAIR_STATUSES } from "./constants";
 
 const VALID = new Set<string>([...REPAIR_STATUSES.map((s) => s.key), "CANCELLED"]);
@@ -29,7 +29,7 @@ export async function changeRepairStatus(repairId: string, to: string, staffId: 
       const already = await tx.loyaltyTransaction.findFirst({ where: { repairId, type: "EARN" } });
       if (!already) await earnPoints(tx, { customerId: r.customerId, points: rules.repairPoints, source: "REPAIR", reason: `Repair ${r.ref}`, repairId, staffId });
     }
-    if (to === "COMPLETED" && r.customerId) await creditReferral(tx, r.customerId, `completed repair ${r.ref}`, staffId);
+    if (to === "COMPLETED" && r.customerId) await firstTransactionRewards(tx, r.customerId, `repair ${r.ref}`, staffId);
     return updated;
   });
 

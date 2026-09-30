@@ -8,7 +8,7 @@ import { finalizeOrder } from "@/lib/orders";
 import { changeRepairStatus } from "@/lib/repairs";
 import { earnPoints } from "@/lib/loyalty";
 import { SETTING_DEFAULTS } from "@/lib/settings";
-import { PassportError, creditReferral, findReferrer, formatBirthday, formatCardExpiry, parseBirthday, welcomeMember } from "@/lib/passport";
+import { PassportError, creditReferral, creditWelcome, findReferrer, formatBirthday, formatCardExpiry, joinPassport, parseBirthday } from "@/lib/passport";
 import { makeCustomer, makeOrder, makeRepair, makeStaff, makeVariant } from "./helpers";
 
 describe("Birthday on the Passport form (§2)", () => {
@@ -41,22 +41,53 @@ describe("Reward amounts (§3, §4, §7)", () => {
 });
 
 describe("Welcome reward (§4) and card expiry (§1)", () => {
-  it("credits 25 points once and sets the card expiry", async () => {
+  it("joining alone earns nothing — the first paid purchase is the verification", async () => {
     const c = await makeCustomer();
-    await welcomeMember(db, c.id);
-    await welcomeMember(db, c.id); // idempotent
-    const after = await db.customer.findUniqueOrThrow({ where: { id: c.id } });
-    expect(after.loyaltyPoints).toBe(25);
+    await joinPassport(db, c.id);
+    await joinPassport(db, c.id); // idempotent
+    let after = await db.customer.findUniqueOrThrow({ where: { id: c.id } });
+    expect(after.loyaltyPoints).toBe(0);
+    expect(after.passportJoinedAt).not.toBeNull();
     expect(after.cardExpiresAt).not.toBeNull();
+
+    const v = await makeVariant({ stock: 5, phone: false }); // accessory: no purchase points, still a transaction
+    const o = await makeOrder(v.id, 1, c.id);
+    await finalizeOrder(o.id, { markPaid: true });
+    const o2 = await makeOrder(v.id, 1, c.id);
+    await finalizeOrder(o2.id, { markPaid: true });
+    after = await db.customer.findUniqueOrThrow({ where: { id: c.id } });
+    expect(after.loyaltyPoints).toBe(25);
     const lots = await db.loyaltyTransaction.findMany({ where: { customerId: c.id, source: "WELCOME" } });
     expect(lots).toHaveLength(1);
     expect(lots[0].expiresAt).not.toBeNull(); // normal points expiry applies
   });
+
+  it("is credited on the first completed repair too", async () => {
+    const staff = await makeStaff();
+    const c = await makeCustomer();
+    await joinPassport(db, c.id);
+    const r = await makeRepair(c.id);
+    await changeRepairStatus(r.id, "COMPLETED", staff.id);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(10 + 25);
+  });
+
+  it("is credited at once when a guest claims their profile (a past visit is the proof)", async () => {
+    const c = await makeCustomer();
+    await joinPassport(db, c.id, { verified: true });
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(25);
+  });
+
+  it("walk-in customers who never joined don't get it", async () => {
+    const c = await makeCustomer();
+    expect(await creditWelcome(db, c.id, "test")).toBeNull();
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(0);
+  });
+
   it("keeps an expiry date an admin already set", async () => {
     const c = await makeCustomer();
     const set = new Date(2030, 0, 31);
     await db.customer.update({ where: { id: c.id }, data: { cardExpiresAt: set } });
-    await welcomeMember(db, c.id);
+    await joinPassport(db, c.id);
     expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).cardExpiresAt?.getTime()).toBe(set.getTime());
   });
 });

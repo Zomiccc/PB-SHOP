@@ -78,6 +78,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
             <div className="flex justify-between gap-3"><dt className="text-muted">Card expiry</dt><dd>{c.cardExpiresAt ? `${formatCardExpiry(c.cardExpiresAt)}${c.cardExpiresAt < now ? " · expired" : ""}` : "Not set"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">On the digital card</dt><dd>{card.showExpiryOnDigital ? "Shown" : "Hidden"} <Link href="/admin/settings#passport-card" className="text-xs text-blue">change</Link></dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Referred by</dt><dd>{c.referredBy ? <Link href={`/admin/customers/${c.referredBy.id}`} className="text-blue">{c.referredBy.name} ({c.referredBy.passportNo})</Link> : "—"}{c.referredBy && <span className="block text-right text-xs text-muted">{c.referralRewardedAt ? `referrer rewarded ${dt(c.referralRewardedAt)}` : "rewarded on first purchase / repair"}</span>}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">Welcome reward</dt><dd>{c.loyaltyTx.some((t) => t.source === "WELCOME") ? "Given" : c.passportJoinedAt ? "Pending — on first purchase / repair" : "Not a Passport sign-up"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Friends referred</dt><dd>{c._count.referrals}</dd></div>
           </dl>
         </Panel>

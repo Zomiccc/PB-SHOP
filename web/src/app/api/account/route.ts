@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { clearCustomerSession, setCustomerSession, uniquePassportNo } from "@/lib/auth";
-import { PassportError, findReferrer, parseBirthday, welcomeMember } from "@/lib/passport";
+import { PassportError, findReferrer, joinPassport, parseBirthday } from "@/lib/passport";
 
 const phoneRx = /^(\+92|0)?3\d{2}[\s-]?\d{7}$/;
 const norm = (p: string) => p.replace(/[\s-]/g, "");
@@ -27,8 +27,9 @@ const Body = z.discriminatedUnion("action", [Register, Login, z.object({ action:
 /**
  * Customer accounts (§10 secure accounts). Passwords are bcrypt-hashed.
  * Guest profiles created at checkout/POS can be claimed with proof of a past order or repair.
- * Joining (or claiming a guest profile) credits the welcome reward once; a referral code links the new
- * customer to their referrer, who is rewarded on the friend's first purchase or repair (src/lib/passport.ts).
+ * A new member's welcome reward and their referrer's reward are credited on the member's first purchase
+ * or repair (src/lib/passport.ts); claiming a guest profile (with proof of a past visit) credits the
+ * welcome reward at once.
  * TODO(phase 2): replace `proof` with SMS OTP verification once an SMS provider is chosen.
  */
 export async function POST(req: Request) {
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
     // An existing customer claiming their profile isn't new, so a referral code doesn't apply here.
     await db.$transaction(async (tx) => {
       await tx.customer.update({ where: { id: existing.id }, data: { name: d.name, email: d.email || existing.email, passwordHash: hash, ...birthday } });
-      await welcomeMember(tx, existing.id);
+      await joinPassport(tx, existing.id, { verified: true }); // proof of a past order / repair = verified
     });
     await setCustomerSession(existing.id);
     return NextResponse.json({ ok: true, claimed: true });
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
   }
   const c = await db.$transaction(async (tx) => {
     const c = await tx.customer.create({ data: { name: d.name, phone, email: d.email || null, passwordHash: hash, passportNo: await uniquePassportNo(tx), referredById: referrerId, ...birthday } });
-    await welcomeMember(tx, c.id);
+    await joinPassport(tx, c.id); // welcome reward waits for their first purchase or repair
     return c;
   });
   await setCustomerSession(c.id);

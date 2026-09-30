@@ -40,7 +40,7 @@ export default async function AccountPage() {
   // Expire anything that's due before showing the balance (expired points can't be redeemed).
   const points = await availablePoints(db, customer.id);
   const now = new Date();
-  const [orders, repairs, history, lots, rewards, card, rules] = await Promise.all([
+  const [orders, repairs, history, lots, rewards, card, rules, welcomed] = await Promise.all([
     db.order.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 10, include: { items: true } }),
     db.repairRequest.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 10 }),
     db.loyaltyTransaction.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 40, include: { reward: true } }),
@@ -48,7 +48,9 @@ export default async function AccountPage() {
     db.reward.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
     getSetting("passportCard"),
     getSetting("passport"),
+    db.loyaltyTransaction.count({ where: { customerId: customer.id, source: "WELCOME" } }),
   ]);
+  const welcomePending = rules.welcomePoints > 0 && !!customer.passportJoinedAt && welcomed === 0;
   // Digital card only, and only when the owner shows it; the printed card never has the expiry.
   const expires = card.showExpiryOnDigital && customer.cardExpiresAt ? formatCardExpiry(customer.cardExpiresAt) : null;
   const earned = history.filter((t) => t.points > 0);
@@ -98,6 +100,11 @@ export default async function AccountPage() {
             <div className="rounded-2xl bg-navy-950 p-4"><p className="display text-4xl text-gold">{points}</p><p className="text-xs text-muted">available now</p></div>
             <div className="rounded-2xl bg-navy-950 p-4"><p className="display text-4xl">{soon.reduce((s, l) => s + (l.remaining ?? 0), 0)}</p><p className="text-xs text-muted">expiring in 30 days</p></div>
           </div>
+          {welcomePending && (
+            <p className="rounded-xl bg-blue/10 p-4 text-sm ring-1 ring-blue/30">
+              <b className="text-blue-soft">Welcome reward waiting:</b> your {rules.welcomePoints} welcome points are added with your first purchase or repair.
+            </p>
+          )}
           {rules.referralPoints > 0 && (
             <p className="rounded-xl bg-gold/10 p-4 text-sm ring-1 ring-gold/30">
               <b className="text-gold">Refer a friend:</b> share your Passport ID <b className="font-mono">{customer.passportNo}</b>. You get {rules.referralPoints} points when they join with it and make their first purchase or repair.
