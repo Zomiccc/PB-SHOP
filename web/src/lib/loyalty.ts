@@ -73,7 +73,7 @@ export async function expirePoints(tx: Tx, customerId: string, now = new Date())
 /** One earning event → one lot. */
 export async function earnPoints(
   tx: Tx,
-  input: { customerId: string; points: number; source: string; reason: string; type?: "EARN" | "PROMO" | "ADJUST"; orderId?: string | null; repairId?: string | null; staffId?: string | null; now?: Date },
+  input: { customerId: string; points: number; source: string; reason: string; type?: "EARN" | "PROMO" | "ADJUST" | "AWARD"; orderId?: string | null; repairId?: string | null; staffId?: string | null; now?: Date },
 ) {
   if (input.points <= 0) return null;
   const rules = await getSetting("passport", tx as Prisma.TransactionClient);

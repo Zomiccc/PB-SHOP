@@ -1,5 +1,18 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## PB Phone Passport — Developer Requirements (final v2) — implemented
+
+| § | Requirement | Where / status |
+|---|---|---|
+| 1 | Card expiry is an admin field: view/edit per customer; default validity set on issue; **never printed on the physical card**; owner can **show/hide it on the digital card** | Admin → Customer → Passport details, Settings → PB Rewards card ✅ + tests |
+| 2 | Birth date on the Passport form: **month + day only, no year** | `/account` Create Passport, Admin → Passport cards, customer profile ✅ + tests |
+| 3 | **Referral reward 25 pts** (configurable) — friend enters the referrer's Passport ID or mobile; referrer is credited once, on the friend's first paid purchase or completed repair | `src/lib/passport.ts` ✅ + tests |
+| 4 | **Welcome reward 25 pts** (configurable) — once, on joining (online sign-up, staff-issued card, or a guest claiming their profile) | ✅ + tests |
+| 5 | **Manual award**: pick customer (search the customer list) → points + reason → review → confirm; separate "Manual award" transaction with admin + time; audited | Admin → Customer → Award PB Points ✅ + tests |
+| 6 | **Delete customer** from the list or profile (owner), typed confirmation; orders/repairs kept, points history snapshotted in the audit entry with admin + time | Admin → Customers ✅ |
+
+Existing points validity, redemption and reversal rules are unchanged: every new reward is a normal points lot with the usual expiry.
+
 ## Updated Master Developer Requirements (final version) — implemented
 
 | Brief § | Requirement | Where / status |

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/format";
+import { MONTHS } from "@/lib/passport-rules";
 
 type Errors = Record<string, string[] | undefined>;
 
@@ -72,9 +73,27 @@ export function AuthForms() {
             <input name="email" type="email" autoComplete="email" className="field" aria-invalid={!!err("email")} />
           </F>
         )}
+        {tab === "register" && (
+          <fieldset>
+            <legend className="label">Birth date <span className="font-normal normal-case tracking-normal text-muted">(month and day — no year needed)</span></legend>
+            <div className="grid grid-cols-[1.4fr_1fr] gap-3">
+              <select name="birthMonth" aria-label="Birth month" defaultValue="" className="field" aria-invalid={!!err("birthMonth")}>
+                <option value="" disabled>Month</option>
+                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+              </select>
+              <input name="birthDay" type="number" inputMode="numeric" min={1} max={31} placeholder="Day" aria-label="Birth day" autoComplete="bday-day" className="field" aria-invalid={!!err("birthDay")} />
+            </div>
+            {(err("birthMonth") || err("birthDay")) && <span className="mt-1.5 block text-sm text-red">{err("birthMonth") ?? err("birthDay")}</span>}
+          </fieldset>
+        )}
         <F label="Password" error={err("password")}>
           <input name="password" type="password" autoComplete={tab === "login" ? "current-password" : "new-password"} className="field" aria-invalid={!!err("password")} />
         </F>
+        {tab === "register" && !needsProof && (
+          <F label="Referral code (optional)" error={err("referral")}>
+            <input name="referral" placeholder="Friend's Passport ID or mobile" autoComplete="off" className="field uppercase" aria-invalid={!!err("referral")} />
+          </F>
+        )}
         {tab === "register" && needsProof && (
           <F label="Past order number or repair reference" error={err("proof")}>
             <input name="proof" placeholder="PB-100001 or PBR-1001" className="field uppercase" aria-invalid={!!err("proof")} />

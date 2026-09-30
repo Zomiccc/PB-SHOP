@@ -2,10 +2,13 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { like } from "@/lib/search";
 import { PageTitle, Panel, Table, Td, dt } from "@/components/admin/Primitives";
+import { requireStaffPage } from "@/lib/staff";
 
 export const metadata = { title: "Customers" };
 
 export default async function CustomersPage(props: PageProps<"/admin/customers">) {
+  const me = await requireStaffPage();
+  const isOwner = me.role === "SUPER_ADMIN";
   const sp = await props.searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const digits = q.replace(/\D/g, "");
@@ -22,7 +25,7 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
       </PageTitle>
       {sp.deleted && <p className="mb-4 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-400">Customer deleted. Their orders and repairs are kept as business records.</p>}
       <Panel>
-        <Table head={["Customer", "Passport", "Points", "Orders", "Repairs", "Account", "Since"]} empty="No customers found.">
+        <Table head={["Customer", "Passport", "Points", "Orders", "Repairs", "Account", "Since", ""]} empty="No customers found.">
           {customers.map((c) => (
             <tr key={c.id} className="hover:bg-cream/60">
               <Td><Link href={`/admin/customers/${c.id}`} className="font-semibold hover:text-blue">{c.name}</Link><span className="block text-xs text-muted">{c.phone}</span></Td>
@@ -32,6 +35,10 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
               <Td>{c._count.repairs}</Td>
               <Td className="text-xs">{c.passwordHash ? "Online account" : "Guest / walk-in"}</Td>
               <Td className="text-xs text-muted">{dt(c.createdAt)}</Td>
+              <Td className="whitespace-nowrap text-xs">
+                <Link href={`/admin/customers/${c.id}#award`} className="text-blue hover:underline">Award points</Link>
+                {isOwner && <Link href={`/admin/customers/${c.id}#delete`} className="ml-3 font-semibold text-red hover:underline">Delete</Link>}
+              </Td>
             </tr>
           ))}
         </Table>

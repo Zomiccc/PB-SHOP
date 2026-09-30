@@ -8,9 +8,10 @@ import { Icon } from "../ui/Icon";
 
 /**
  * 3D PB Rewards card: tap / click (or Enter / Space) to flip it over to the barcode side,
- * drag sideways to spin it, and it tilts towards the mouse on desktop.
+ * drag sideways to spin it, and it tilts towards the mouse on desktop. This is the digital card, so it
+ * may show the card expiry (`expires`) when the owner has turned that on.
  */
-export function FlipPassportCard({ name, number, points, phone, since, className = "" }: { name?: string; number?: string; points?: number; phone?: string; since?: string; className?: string }) {
+export function FlipPassportCard({ name, number, points, phone, since, expires, className = "" }: { name?: string; number?: string; points?: number; phone?: string; since?: string; expires?: string | null; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const rot = useMotionValue(0); // rotateY in degrees; 0 = front, 180 = back
   const [back, setBack] = useState(false);
@@ -71,7 +72,7 @@ export function FlipPassportCard({ name, number, points, phone, since, className
           }}
         >
           <div className="[grid-area:1/1]" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-            <PassportCard still name={name} number={number} points={points} />
+            <PassportCard still name={name} number={number} points={points} expires={expires} />
           </div>
           <div className="[grid-area:1/1]" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
             <PassportCardBack number={number} phone={phone} since={since} />

@@ -6,6 +6,7 @@ import { PassportCardBack } from "../home/PassportCardBack";
 /**
  * Print layout for the PB Rewards card: front + back at the standard bank-card size (85.6 × 54 mm),
  * one face per page. Hidden on screen (the 3D flip card is shown there instead).
+ * The physical card never carries the expiry date (Passport requirements §1), so it takes no `expires`.
  */
 export function PassportCardPrint({ name, number, points, phone, since }: { name: string; number: string; points: number; phone: string; since: string }) {
   return (

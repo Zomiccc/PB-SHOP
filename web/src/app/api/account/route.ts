@@ -3,7 +3,8 @@ import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { clearCustomerSession, newPassportNo, setCustomerSession } from "@/lib/auth";
+import { clearCustomerSession, setCustomerSession, uniquePassportNo } from "@/lib/auth";
+import { PassportError, findReferrer, parseBirthday, welcomeMember } from "@/lib/passport";
 
 const phoneRx = /^(\+92|0)?3\d{2}[\s-]?\d{7}$/;
 const norm = (p: string) => p.replace(/[\s-]/g, "");
@@ -14,6 +15,10 @@ const Register = z.object({
   phone: z.string().trim().regex(phoneRx, "Enter a valid Pakistani mobile number"),
   email: z.union([z.literal(""), z.string().trim().email("Enter a valid email")]).optional(),
   password: z.string().min(8, "Use at least 8 characters").max(100),
+  // Birthday: month + day only — the year is not asked for (Passport requirements §2).
+  birthMonth: z.coerce.number({ message: "Choose your birth month" }).int().min(1, "Choose your birth month").max(12),
+  birthDay: z.coerce.number({ message: "Enter the day" }).int().min(1, "Enter the day").max(31, "Enter the day"),
+  referral: z.string().trim().max(40).optional(), // friend's Passport ID or mobile number
   proof: z.string().trim().optional(), // order number or repair ref, required to claim an existing guest profile
 });
 const Login = z.object({ action: z.literal("login"), phone: z.string().trim().min(5), password: z.string().min(1) });
@@ -22,6 +27,8 @@ const Body = z.discriminatedUnion("action", [Register, Login, z.object({ action:
 /**
  * Customer accounts (§10 secure accounts). Passwords are bcrypt-hashed.
  * Guest profiles created at checkout/POS can be claimed with proof of a past order or repair.
+ * Joining (or claiming a guest profile) credits the welcome reward once; a referral code links the new
+ * customer to their referrer, who is rewarded on the friend's first purchase or repair (src/lib/passport.ts).
  * TODO(phase 2): replace `proof` with SMS OTP verification once an SMS provider is chosen.
  */
 export async function POST(req: Request) {
@@ -47,6 +54,13 @@ export async function POST(req: Request) {
   }
 
   const phone = norm(d.phone);
+  let birthday: { birthMonth: number; birthDay: number } | null;
+  try {
+    birthday = parseBirthday(d.birthMonth, d.birthDay, { required: true });
+  } catch (e) {
+    if (e instanceof PassportError) return NextResponse.json({ error: e.message, fields: { birthDay: [e.message] } }, { status: 422 });
+    throw e;
+  }
   const hash = await bcrypt.hash(d.password, 10);
   const existing = await db.customer.findUnique({ where: { phone }, include: { orders: { select: { number: true } }, repairs: { select: { ref: true } } } });
 
@@ -61,7 +75,11 @@ export async function POST(req: Request) {
         { status: 409 },
       );
     }
-    await db.customer.update({ where: { id: existing.id }, data: { name: d.name, email: d.email || existing.email, passwordHash: hash } });
+    // An existing customer claiming their profile isn't new, so a referral code doesn't apply here.
+    await db.$transaction(async (tx) => {
+      await tx.customer.update({ where: { id: existing.id }, data: { name: d.name, email: d.email || existing.email, passwordHash: hash, ...birthday } });
+      await welcomeMember(tx, existing.id);
+    });
     await setCustomerSession(existing.id);
     return NextResponse.json({ ok: true, claimed: true });
   }
@@ -69,7 +87,18 @@ export async function POST(req: Request) {
   if (d.email && (await db.customer.findUnique({ where: { email: d.email } }))) {
     return NextResponse.json({ error: "That email is already in use", fields: { email: ["Already in use"] } }, { status: 409 });
   }
-  const c = await db.customer.create({ data: { name: d.name, phone, email: d.email || null, passwordHash: hash, passportNo: newPassportNo() } });
+  let referrerId: string | null = null;
+  try {
+    referrerId = (await findReferrer(db, d.referral, phone))?.id ?? null;
+  } catch (e) {
+    if (e instanceof PassportError) return NextResponse.json({ error: e.message, fields: { referral: [e.message] } }, { status: 422 });
+    throw e;
+  }
+  const c = await db.$transaction(async (tx) => {
+    const c = await tx.customer.create({ data: { name: d.name, phone, email: d.email || null, passwordHash: hash, passportNo: await uniquePassportNo(tx), referredById: referrerId, ...birthday } });
+    await welcomeMember(tx, c.id);
+    return c;
+  });
   await setCustomerSession(c.id);
   return NextResponse.json({ ok: true });
 }

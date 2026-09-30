@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Field, PageTitle, Panel, Table, Td, dt } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { generateCardAction } from "../../_actions/cards";
+import { MONTHS } from "@/lib/passport-rules";
 
 export const metadata = { title: "Passport cards" };
 
@@ -20,6 +21,11 @@ export default async function CardsPage() {
               <Field label="Last name"><input name="lastName" required autoComplete="off" className="field" /></Field>
             </div>
             <Field label="Mobile number" hint="Links the card to their points. If this number already has a card, that card opens instead."><input name="phone" type="tel" required placeholder="0300 1234567" className="field" /></Field>
+            <div className="grid grid-cols-[1.4fr_1fr] gap-3">
+              <Field label="Birth month"><select name="birthMonth" defaultValue="" className="field"><option value="" disabled>Month</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></Field>
+              <Field label="Day" hint="No year needed"><input name="birthDay" type="number" min={1} max={31} placeholder="Day" className="field" /></Field>
+            </div>
+            <Field label="Referred by (optional)" hint="The friend's Passport ID or mobile. They get the referral reward on this customer's first purchase or repair."><input name="referral" autoComplete="off" placeholder="PBP-123456 or 0300 1234567" className="field" /></Field>
             <Submit variant="gold">Generate card</Submit>
           </ActionForm>
         </Panel>

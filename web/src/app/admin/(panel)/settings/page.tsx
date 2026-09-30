@@ -11,12 +11,13 @@ export const metadata = { title: "Settings & rules" };
 /** Owner-only configuration: Phone Passport points & rewards, installment calculator, social proof, delivery. */
 export default async function SettingsPage() {
   await requireStaffPage({ superAdmin: true });
-  const [financing, social, passport, shipping, rewards] = await Promise.all([
+  const [financing, social, passport, shipping, rewards, passportCard] = await Promise.all([
     getSetting("installmentCalc"),
     getSetting("socialProof"),
     getSetting("passport"),
     getSetting("shipping"),
     db.reward.findMany({ orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
+    getSetting("passportCard"),
   ]);
 
   return (
@@ -62,10 +63,22 @@ export default async function SettingsPage() {
               <Field label="Points per new phone bought"><input name="newPhonePoints" type="number" min={0} defaultValue={passport.newPhonePoints} className="field" /></Field>
               <Field label="Points per used phone bought"><input name="usedPhonePoints" type="number" min={0} defaultValue={passport.usedPhonePoints} className="field" /></Field>
               <Field label="Points expire after (months)" hint="Counted separately for each earning event"><input name="expiryMonths" type="number" min={1} defaultValue={passport.expiryMonths} className="field" /></Field>
+              <Field label="Welcome reward (points)" hint="Once, when a customer joins the Passport"><input name="welcomePoints" type="number" min={0} defaultValue={passport.welcomePoints} className="field" /></Field>
+              <Field label="Referral reward (points)" hint="To the referrer, on the friend's first purchase or repair"><input name="referralPoints" type="number" min={0} defaultValue={passport.referralPoints} className="field" /></Field>
             </div>
             <Field label="Exclusions (shown to customers)"><textarea name="exclusions" rows={3} defaultValue={passport.exclusions} className="field" /></Field>
             <p className="text-xs text-muted">Changes apply to points earned from now on; points already earned keep their original expiry date.</p>
             <Submit>Save Passport rules</Submit>
+          </ActionForm>
+        </Panel>
+
+        <Panel title="PB Rewards card — expiry date" id="passport-card">
+          <ActionForm action={saveSettingAction} className="space-y-3">
+            <input type="hidden" name="key" value="passportCard" />
+            <p className="text-sm text-muted">The card expiry is an admin field: staff see and change it on each customer&apos;s profile. It is <b className="text-ink">never printed on the physical card</b>.</p>
+            <Field label="Default card validity (months)" hint="Sets the expiry when a new card is issued; 0 = no automatic expiry"><input name="validityMonths" type="number" min={0} defaultValue={passportCard.validityMonths} className="field" /></Field>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="showExpiryOnDigital" defaultChecked={passportCard.showExpiryOnDigital} className="h-4 w-4" /> Show the expiry date on the customer&apos;s digital card {passportCard.showExpiryOnDigital ? <Badge tone="green">Shown</Badge> : <Badge>Hidden</Badge>}</label>
+            <Submit>Save card settings</Submit>
           </ActionForm>
         </Panel>
 

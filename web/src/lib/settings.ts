@@ -10,8 +10,13 @@ export const SETTING_DEFAULTS = {
     newPhonePoints: 20, // per new phone bought
     usedPhonePoints: 15, // per used phone bought
     expiryMonths: 6, // each earning event expires six months after it was earned
+    welcomePoints: 25, // once, when a customer joins the Passport (Passport brief §4)
+    referralPoints: 25, // to the referrer, once per referred friend's first purchase or repair (Passport brief §3)
     exclusions: "Points are earned on repairs and phone purchases only — not on accessories, delivery fees, or orders that are cancelled or returned. Repair rewards exclude the cost of parts.",
   },
+  // PB Rewards card expiry (Passport brief §1). The expiry is an admin field: it is never printed on the
+  // physical card, and shown on the customer's digital card only when `showExpiryOnDigital` is on.
+  passportCard: { showExpiryOnDigital: false, validityMonths: 24 },
   shipping: { flatFee: 250, freeOver: 50000 },
   // Installment calculator — defaults match the partner (Palm) app's standard plan: 6% flat per month,
   // no extra fees. New key so older saved sample rates don't override these.

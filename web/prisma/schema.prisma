@@ -91,6 +91,17 @@ model Customer {
   passportNo    String   @unique // PB Phone Passport number shown to customer
   loyaltyPoints Int      @default(0) // cached balance = sum of unexpired, unspent earning lots
   marketingOptIn Boolean @default(false)
+  // Birthday from the Passport form: month + day only — the year is never asked for (Passport brief §2)
+  birthMonth    Int? // 1–12
+  birthDay      Int? // 1–31
+  // Card expiry: an admin/system field. Never printed on the physical card; shown on the digital card
+  // only when the owner turns that on (Setting "passportCard") — Passport brief §1.
+  cardExpiresAt DateTime?
+  // Referral (Passport brief §3): who referred this customer, and when the referrer was credited.
+  referredById       String?
+  referredBy         Customer?  @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals         Customer[] @relation("Referrals")
+  referralRewardedAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -108,8 +119,8 @@ model LoyaltyTransaction {
   id         String    @id @default(cuid())
   customerId String
   customer   Customer  @relation(fields: [customerId], references: [id])
-  type       String // EARN | REDEEM | ADJUST | EXPIRE | PROMO
-  source     String? // REPAIR | NEW_PHONE | USED_PHONE | MANUAL (earning events)
+  type       String // EARN | REDEEM | ADJUST | EXPIRE | PROMO | AWARD (manual award by staff)
+  source     String? // REPAIR | NEW_PHONE | USED_PHONE | WELCOME | REFERRAL | MANUAL (earning events)
   points     Int // positive = earned, negative = spent/expired
   remaining  Int? // lots only: points of this event not yet spent or expired
   reason     String?

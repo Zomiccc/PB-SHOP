@@ -10,6 +10,8 @@ import { PassportCardPrint } from "@/components/admin/PassportCardPrint";
 import { PrintButton } from "@/components/admin/PrintButton";
 import { Icon } from "@/components/ui/Icon";
 import { availablePoints } from "@/lib/loyalty";
+import { getSetting } from "@/lib/settings";
+import { formatCardExpiry } from "@/lib/passport-rules";
 
 export const metadata: Metadata = { title: "My Account & PB Phone Passport", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -38,13 +40,17 @@ export default async function AccountPage() {
   // Expire anything that's due before showing the balance (expired points can't be redeemed).
   const points = await availablePoints(db, customer.id);
   const now = new Date();
-  const [orders, repairs, history, lots, rewards] = await Promise.all([
+  const [orders, repairs, history, lots, rewards, card, rules] = await Promise.all([
     db.order.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 10, include: { items: true } }),
     db.repairRequest.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 10 }),
     db.loyaltyTransaction.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 40, include: { reward: true } }),
     db.loyaltyTransaction.findMany({ where: { customerId: customer.id, remaining: { gt: 0 }, expiresAt: { gt: now } }, orderBy: { expiresAt: "asc" } }),
     db.reward.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
+    getSetting("passportCard"),
+    getSetting("passport"),
   ]);
+  // Digital card only, and only when the owner shows it; the printed card never has the expiry.
+  const expires = card.showExpiryOnDigital && customer.cardExpiresAt ? formatCardExpiry(customer.cardExpiresAt) : null;
   const earned = history.filter((t) => t.points > 0);
   const used = history.filter((t) => t.points < 0);
   const soon = lots.filter((l) => l.expiresAt && l.expiresAt.getTime() - now.getTime() < 30 * 86_400_000);
@@ -78,7 +84,7 @@ export default async function AccountPage() {
             </div>
           </div>
           <div>
-            <FlipPassportCard name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} />
+            <FlipPassportCard name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} expires={expires} />
             <div className="mt-3 flex justify-center print:hidden"><PrintButton label="Print / save my card" /></div>
             <PassportCardPrint name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} />
           </div>
@@ -92,6 +98,11 @@ export default async function AccountPage() {
             <div className="rounded-2xl bg-navy-950 p-4"><p className="display text-4xl text-gold">{points}</p><p className="text-xs text-muted">available now</p></div>
             <div className="rounded-2xl bg-navy-950 p-4"><p className="display text-4xl">{soon.reduce((s, l) => s + (l.remaining ?? 0), 0)}</p><p className="text-xs text-muted">expiring in 30 days</p></div>
           </div>
+          {rules.referralPoints > 0 && (
+            <p className="rounded-xl bg-gold/10 p-4 text-sm ring-1 ring-gold/30">
+              <b className="text-gold">Refer a friend:</b> share your Passport ID <b className="font-mono">{customer.passportNo}</b>. You get {rules.referralPoints} points when they join with it and make their first purchase or repair.
+            </p>
+          )}
           {lots.length === 0 ? (
             <Empty text="Points you earn appear here with their expiry dates." />
           ) : (

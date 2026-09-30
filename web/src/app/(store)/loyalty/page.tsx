@@ -22,7 +22,9 @@ export default async function LoyaltyPage() {
     { icon: "wrench", pts: rules.repairPoints, t: "Every repair", d: "Added when your repair is completed." },
     { icon: "phone", pts: rules.newPhonePoints, t: "New phone", d: "Per new phone, once payment is confirmed." },
     { icon: "shield", pts: rules.usedPhonePoints, t: "Used phone", d: "Per lab-checked used phone you buy." },
-  ];
+    { icon: "gift", pts: rules.welcomePoints, t: "Welcome reward", d: "Once, when you join the Passport." },
+    { icon: "user", pts: rules.referralPoints, t: "Refer a friend", d: "When a friend you refer makes their first purchase or repair." },
+  ].filter((e) => e.pts > 0);
 
   return (
     <>
@@ -37,7 +39,7 @@ export default async function LoyaltyPage() {
         <div className="container-pb">
           <p className="eyebrow text-gold">Earn</p>
           <h2 className="display mt-3 text-4xl md:text-5xl">How you collect points.</h2>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3 md:gap-4">
+          <div className="mt-8 grid gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
             {earn.map((e, i) => (
               <Reveal key={e.t} delay={i * 0.06} className="relative overflow-hidden rounded-[1.5rem] bg-card p-6 ring-1 ring-white/8">
                 <div aria-hidden className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue/15 blur-2xl" />
@@ -86,7 +88,7 @@ export default async function LoyaltyPage() {
             </Link>
           </div>
           <dl className="space-y-5 text-sm">
-            <Rule t="Earning">{rules.repairPoints} points per completed repair, {rules.newPhonePoints} per new phone and {rules.usedPhonePoints} per used phone. Purchase points are added once payment is confirmed.</Rule>
+            <Rule t="Earning">{rules.repairPoints} points per completed repair, {rules.newPhonePoints} per new phone and {rules.usedPhonePoints} per used phone. Purchase points are added once payment is confirmed.{rules.welcomePoints > 0 && ` New members get a ${rules.welcomePoints}-point welcome reward.`}{rules.referralPoints > 0 && ` Refer a friend with your Passport ID and get ${rules.referralPoints} points when they make their first purchase or repair.`}</Rule>
             <Rule t="Expiry">Each set of points expires {rules.expiryMonths} months after the day it was earned. Expired points can&apos;t be redeemed; your Passport shows what&apos;s expiring and when.</Rule>
             <Rule t="Redeeming">Rewards are redeemed in store. Points that expire soonest are used first.</Rule>
             <Rule t="Exclusions">{rules.exclusions}</Rule>

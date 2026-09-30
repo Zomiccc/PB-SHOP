@@ -5,6 +5,7 @@ import { getSetting } from "./settings";
 import { earnPoints, pointsForItems } from "./loyalty";
 import { audit } from "./audit";
 import { privacyLabel } from "./format";
+import { creditReferral } from "./passport";
 
 type Tx = Prisma.TransactionClient;
 
@@ -46,7 +47,8 @@ export async function finalizeOrder(orderId: string, opts: { staffId?: string | 
 
 /**
  * Phone Passport points for a paid order: 20 per new phone, 15 per used phone (configurable), one
- * earning event (lot) per condition so each has its own six-month expiry. Idempotent.
+ * earning event (lot) per condition so each has its own six-month expiry. Also credits a pending
+ * referral reward to whoever referred this customer. Idempotent.
  * `manualPoints`: staff typed the number of points at the till instead (0 = none) — audited.
  */
 export async function awardOrderBenefits(tx: Tx, orderId: string, staffId: string | null, manualPoints?: number | null) {
@@ -56,6 +58,8 @@ export async function awardOrderBenefits(tx: Tx, orderId: string, staffId: strin
     include: { items: { include: { variant: { include: { product: true } } } } },
   });
   if (!order.customerId) return;
+  // A referred customer's first paid purchase earns their referrer the referral reward (once).
+  await creditReferral(tx, order.customerId, `bought ${order.number}`, staffId);
   if (await tx.loyaltyTransaction.findFirst({ where: { orderId, type: "EARN" } })) return;
 
   if (manualPoints != null) {

@@ -5,9 +5,15 @@ import { pkr } from "@/lib/format";
 import { Badge, Field, PageTitle, Panel, Table, Td, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
-import { addNoteAction, adjustPointsAction, deleteCustomerAction, redeemRewardAction } from "../../../_actions/operations";
+import { addNoteAction, adjustPointsAction, deleteCustomerAction, redeemRewardAction, updatePassportAction } from "../../../_actions/operations";
 import { requireStaffPage } from "@/lib/staff";
 import { availablePoints } from "@/lib/loyalty";
+import { getSetting } from "@/lib/settings";
+import { MONTHS, formatCardExpiry } from "@/lib/passport-rules";
+import { AwardPointsForm } from "@/components/admin/AwardPointsForm";
+
+const SOURCE_LABEL: Record<string, string> = { WELCOME: "Welcome reward", REFERRAL: "Referral reward", REPAIR: "Repair", NEW_PHONE: "New phone", USED_PHONE: "Used phone", MANUAL: "Staff" };
+const TYPE_LABEL: Record<string, string> = { AWARD: "MANUAL AWARD" };
 
 export const metadata = { title: "Customer" };
 
@@ -22,9 +28,12 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
       repairs: { orderBy: { createdAt: "desc" } },
       loyaltyTx: { orderBy: { createdAt: "desc" }, include: { staff: true, reward: true } },
       notes: { where: { kind: "CUSTOMER" }, orderBy: { createdAt: "desc" }, include: { author: true } },
+      referredBy: { select: { id: true, name: true, passportNo: true } },
+      _count: { select: { referrals: true } },
     },
   });
   if (!c) notFound();
+  const card = await getSetting("passportCard");
   const rewards = await db.reward.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] });
   const now = new Date();
   const lots = c.loyaltyTx.filter((t) => (t.remaining ?? 0) > 0 && t.expiresAt && t.expiresAt > now).sort((a, b) => +a.expiresAt! - +b.expiresAt!);
@@ -45,6 +54,34 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
+        <Panel title="Award PB Points" id="award">
+          <AwardPointsForm customer={{ id: c.id, name: c.name, passportNo: c.passportNo, points: c.loyaltyPoints }} />
+          <p className="mt-2 text-xs text-muted">Extra points for this customer (e.g. goodwill or a promotion). Shows in their points history as a separate manual award with your name and the time; the points expire like any other.</p>
+        </Panel>
+
+        <Panel title="Passport details" id="passport">
+          <ActionForm action={updatePassportAction} className="space-y-3">
+            <input type="hidden" name="customerId" value={c.id} />
+            <div className="grid gap-3 sm:grid-cols-[1.3fr_0.7fr_1.2fr]">
+              <Field label="Birth month">
+                <select name="birthMonth" defaultValue={c.birthMonth ?? ""} className="field">
+                  <option value="">Not given</option>
+                  {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                </select>
+              </Field>
+              <Field label="Day" hint="No year"><input name="birthDay" type="number" min={1} max={31} defaultValue={c.birthDay ?? ""} className="field" /></Field>
+              <Field label="Card expiry date" hint="Admin only — never printed"><input name="cardExpiresAt" type="date" defaultValue={c.cardExpiresAt ? c.cardExpiresAt.toISOString().slice(0, 10) : ""} className="field" /></Field>
+            </div>
+            <Submit variant="ghost">Save details</Submit>
+          </ActionForm>
+          <dl className="mt-4 grid gap-1 border-t border-ink/10 pt-4 text-sm">
+            <div className="flex justify-between gap-3"><dt className="text-muted">Card expiry</dt><dd>{c.cardExpiresAt ? `${formatCardExpiry(c.cardExpiresAt)}${c.cardExpiresAt < now ? " · expired" : ""}` : "Not set"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">On the digital card</dt><dd>{card.showExpiryOnDigital ? "Shown" : "Hidden"} <Link href="/admin/settings#passport-card" className="text-xs text-blue">change</Link></dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">Referred by</dt><dd>{c.referredBy ? <Link href={`/admin/customers/${c.referredBy.id}`} className="text-blue">{c.referredBy.name} ({c.referredBy.passportNo})</Link> : "—"}{c.referredBy && <span className="block text-right text-xs text-muted">{c.referralRewardedAt ? `referrer rewarded ${dt(c.referralRewardedAt)}` : "rewarded on first purchase / repair"}</span>}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">Friends referred</dt><dd>{c._count.referrals}</dd></div>
+          </dl>
+        </Panel>
+
         <Panel title="Redeem a reward">
           <ActionForm action={redeemRewardAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <input type="hidden" name="customerId" value={c.id} />
@@ -58,7 +95,8 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
             <Submit variant="gold">Redeem</Submit>
           </ActionForm>
           <p className="mt-2 text-xs text-muted">Only unexpired points can be used; the soonest-expiring points are spent first. Repair discounts apply to labour only (final charge minus parts).</p>
-          <ActionForm action={adjustPointsAction} resetOnSuccess className="mt-5 grid gap-2 border-t border-ink/10 pt-5 sm:grid-cols-[100px_140px_1fr_auto]">
+          <p className="mt-5 border-t border-ink/10 pt-5 text-xs font-semibold text-muted">Correct or deduct points</p>
+          <ActionForm action={adjustPointsAction} resetOnSuccess className="mt-2 grid gap-2 sm:grid-cols-[100px_140px_1fr_auto]">
             <input type="hidden" name="customerId" value={c.id} />
             <input name="points" type="number" placeholder="±pts" required aria-label="Points" className="field" />
             <select name="type" aria-label="Type" className="field"><option value="ADJUST">Adjustment</option><option value="PROMO">Promotion</option></select>
@@ -111,7 +149,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
             {c.loyaltyTx.map((t) => (
               <tr key={t.id}>
                 <Td className="text-xs text-muted">{dt(t.createdAt)}</Td>
-                <Td><Badge tone={t.points >= 0 ? "green" : "red"}>{t.type}</Badge></Td>
+                <Td><Badge tone={t.points >= 0 ? "green" : "red"}>{TYPE_LABEL[t.type] ?? t.type}</Badge>{t.source && t.type === "EARN" && <span className="block text-[0.65rem] text-muted">{SOURCE_LABEL[t.source] ?? t.source}</span>}</Td>
                 <Td className="font-semibold">{t.points > 0 ? `+${t.points}` : t.points}</Td>
                 <Td className="text-xs">{t.reward?.name ?? t.reason}</Td>
                 <Td className="text-xs">{t.staff?.name ?? "system"}</Td>
@@ -132,8 +170,8 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
       </div>
 
       {me.role === "SUPER_ADMIN" && (
-        <Panel title="Delete customer" className="mt-6 ring-1 ring-red/30">
-          <p className="text-sm text-muted">Permanently removes this Phone Passport profile, their points history, customer notes and website login. Orders, repairs and installment sales are kept as business records but no longer linked to them. This can&apos;t be undone and is recorded in the audit log.</p>
+        <Panel title="Delete customer" id="delete" className="mt-6 ring-1 ring-red/30">
+          <p className="text-sm text-muted">For someone who is no longer a customer. Removes this Phone Passport profile, customer notes and website login, so they no longer appear in customer lists. Orders, repairs and installment sales are kept as business records (unlinked), and their points history is kept in the audit log with your name and the time. This can&apos;t be undone.</p>
           <ActionForm action={deleteCustomerAction} className="mt-4 flex flex-wrap items-center gap-2" confirm={`Delete ${c.name} permanently?`}>
             <input type="hidden" name="customerId" value={c.id} />
             <input name="confirm" placeholder="Type DELETE" aria-label="Type DELETE to confirm" autoComplete="off" className="field !w-40" />

@@ -11,6 +11,7 @@ import { changeRepairStatus } from "@/lib/repairs";
 import { earnPoints, repairDiscount, spendPoints, syncBalance } from "@/lib/loyalty";
 import { notify } from "@/lib/notify";
 import { newPassportNo } from "@/lib/auth";
+import { parseBirthday } from "@/lib/passport";
 import type { FormState } from "./auth";
 import { bool, int, optStr, run, str } from "./util";
 
@@ -188,6 +189,54 @@ export async function adjustPointsAction(_: FormState, f: FormData): Promise<For
   });
 }
 
+/**
+ * Manual PB Points award (Passport requirements §5): staff pick a customer, enter the extra points and a
+ * reason, and confirm. It is its own "AWARD" transaction in the customer's points history, recorded with
+ * the awarding staff member and time, and audited. Awarded points follow the normal expiry rules.
+ */
+export async function awardPointsAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return run(async () => {
+    const pts = int(f, "points");
+    const reason = str(f, "reason");
+    if (!pts || pts < 1 || pts > 10000) throw new Error("Enter between 1 and 10,000 points to award");
+    if (reason.length < 3) throw new Error("A reason / note is required");
+    if (str(f, "confirmed") !== "yes") throw new Error("Confirm the award first");
+    const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") } });
+    const after = await db.$transaction(async (tx) => {
+      await earnPoints(tx, { customerId: c.id, points: pts, source: "MANUAL", type: "AWARD", reason, staffId: staff.id });
+      const after = await tx.customer.findUniqueOrThrow({ where: { id: c.id } });
+      await audit({ staffId: staff.id, action: "POINTS_AWARDED", entityType: "LOYALTY", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before: { points: c.loyaltyPoints }, after: { points: after.loyaltyPoints, awarded: pts, reason } }, tx);
+      return after;
+    });
+    revalidatePath(`/admin/customers/${c.id}`);
+    revalidatePath("/admin/points");
+    return `${pts} PB Points awarded to ${c.name} — new balance ${after.loyaltyPoints}`;
+  });
+}
+
+/** Passport details kept by staff: birth month + day (no year) and the card expiry date (§1, §2). Audited. */
+export async function updatePassportAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return run(async () => {
+    const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") } });
+    const birthday = parseBirthday(str(f, "birthMonth"), str(f, "birthDay"));
+    const exp = str(f, "cardExpiresAt");
+    const cardExpiresAt = exp ? new Date(`${exp}T23:59:59`) : null;
+    if (cardExpiresAt && isNaN(cardExpiresAt.getTime())) throw new Error("Enter a valid expiry date");
+    const data = { birthMonth: birthday?.birthMonth ?? null, birthDay: birthday?.birthDay ?? null, cardExpiresAt };
+    const before = { birthMonth: c.birthMonth, birthDay: c.birthDay, cardExpiresAt: c.cardExpiresAt?.toISOString().slice(0, 10) ?? null };
+    const next = { ...data, cardExpiresAt: exp || null };
+    if (JSON.stringify(before) === JSON.stringify(next)) return "No changes";
+    await db.$transaction(async (tx) => {
+      await tx.customer.update({ where: { id: c.id }, data });
+      await audit({ staffId: staff.id, action: "PASSPORT_DETAILS_UPDATED", entityType: "CUSTOMER", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before, after: next }, tx);
+    });
+    revalidatePath(`/admin/customers/${c.id}`);
+    return "Passport details saved";
+  });
+}
+
 /** Staff give a chosen number of Passport points for a paid purchase (client request). Audited. */
 export async function givePointsForOrderAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
@@ -258,16 +307,19 @@ export async function contactStatusAction(_: FormState, f: FormData): Promise<Fo
 }
 
 /**
- * Deletes a customer's Phone Passport profile (owner only). Their points history, customer notes and
- * login are removed; orders, repairs and installment sales stay (they are business / tax records) but
- * are unlinked from the profile. Audited.
+ * Deletes a customer's Phone Passport profile (owner only; Passport requirements §6). Their profile,
+ * customer notes and login are removed, so they no longer appear anywhere as a customer. Retention:
+ * orders, repairs and installment sales stay (business / tax records) but are unlinked, and the full
+ * points history is kept as a snapshot in the audit entry with the deleting admin and time.
  */
 export async function deleteCustomerAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff({ superAdmin: true });
   const res = await run(async () => {
-    const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") }, include: { _count: { select: { orders: true, repairs: true, installments: true } } } });
+    const c = await db.customer.findUniqueOrThrow({ where: { id: str(f, "customerId") }, include: { _count: { select: { orders: true, repairs: true, installments: true, referrals: true } } } });
     if (str(f, "confirm").trim().toUpperCase() !== "DELETE") throw new Error('Type DELETE to confirm');
+    const ledger = await db.loyaltyTransaction.findMany({ where: { customerId: c.id }, orderBy: { createdAt: "asc" }, include: { staff: { select: { name: true } } } });
     await db.$transaction(async (tx) => {
+      await tx.customer.updateMany({ where: { referredById: c.id }, data: { referredById: null } });
       await tx.order.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
       await tx.repairRequest.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
       await tx.installmentSale.updateMany({ where: { customerId: c.id }, data: { customerId: null } });
@@ -276,7 +328,7 @@ export async function deleteCustomerAction(_: FormState, f: FormData): Promise<F
       await tx.loyaltyTransaction.deleteMany({ where: { customerId: c.id } });
       await tx.customer.delete({ where: { id: c.id } });
       await audit(
-        { staffId: staff.id, action: "CUSTOMER_DELETED", entityType: "CUSTOMER", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before: { name: c.name, phone: `${c.phone.slice(0, 4)}*****${c.phone.slice(-2)}`, points: c.loyaltyPoints, orders: c._count.orders, repairs: c._count.repairs, installments: c._count.installments } },
+        { staffId: staff.id, action: "CUSTOMER_DELETED", entityType: "CUSTOMER", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before: { name: c.name, phone: `${c.phone.slice(0, 4)}*****${c.phone.slice(-2)}`, points: c.loyaltyPoints, orders: c._count.orders, repairs: c._count.repairs, installments: c._count.installments, referrals: c._count.referrals, pointsHistory: ledger.map((t) => ({ at: t.createdAt.toISOString(), type: t.type, source: t.source, points: t.points, reason: t.reason, by: t.staff?.name ?? null })) } },
         tx,
       );
     });

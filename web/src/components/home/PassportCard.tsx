@@ -9,8 +9,10 @@ import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
  * circuit lines, blue + red swooshes, "PB REWARDS" and a gold points coin.
  * (No "tap to reveal" and no visit counter — both removed at the client's request.)
  * With a customer's `points` / `number` it is their digital card; without them it's a labelled sample.
+ * `expires` is only passed for the digital card when the owner turns that on — the printed (physical)
+ * card never shows the expiry date (Passport requirements §1).
  */
-export function PassportCard({ name, number, points, still = false }: { name?: string; number?: string; points?: number; still?: boolean }) {
+export function PassportCard({ name, number, points, expires, still = false }: { name?: string; number?: string; points?: number; expires?: string | null; still?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0.5);
   const my = useMotionValue(0.5);
@@ -84,7 +86,10 @@ export function PassportCard({ name, number, points, still = false }: { name?: s
           </div>
           <div className="flex items-end justify-between gap-3 font-mono text-[2.6cqw] uppercase tracking-[0.16em] text-white/70">
             <span className="truncate">{name ?? "PB Phone Passport"}</span>
-            <span className="shrink-0">{number ?? "PBP-000000"}</span>
+            <span className="shrink-0 text-right">
+              {expires && <span className="mb-[1cqw] block text-[2.1cqw] tracking-[0.2em] text-gold/90">Valid thru {expires}</span>}
+              {number ?? "PBP-000000"}
+            </span>
           </div>
         </div>
       </motion.div>
