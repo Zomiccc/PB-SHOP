@@ -117,7 +117,7 @@ export function SkinConfigurator({
   return (
     <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
       {/* Left: large preview */}
-      <div>
+      <div className="min-w-0">
         <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-[#161b24] to-[#07090d] ring-1 ring-white/8">
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_45%,rgba(0,119,217,.18),transparent_70%)]" />
           {/* Absolutely sized so the whole phone (or artwork) always fits the box. No 3D tilt — it rasterises the drawing and blurs it. */}
@@ -156,7 +156,7 @@ export function SkinConfigurator({
       </div>
 
       {/* Right: title, price, options */}
-      <div>
+      <div className="min-w-0">
         <h1 className="display text-4xl md:text-5xl">{title} skins</h1>
         {range && <p className="mt-2 text-lg text-white/80">{range[0] === range[1] ? pkr(range[0]) : `${pkr(range[0])} – ${pkr(range[1])}`}</p>}
 

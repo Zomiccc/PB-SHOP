@@ -36,8 +36,8 @@ export const SKIN_LOOKS = {
   MATTE: "Matte",
   GLOSS: "Gloss",
   CLEAR: "Transparent (design printed on clear)",
-  TEXTURED: "3D textured",
-  LEATHER: "Leather grain",
+  TEXTURED: "3D (soft sheen)",
+  LEATHER: "Leather (deep matte)",
   JELLY: "Clear jelly case",
 } as const;
 export type SkinLook = keyof typeof SKIN_LOOKS;

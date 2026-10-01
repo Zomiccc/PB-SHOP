@@ -10,7 +10,7 @@ const S = 10;
  * Back of a phone model drawn from its template, with a design fitted automatically (v6 §11): the artwork covers
  * the back keeping its aspect ratio, cropped around its focus point, clipped to the model's exact shape and cut
  * around the camera like a real skin. Drawn as a real phone — metal frame, side buttons, raised camera island with
- * lens rings, glass and flash — so customers' own pictures look true to life. `look` is the skin type's material;
+ * lens rings, glass and flash. The design is always shown clean (no texture overlays); `look` only adds a light finish;
  * `photo` shows a "your photo here" placeholder for the Customize Photo Skin.
  */
 export function SkinPreview({
@@ -108,14 +108,6 @@ export function SkinPreview({
         <filter id={`lift-${id}`} x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy={0.25 * S} stdDeviation={0.35 * S} floodColor="#000" floodOpacity=".55" />
         </filter>
-        {/* 3D skin: fine raised texture. Leather: tight grain. Lit relief → dark shading with alpha (no blend modes). */}
-        <filter id={`tex-${id}`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency={(look === "LEATHER" ? 2.2 : 1.1) / S} numOctaves={look === "LEATHER" ? 3 : 2} seed="4" result="n" />
-          <feDiffuseLighting in="n" surfaceScale={look === "LEATHER" ? 1.6 : 2.4} lightingColor="#fff" result="lit">
-            <feDistantLight azimuth="225" elevation="52" />
-          </feDiffuseLighting>
-          <feColorMatrix in="lit" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1 0 0 0 1" />
-        </filter>
       </defs>
 
       {/* floor shadow */}
@@ -142,9 +134,9 @@ export function SkinPreview({
                 <image href={imageUrl} x={skin.x} y={skin.y} width={skin.width} height={skin.height} preserveAspectRatio={`${skinFocus(focus)} slice`} opacity={look === "CLEAR" ? 0.62 : 1} style={{ imageRendering: "auto" }} />
               )
             )}
-            {(look === "TEXTURED" || look === "LEATHER") && <rect {...skin} fill="#000" filter={`url(#tex-${id})`} opacity={look === "LEATHER" ? 0.5 : 0.32} />}
-            {look === "LEATHER" && <rect {...skin} fill="#000" opacity=".1" />}
-            {look === "MATTE" && <rect {...skin} fill="#000" opacity=".04" />}
+            {/* The design always shows clean and smooth (client request) — no texture overlays. Materials differ only
+                by a light finish: matte / leather a touch deeper, gloss / 3D / clear a soft sheen. */}
+            {(look === "MATTE" || look === "LEATHER") && <rect {...skin} fill="#000" opacity={look === "LEATHER" ? 0.06 : 0.03} />}
             {(look === "GLOSS" || look === "CLEAR" || look === "TEXTURED") && <rect {...skin} fill={`url(#gloss-${id})`} />}
             <rect {...skin} fill={`url(#depth-x-${id})`} />
           </g>
