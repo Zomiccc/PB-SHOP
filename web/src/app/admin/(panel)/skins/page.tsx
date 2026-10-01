@@ -7,6 +7,7 @@ import { Badge, PageTitle, Panel, Table, Td } from "@/components/admin/Primitive
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { SkinPreview } from "@/components/skins/SkinPreview";
 import { BulkSkinUpload } from "@/components/admin/BulkSkinUpload";
+import { CleanExistingSkins } from "@/components/admin/CleanExistingSkins";
 import { deleteSkinTypeAction, saveSkinTypeAction, toggleSkinAction } from "../../_actions/skins";
 
 export const metadata = { title: "Custom skins" };
@@ -51,6 +52,7 @@ export default async function SkinsAdminPage(props: PageProps<"/admin/skins">) {
       </Panel>
 
       <Panel title="Designs">
+        <div className="mb-4"><CleanExistingSkins designs={skins.map((s) => ({ id: s.id, name: s.name, imageUrl: s.imageUrl, fullImageUrl: s.fullImageUrl }))} /></div>
         <Table head={["Design", "Extra", "Available for", "Status", ""]} empty="No designs yet — upload some above.">
           {skins.map((s) => {
             const brandNames = [...new Set(s.models.map((m) => m.brand.name))];

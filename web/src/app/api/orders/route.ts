@@ -93,6 +93,7 @@ export async function POST(req: Request) {
   const total = subtotal + shippingFee;
 
   const loggedIn = await getCurrentCustomer();
+  if (!loggedIn) return NextResponse.json({ error: "Please create an account or log in to check out.", needsAccount: true }, { status: 401 });
 
   const order = await db.$transaction(async (tx) => {
     // Link to an existing passport by phone, or create a guest profile so loyalty points are never lost.

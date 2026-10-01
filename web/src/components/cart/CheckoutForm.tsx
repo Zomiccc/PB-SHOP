@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { phoneTierPoints, spendPoints, type PointsRules } from "@/lib/points-rules";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cartSubtotal, lineKey, useCart } from "@/store/cart";
@@ -19,6 +20,7 @@ type Props = {
 type Errors = Record<string, string[] | undefined>;
 
 export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
+  const router = useRouter();
   const items = useCart((s) => s.items);
   // Cart rehydrates from localStorage after mount; the server always renders the loading state.
   const hydrated = useSyncExternalStore(
@@ -74,6 +76,10 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
         }),
       });
       const data = await res.json();
+      if (res.status === 401 && data.needsAccount) {
+        router.push("/account?next=%2Fcheckout&tab=register");
+        return;
+      }
       if (!res.ok) {
         setErrors(data.fields ?? {});
         setFormError(data.error ?? "Something went wrong");

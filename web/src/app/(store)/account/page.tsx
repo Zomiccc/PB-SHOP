@@ -12,12 +12,19 @@ import { Icon } from "@/components/ui/Icon";
 import { availablePoints } from "@/lib/loyalty";
 import { getSetting } from "@/lib/settings";
 import { formatCardExpiry } from "@/lib/passport-rules";
+import { redirect } from "next/navigation";
+
+/** Only same-site paths may be returned to after logging in. */
+const safeNext = (v: unknown) => (typeof v === "string" && /^\/(?!\/)/.test(v) ? v : null);
 
 export const metadata: Metadata = { title: "My Account & PB Phone Passport", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-export default async function AccountPage() {
+export default async function AccountPage(props: PageProps<"/account">) {
+  const sp = await props.searchParams;
+  const next = safeNext(sp.next);
   const customer = await getCurrentCustomer();
+  if (customer && next) redirect(next);
 
   if (!customer) {
     return (
@@ -31,7 +38,15 @@ export default async function AccountPage() {
           </div>
         </div>
         <div className="flex justify-center lg:justify-end">
-          <AuthForms />
+          <div className="w-full max-w-md">
+            {next === "/checkout" && (
+              <p className="mb-4 flex items-start gap-2 rounded-2xl bg-gold/10 p-4 text-sm ring-1 ring-gold/30">
+                <Icon name="bag" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <span><b className="text-gold">Create your free account to check out.</b> Your bag is saved — you&apos;ll go straight back to checkout, and you&apos;ll earn PB Points on this order.</span>
+              </p>
+            )}
+            <AuthForms initialTab={sp.tab === "register" ? "register" : "login"} next={next} />
+          </div>
         </div>
       </div>
     );

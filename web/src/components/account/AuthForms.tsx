@@ -7,9 +7,9 @@ import { MONTHS } from "@/lib/passport-rules";
 
 type Errors = Record<string, string[] | undefined>;
 
-export function AuthForms() {
+export function AuthForms({ initialTab = "login", next = null }: { initialTab?: "login" | "register"; next?: string | null }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"login" | "register">("login");
+  const [tab, setTab] = useState<"login" | "register">(initialTab);
   const [errors, setErrors] = useState<Errors>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [needsProof, setNeedsProof] = useState(false);
@@ -30,6 +30,8 @@ export function AuthForms() {
         if (data.needsProof) setNeedsProof(true);
         return;
       }
+      // Back to where they were going (e.g. checkout), otherwise show their account.
+      if (next) router.replace(next);
       router.refresh();
     } finally {
       setBusy(false);

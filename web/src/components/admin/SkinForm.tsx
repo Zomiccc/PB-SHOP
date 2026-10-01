@@ -5,6 +5,20 @@ import { ActionForm, Submit } from "./ui";
 import { saveSkinAction } from "@/app/admin/_actions/skins";
 import { SKIN_FOCUS, type SkinTemplate } from "@/lib/skin-template";
 import { SkinPreview } from "../skins/SkinPreview";
+import { cleanSkinImage } from "@/lib/clean-skin-image";
+
+/** Replaces the file in a file input with the cleaned one (no white border / peel strip) and reports what was removed. */
+async function cleanInput(input: HTMLInputElement) {
+  const f = input.files?.[0];
+  if (!f) return { file: null, removed: [] as string[] };
+  const res = await cleanSkinImage(f);
+  if (res.changed) {
+    const dt = new DataTransfer();
+    dt.items.add(res.file);
+    input.files = dt.files;
+  }
+  return { file: res.file, removed: res.removed };
+}
 
 type Model = { id: string; name: string; template: SkinTemplate };
 type Brand = { id: string; name: string; models: Model[] };
@@ -20,6 +34,7 @@ export function SkinForm({ brands, skin }: { brands: Brand[]; skin?: Skin }) {
   const [focus, setFocus] = useState(skin?.focus ?? "xMidYMid");
   const [local, setLocal] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [cleaned, setCleaned] = useState<string | null>(null);
   useEffect(() => () => { if (local) URL.revokeObjectURL(local); }, [local]);
 
   const all = useMemo(() => brands.flatMap((b) => b.models.map((m) => ({ ...m, brand: b.name }))), [brands]);
@@ -52,17 +67,19 @@ export function SkinForm({ brands, skin }: { brands: Brand[]; skin?: Skin }) {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               required={!skin}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                setLocal(f ? URL.createObjectURL(f) : null);
+              onChange={async (e) => {
+                const { file, removed } = await cleanInput(e.target);
+                setLocal(file ? URL.createObjectURL(file) : null);
+                setCleaned(removed.length ? `Cleaned automatically: removed ${removed.join(" and ")}.` : null);
               }}
               className="field file:mr-3 file:rounded-full file:border-0 file:bg-gold file:px-3 file:py-1 file:text-sm file:font-semibold file:text-[#120d02]"
             />
-            <span className="mt-1 block text-xs text-muted">Portrait artwork works best (about 1:2). JPG, PNG or WebP, max 4 MB.</span>
+            <span className="mt-1 block text-xs text-muted">Portrait artwork works best (about 1:2). JPG, PNG or WebP, max 4 MB. White backgrounds and peel-off strips are removed automatically.</span>
+            {cleaned && <span className="mt-1 block text-xs text-emerald-400">{cleaned}</span>}
           </label>
           <label className="block sm:col-span-2">
             <span className="label">Full / uncut artwork (optional)</span>
-            <input name="fullImage" type="file" accept="image/jpeg,image/png,image/webp" className="field file:mr-3 file:rounded-full file:border-0 file:bg-white/15 file:px-3 file:py-1 file:text-sm file:font-semibold file:text-white" />
+            <input name="fullImage" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => void cleanInput(e.target)} className="field file:mr-3 file:rounded-full file:border-0 file:bg-white/15 file:px-3 file:py-1 file:text-sm file:font-semibold file:text-white" />
             <span className="mt-1 block text-xs text-muted">The complete design without any phone cut-outs — customers can switch to “Full artwork” to see it. If empty, the artwork above is shown.</span>
             {skin?.fullImageUrl && (
               <span className="mt-2 flex items-center gap-3 text-xs">

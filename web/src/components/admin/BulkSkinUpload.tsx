@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { bulkAddSkinAction } from "@/app/admin/_actions/skins";
 import { shrinkImage } from "../ui/FileField";
+import { cleanSkinImage } from "@/lib/clean-skin-image";
 
 type Row = { name: string; status: "waiting" | "uploading" | "done" | "error"; message?: string };
 
@@ -29,7 +30,8 @@ export function BulkSkinUpload({ brands }: { brands: { id: string; name: string 
       list[i] = { ...list[i], status: "uploading" };
       setRows([...list]);
       const fd = new FormData();
-      fd.set("image", await shrinkImage(files[i]));
+      // White background and peel-off strip removed before upload (client request).
+      fd.set("image", await shrinkImage((await cleanSkinImage(files[i])).file));
       fd.set("name", files[i].name);
       fd.set("price", String(form.get("price") ?? "0"));
       fd.set("brandId", String(form.get("brandId") ?? ""));

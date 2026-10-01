@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { cleanSkinImage } from "@/lib/clean-skin-image";
 
 /**
  * The customer's own skin design (v6 §4), kept in this browser tab (sessionStorage) while they try it on different
@@ -51,7 +52,8 @@ export async function setOwnDesignFromFile(file: File) {
   if (file.size > 25 * 1024 * 1024) throw new Error("That picture is too large (max 25 MB)");
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file);
+    // Photos of skin sheets: drop the white background and the peel-off strip first.
+    bitmap = await createImageBitmap((await cleanSkinImage(file)).file);
   } catch {
     throw new Error("This picture format can't be previewed here — try a JPG or PNG");
   }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { NAV } from "@/lib/constants";
 import { cartCount, useCart } from "@/store/cart";
@@ -20,6 +20,28 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const count = cartCount(items);
+  // The mobile menu fills exactly the space below where it starts on screen — bars above the header (Enable
+  // Notifications, the utility strip) push it down, so a fixed "100svh − header" would hide the last buttons.
+  const navRef = useRef<HTMLElement>(null);
+  const [menuMax, setMenuMax] = useState<number | null>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const fit = () => {
+      // Measured from the header bar just above the menu (stable — the menu itself slides in).
+      const bar = navRef.current?.previousElementSibling ?? navRef.current;
+      const top = bar?.getBoundingClientRect().bottom ?? 0;
+      setMenuMax(Math.max(200, window.innerHeight - Math.max(0, top)));
+    };
+    fit();
+    const raf = requestAnimationFrame(fit);
+    window.addEventListener("resize", fit);
+    window.addEventListener("scroll", fit, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("scroll", fit);
+    };
+  }, [menu]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -129,7 +151,9 @@ export function Header() {
         <AnimatePresence>
           {menu && (
             <motion.nav
+              ref={navRef}
               aria-label="Mobile"
+              style={menuMax ? { maxHeight: menuMax } : undefined}
               // Opacity + slide only (GPU-composited); animating height re-lays out the page every frame.
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -139,7 +163,7 @@ export function Header() {
               data-lenis-prevent
               className="max-h-[calc(100svh-var(--header-h))] overflow-y-auto overscroll-contain border-t border-ink/10 bg-cream 2xl:hidden"
             >
-              <div className="container-pb flex flex-col py-4">
+              <div className="container-pb flex flex-col pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
                 {NAV.map((item, i) => (
                   <motion.div key={item.href} initial={{ x: -16, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.04 * i }}>
                     <Link href={item.href} className="display flex items-center justify-between border-b border-ink/10 py-4 text-3xl">

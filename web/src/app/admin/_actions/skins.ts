@@ -259,3 +259,22 @@ export async function duplicateSkinAction(_: FormState, f: FormData): Promise<Fo
   if (createdId) redirect(`/admin/skins/${createdId}?copied=1`);
   return res;
 }
+
+/**
+ * Replaces a design's artwork with a cleaned copy (white background / peel-off strip removed in the browser).
+ * Used by "Clean existing designs" for pictures uploaded before automatic cleaning existed. Audited.
+ */
+export async function replaceSkinImageAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return run(async () => {
+    const s = await db.skin.findUniqueOrThrow({ where: { id: str(f, "id") } });
+    const which = str(f, "which") === "full" ? "full" : "image";
+    const file = f.get("image");
+    if (!(file instanceof File) || !file.size) throw new Error("No image");
+    const url = await saveUpload(file, "skins", SKIN_IMAGE);
+    await db.skin.update({ where: { id: s.id }, data: which === "full" ? { fullImageUrl: url } : { imageUrl: url } });
+    await audit({ staffId: staff.id, action: "SKIN_IMAGE_CLEANED", entityType: "SKIN", entityId: s.id, recordLabel: s.name, before: { [which]: which === "full" ? s.fullImageUrl : s.imageUrl }, after: { [which]: url } });
+    refresh();
+    return "Cleaned";
+  });
+}
