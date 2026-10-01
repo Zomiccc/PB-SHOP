@@ -9,6 +9,8 @@ import { assertVariantGrade } from "../src/lib/grade";
 import { migrateLegacyBalances } from "../src/lib/loyalty";
 import { brandSlugFor } from "../src/lib/brands";
 import { normalizePhone, slugify } from "../src/lib/format";
+import { quote, type FinancingConfig } from "../src/lib/finance";
+import { SETTING_DEFAULTS } from "../src/lib/settings";
 
 const db = new PrismaClient();
 
@@ -162,8 +164,8 @@ const REWARDS = [
 const INSTALLMENT_LISTINGS = [
   // Figures from the financing partner app for the Tecno Spark 40 Pro (30% down, 9 × Rs 8,863).
   { brand: "tecno", model: "TECNO Spark 40 Pro · 8GB / 256GB", regularPrice: 73999, installmentTotal: 101967, interestPercent: 6, downPayment: 22200, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "AVAILABLE", sortOrder: 5 },
-  { brand: "samsung", model: "Samsung Galaxy A55 5G · 8GB / 256GB", regularPrice: 129999, installmentTotal: 149499, interestPercent: 15, downPayment: 39999, durationMonths: 9, planLabel: "9 monthly payments", availability: "AVAILABLE", sortOrder: 10 },
-  { brand: "apple", model: "iPhone 15 · 128GB", regularPrice: 259999, installmentTotal: 295999, interestPercent: 13.8, downPayment: 79999, durationMonths: 9, planLabel: "9 monthly payments", availability: "LIMITED", sortOrder: 20 },
+  { brand: "samsung", model: "Samsung Galaxy A55 5G · 8GB / 256GB", regularPrice: 129999, installmentTotal: 178599, interestPercent: 6, downPayment: 39999, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "AVAILABLE", sortOrder: 10 },
+  { brand: "apple", model: "iPhone 15 · 128GB", regularPrice: 259999, installmentTotal: 357199, interestPercent: 6, downPayment: 79999, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "LIMITED", sortOrder: 20 },
   { brand: "infinix", model: "Infinix Note 40 · 8GB / 256GB", regularPrice: 59999, installmentTotal: 67999, interestPercent: 13.3, downPayment: 17999, durationMonths: 6, planLabel: "6 monthly payments", availability: "AVAILABLE", sortOrder: 30 },
 ];
 
@@ -293,6 +295,14 @@ async function seedSkins() {
   return { models: modelIds.length, designs: SKIN_DESIGNS.length };
 }
 
+/** A listing as a 9-month plan priced with the site's calculator (saved settings over defaults). */
+async function nineMonthPlan(l: { regularPrice: number; downPayment: number }) {
+  const row = await db.setting.findUnique({ where: { key: "installmentCalc" } });
+  const cfg = { ...SETTING_DEFAULTS.installmentCalc, ...(row ? JSON.parse(row.value) : {}) } as FinancingConfig;
+  const q = quote(l.regularPrice, l.downPayment, 9, cfg);
+  return { durationMonths: 9, installmentTotal: q.downPayment + q.perInstallment * 9, downPayment: q.downPayment, interestPercent: cfg.markupPercentPerMonth, planLabel: `9 monthly payments · ${cfg.markupPercentPerMonth}% per month` };
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
   if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
@@ -360,8 +370,9 @@ async function upgradeExisting() {
     await db.setting.create({ data: { key: "migration.rewardsV6", value: JSON.stringify({ at: new Date().toISOString() }) } });
     console.log("Installed the final PB Points rewards (50 / 100 / 200).");
   }
-  // Client request: the 12-month plan is removed everywhere — from the calculator and from listings (now 9 months,
-  // same total). Runs once.
+  // Client request: the 12-month option is removed everywhere — calculator and listings. Listings that were on
+  // 12 months become proper 9-month plans priced with the calculator's own formula (not the 12-month total
+  // spread over 9). Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.no12Months" } }))) {
     const row = await db.setting.findUnique({ where: { key: "installmentCalc" } });
     if (row) {
@@ -369,11 +380,25 @@ async function upgradeExisting() {
       const terms = String(cfg.termOptions ?? "").split(/[,\s]+/).map(Number).filter((n) => Number.isFinite(n) && n > 0 && n !== 12);
       await db.setting.update({ where: { key: "installmentCalc" }, data: { value: JSON.stringify({ ...cfg, termOptions: (terms.length ? [...new Set(terms)] : [3, 6, 9]).join(",") }) } });
     }
-    for (const l of await db.installmentListing.findMany({ where: { durationMonths: 12 } })) {
-      await db.installmentListing.update({ where: { id: l.id }, data: { durationMonths: 9, planLabel: l.planLabel?.replace(/\b12\b/, "9") ?? "9 monthly payments" } });
-    }
+    for (const l of await db.installmentListing.findMany({ where: { durationMonths: 12 } })) await db.installmentListing.update({ where: { id: l.id }, data: await nineMonthPlan(l) });
     await db.setting.create({ data: { key: "migration.no12Months", value: JSON.stringify({ at: new Date().toISOString() }) } });
     console.log("Removed the 12-month installment plan.");
+  }
+  // Fix for databases where the first 12-month clean-up kept the 12-month total over 9 months: re-price exactly
+  // those listings (the ones that clean-up updated) with the calculator's 9-month formula. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.no12MonthsFix" } }))) {
+    const marker = await db.setting.findUnique({ where: { key: "migration.no12Months" } });
+    const at = marker ? new Date((JSON.parse(marker.value) as { at: string }).at).getTime() : NaN;
+    let fixed = 0;
+    if (Number.isFinite(at)) {
+      const converted = await db.installmentListing.findMany({ where: { durationMonths: 9, updatedAt: { gte: new Date(at - 120_000), lte: new Date(at + 5_000) } } });
+      for (const l of converted) {
+        await db.installmentListing.update({ where: { id: l.id }, data: await nineMonthPlan(l) });
+        fixed++;
+      }
+    }
+    await db.setting.create({ data: { key: "migration.no12MonthsFix", value: JSON.stringify({ at: new Date().toISOString(), fixed }) } });
+    if (fixed) console.log(`Re-priced ${fixed} former 12-month installment listing(s) as 9-month plans.`);
   }
   // v6 §6: installment plans start at 30% down — 10% and 20% are removed from any saved settings. Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.installments30" } }))) {
