@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { lensLayout, skinFocus, skinLook, type SkinTemplate } from "@/lib/skin-template";
+import { SKIN_INSET_MM, lensLayout, placeImage, skinFocus, skinLook, type ImageFit, type SkinTemplate } from "@/lib/skin-template";
 
 /** Drawing scale: templates are in mm; drawing at 0.1 mm keeps textures, strokes and edges crisp at any size. */
 const S = 10;
@@ -20,6 +20,8 @@ export function SkinPreview({
   look: lookIn = "MATTE",
   cameraCover = false,
   photo = false,
+  imageSize,
+  fit,
   label,
   className = "",
 }: {
@@ -29,6 +31,9 @@ export function SkinPreview({
   look?: string;
   cameraCover?: boolean;
   photo?: boolean;
+  /** With `fit`: the picture's pixel size, so the customer's own positioning (zoom / pan) is applied exactly. */
+  imageSize?: { w: number; h: number } | null;
+  fit?: ImageFit | null;
   label?: string;
   className?: string;
 }) {
@@ -41,7 +46,7 @@ export function SkinPreview({
   const H = t.heightMm * S;
   const R = t.cornerMm * S;
   const frame = 1.1 * S; // metal rim visible around the back
-  const inset = frame + 0.35 * S; // skins stop just short of the rim
+  const inset = SKIN_INSET_MM * S; // skins stop just short of the rim (same as skinArea)
   const back = { x: frame, y: frame, width: W - frame * 2, height: H - frame * 2, rx: Math.max(0, R - frame) };
   const skin = { x: inset, y: inset, width: W - inset * 2, height: H - inset * 2, rx: Math.max(0, R - inset) };
   const cam = { x: t.cameraX * S, y: t.cameraY * S, width: t.cameraW * S, height: t.cameraH * S, rx: t.cameraCornerMm * S };
@@ -105,6 +110,9 @@ export function SkinPreview({
           <stop offset=".45" stopColor="#0b1120" />
           <stop offset="1" stopColor="#020308" />
         </radialGradient>
+        <filter id={`blur-${id}`} x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation={2.5 * S} />
+        </filter>
         <filter id={`lift-${id}`} x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy={0.25 * S} stdDeviation={0.35 * S} floodColor="#000" floodOpacity=".55" />
         </filter>
@@ -131,7 +139,27 @@ export function SkinPreview({
               <PhotoPlaceholder box={skin} />
             ) : (
               imageUrl && (
-                <image href={imageUrl} x={skin.x} y={skin.y} width={skin.width} height={skin.height} preserveAspectRatio={`${skinFocus(focus)} slice`} opacity={look === "CLEAR" ? 0.62 : 1} style={{ imageRendering: "auto" }} />
+                fit && imageSize ? (
+                  // Customer-positioned picture: exact zoom / pan, always covering the skin.
+                  (() => {
+                    const p = placeImage({ x: skin.x, y: skin.y, w: skin.width, h: skin.height }, imageSize.w, imageSize.h, fit);
+                    const smaller = p.x > skin.x + 0.5 || p.y > skin.y + 0.5;
+                    return (
+                      <g opacity={look === "CLEAR" ? 0.62 : 1}>
+                        {/* Zoomed out: the free space is filled with a soft, darkened blur of the same picture. */}
+                        {smaller && (
+                          <>
+                            <image href={imageUrl} x={skin.x} y={skin.y} width={skin.width} height={skin.height} preserveAspectRatio="xMidYMid slice" filter={`url(#blur-${id})`} />
+                            <rect {...skin} fill="#000" opacity=".18" />
+                          </>
+                        )}
+                        <image href={imageUrl} x={p.x} y={p.y} width={p.w} height={p.h} preserveAspectRatio="none" />
+                      </g>
+                    );
+                  })()
+                ) : (
+                  <image href={imageUrl} x={skin.x} y={skin.y} width={skin.width} height={skin.height} preserveAspectRatio={`${skinFocus(focus)} slice`} opacity={look === "CLEAR" ? 0.62 : 1} />
+                )
               )
             )}
             {/* The design always shows clean and smooth (client request) — no texture overlays. Materials differ only

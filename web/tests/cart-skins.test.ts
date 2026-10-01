@@ -70,3 +70,23 @@ describe("Installment plans (client request)", () => {
     expect(termList(SETTING_DEFAULTS.installmentCalc)).toEqual([3, 6, 9]);
   });
 });
+
+describe("Customer picture positioning (client request)", () => {
+  it("covers the skin at zoom 1, pans to the edges, and zooms out with room to move", async () => {
+    const { placeImage } = await import("@/lib/skin-template");
+    const area = { x: 0, y: 0, w: 70, h: 150 };
+    // A 3:4 photo on a tall phone fills the height and crops the sides.
+    const p = placeImage(area, 1200, 1600, { zoom: 1, x: 0, y: 0 });
+    expect(p.h).toBeCloseTo(150);
+    expect(p.x).toBeLessThan(0);
+    expect(p.x + p.w).toBeGreaterThan(70);
+    // Pan −1 / +1 put the picture's left / right edge at the skin edge — never a gap.
+    expect(placeImage(area, 1200, 1600, { zoom: 1, x: -1, y: 0 }).x).toBeCloseTo(0);
+    const r = placeImage(area, 1200, 1600, { zoom: 1, x: 1, y: 0 });
+    expect(r.x + r.w).toBeCloseTo(70);
+    // Zoomed out, the picture can move down so its top clears the camera.
+    const down = placeImage(area, 1200, 1600, { zoom: 0.75, x: 0, y: 1 });
+    expect(down.y).toBeGreaterThan(0);
+    expect(down.y + down.h).toBeCloseTo(150);
+  });
+});

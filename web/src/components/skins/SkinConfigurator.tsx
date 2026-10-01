@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BRAND } from "@/lib/constants";
 import { cn, pkr } from "@/lib/format";
-import { designMode, skinPrice, type SkinTemplate } from "@/lib/skin-template";
+import { DEFAULT_FIT, MAX_ZOOM, MIN_ZOOM, designMode, placeImage, skinArea, skinPrice, type ImageFit, type SkinTemplate } from "@/lib/skin-template";
+import type { OwnDesign } from "./ownDesign";
 import { Icon } from "../ui/Icon";
 import { SkinPreview } from "./SkinPreview";
 import { OwnDesignUpload } from "./OwnDesignUpload";
@@ -50,6 +51,8 @@ export function SkinConfigurator({
   const [camera, setCamera] = useState(false);
   const [view, setView] = useState<"phone" | "full">("phone");
   const [zoom, setZoom] = useState(false);
+  // How the customer positioned their own picture (reset whenever they upload a different one).
+  const [fitState, setFitState] = useState<{ for: string; fit: ImageFit } | null>(null);
 
   const type = types.find((t) => t.id === typeId) ?? null;
   const mode = designMode(type?.designMode);
@@ -74,13 +77,17 @@ export function SkinConfigurator({
   const addToCart = useCart((s) => s.add);
   const [added, setAdded] = useState(false);
   const canBuy = !!type && price != null && !(mode === "DESIGN" && !design);
-  const ownImage = usingOwn && own ? own.dataUrl : null;
+  const fit = own && fitState?.for === own.dataUrl ? fitState.fit : DEFAULT_FIT;
+  const setFit = (next: ImageFit) => own && setFitState({ for: own.dataUrl, fit: next });
+  const adjustable = usingOwn && !showFull;
 
   /** Add this exact skin (type + design + model + camera) to the bag; the server re-prices it at checkout. */
-  const toCart = (buyNow: boolean) => {
+  const toCart = async (buyNow: boolean) => {
     if (!type || price == null || !canBuy) return;
+    // The customer's picture goes to the order exactly as they framed it (what they see = what's printed).
+    const ownImage = usingOwn && own ? await cropToSkin(own, template, fit) : null;
     addToCart({
-      key: `skin:${type.id}:${design ? (usingOwn ? `own-${own?.dataUrl.length ?? 0}` : design.id) : "none"}:${modelId}:${cover ? 1 : 0}`,
+      key: `skin:${type.id}:${design ? (usingOwn ? `own-${own?.dataUrl.length ?? 0}-${fit.zoom}-${fit.x}-${fit.y}` : design.id) : "none"}:${modelId}:${cover ? 1 : 0}`,
       variantId: "",
       slug: currentHref.replace(/^\//, ""),
       name: type.name,
@@ -103,6 +110,8 @@ export function SkinConfigurator({
       template={template}
       imageUrl={design?.imageUrl}
       focus={design?.focus}
+      imageSize={usingOwn && own ? { w: own.width, h: own.height } : null}
+      fit={usingOwn ? fit : null}
       look={type?.look}
       photo={mode === "PHOTO" && !showOwnPhoto}
       cameraCover={cover}
@@ -121,7 +130,26 @@ export function SkinConfigurator({
         <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-[#161b24] to-[#07090d] ring-1 ring-white/8">
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_45%,rgba(0,119,217,.18),transparent_70%)]" />
           {/* Absolutely sized so the whole phone (or artwork) always fits the box. No 3D tilt — it rasterises the drawing and blurs it. */}
-          <div className="absolute inset-6 md:inset-10">{stage}</div>
+          <div
+            className={cn("absolute inset-6 md:inset-10", adjustable && "cursor-grab touch-none active:cursor-grabbing")}
+            onPointerDown={(e) => {
+              if (!adjustable) return;
+              const box = e.currentTarget.getBoundingClientRect();
+              const start = { x: e.clientX, y: e.clientY, fit };
+              e.currentTarget.setPointerCapture(e.pointerId);
+              // Drag the picture: moving it down reveals more of its top, and so on.
+              const move = (ev: PointerEvent) => setFit({ ...start.fit, x: clampPan(start.fit.x - ((ev.clientX - start.x) / (box.width * 0.5)) * 1.5), y: clampPan(start.fit.y - ((ev.clientY - start.y) / (box.height * 0.5)) * 1.5) });
+              const up = () => {
+                window.removeEventListener("pointermove", move);
+                window.removeEventListener("pointerup", up);
+              };
+              window.addEventListener("pointermove", move);
+              window.addEventListener("pointerup", up);
+            }}
+          >
+            {stage}
+          </div>
+          {adjustable && <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[0.7rem] text-white/60">Drag the picture to adjust</p>}
           {fullUrl && (
             <div role="tablist" aria-label="Preview" className="absolute left-4 top-4 flex rounded-full bg-black/60 p-1 text-xs ring-1 ring-white/15">
               {(["phone", "full"] as const).map((v) => (
@@ -198,6 +226,7 @@ export function SkinConfigurator({
               </Row>
             )}
             {mode !== "PLAIN" && <OwnDesignUpload compact onChange={() => setPicked(OWN)} />}
+            {usingOwn && <FitControls fit={fit} onChange={setFit} />}
             {mode === "PHOTO" && !ownDesign && (
               <p className="rounded-xl bg-gold/10 p-3 text-sm ring-1 ring-gold/30">
                 <b className="text-gold">Your own photo:</b> upload it above to preview it on your {title}, then order and send it to us on WhatsApp (or bring it to the store).
@@ -222,10 +251,10 @@ export function SkinConfigurator({
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <button type="button" disabled={!canBuy} onClick={() => toCart(false)} className="btn btn-gold disabled:opacity-50">
+              <button type="button" disabled={!canBuy} onClick={() => void toCart(false)} className="btn btn-gold disabled:opacity-50">
                 <Icon name="bag" className="h-4 w-4" /> {added ? "Added — add another" : "Add to cart"}
               </button>
-              <button type="button" disabled={!canBuy} onClick={() => toCart(true)} className="btn btn-red disabled:opacity-50">
+              <button type="button" disabled={!canBuy} onClick={() => void toCart(true)} className="btn btn-red disabled:opacity-50">
                 Buy now <Icon name="arrow-right" className="h-4 w-4" />
               </button>
             </div>
@@ -261,4 +290,68 @@ function Row({ label, htmlFor, children }: { label: string; htmlFor: string; chi
       {children}
     </div>
   );
+}
+
+const clampPan = (v: number) => Math.round(Math.min(1, Math.max(-1, v)) * 100) / 100;
+
+/** "Adjust your picture": move it up / down and left / right, and zoom — it always covers the whole skin. */
+function FitControls({ fit, onChange }: { fit: ImageFit; onChange: (f: ImageFit) => void }) {
+  const row = (label: string, value: number, min: number, max: number, set: (v: number) => void, ends: [string, string]) => (
+    <label className="grid grid-cols-[88px_1fr] items-center gap-3 text-xs">
+      <span className="font-medium text-white/80">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className="w-9 text-right text-white/45">{ends[0]}</span>
+        <input type="range" min={min} max={max} step={0.01} value={value} onChange={(e) => set(Number(e.target.value))} className="h-1.5 flex-1 cursor-pointer accent-[var(--color-gold)]" aria-label={label} />
+        <span className="w-9 text-white/45">{ends[1]}</span>
+      </span>
+    </label>
+  );
+  return (
+    <div className="space-y-2.5 rounded-2xl bg-black/30 p-3.5 ring-1 ring-white/10">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">Adjust your picture</p>
+        <button type="button" onClick={() => onChange(DEFAULT_FIT)} className="text-xs text-gold hover:underline">Reset</button>
+      </div>
+      {row("Up / down", fit.y, -1, 1, (y) => onChange({ ...fit, y }), ["Top", "Bottom"])}
+      {row("Left / right", fit.x, -1, 1, (x) => onChange({ ...fit, x }), ["Left", "Right"])}
+      {row("Zoom", fit.zoom, MIN_ZOOM, MAX_ZOOM, (zoom) => onChange({ ...fit, zoom }), ["Out", "In"])}
+      <p className="text-[0.7rem] text-white/45">Zoom out to fit more of your picture (edges fill with a soft blur), then move it up or down — or just drag it on the phone.</p>
+    </div>
+  );
+}
+
+/** Renders the skin exactly as the customer framed it (JPEG, 1000 px wide) for printing — same as the preview. */
+async function cropToSkin(own: OwnDesign, template: SkinTemplate, fit: ImageFit) {
+  const area = skinArea(template);
+  const img = new Image();
+  img.src = own.dataUrl;
+  await img.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = 1000;
+  canvas.height = Math.round((1000 * area.h) / area.w);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return own.dataUrl;
+  ctx.imageSmoothingQuality = "high";
+  const k = canvas.width / area.w; // mm → px
+  const draw = (p: { x: number; y: number; w: number; h: number }) => ctx.drawImage(img, (p.x - area.x) * k, (p.y - area.y) * k, p.w * k, p.h * k);
+  const p = placeImage(area, own.width, own.height, fit);
+  if (p.x > area.x + 0.05 || p.y > area.y + 0.05) {
+    // Zoomed out: soft blurred fill behind the picture, like the preview. Blur = draw tiny, then scale up smoothly
+    // (works in every browser; canvas `filter` isn't supported everywhere, e.g. Safari).
+    const small = document.createElement("canvas");
+    small.width = 24;
+    small.height = Math.max(1, Math.round((24 * area.h) / area.w));
+    const sctx = small.getContext("2d");
+    if (sctx) {
+      const s = small.width / area.w;
+      const b = placeImage(area, own.width, own.height, DEFAULT_FIT);
+      sctx.imageSmoothingQuality = "high";
+      sctx.drawImage(img, (b.x - area.x) * s, (b.y - area.y) * s, b.w * s, b.h * s);
+      ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
+    }
+    ctx.fillStyle = "rgba(0,0,0,.18)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  draw(p);
+  return canvas.toDataURL("image/jpeg", 0.9);
 }

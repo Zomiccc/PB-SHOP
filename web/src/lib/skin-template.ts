@@ -92,3 +92,32 @@ export function skinPrice(type: { price: number; designMode: string }, design: {
   const mode = designMode(type.designMode);
   return type.price + (mode === "DESIGN" && design ? design.price : 0) + (cameraCover && mode !== "PLAIN" ? cameraCoverPrice : 0);
 }
+
+/** The printed skin stops just short of the metal rim: 1.1 mm frame + 0.35 mm margin. */
+export const SKIN_INSET_MM = 1.45;
+
+/** The skin area on a model's back, in mm. */
+export function skinArea(t: Pick<SkinTemplate, "widthMm" | "heightMm">) {
+  return { x: SKIN_INSET_MM, y: SKIN_INSET_MM, w: t.widthMm - SKIN_INSET_MM * 2, h: t.heightMm - SKIN_INSET_MM * 2 };
+}
+
+/**
+ * How the customer positioned their own picture: zoom (1 = fills the skin; below 1 = zoomed out so more of the picture
+ * shows, the rest filled with a soft blur of it), and x / y pan from −1 to 1 (−1 = towards the left / top, 1 = the
+ * right / bottom). There are never empty edges at any setting.
+ */
+export type ImageFit = { zoom: number; x: number; y: number };
+export const DEFAULT_FIT: ImageFit = { zoom: 1, x: 0, y: 0 };
+export const MIN_ZOOM = 0.4;
+export const MAX_ZOOM = 3;
+
+/** Where the picture sits (same units as `area`) for a fit: sized to cover the area at zoom 1, then zoomed and panned. */
+export function placeImage(area: { x: number; y: number; w: number; h: number }, imgW: number, imgH: number, fit: ImageFit) {
+  const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, fit.zoom || 1));
+  const scale = Math.max(area.w / imgW, area.h / imgH) * zoom;
+  const w = imgW * scale;
+  const h = imgH * scale;
+  const pan = (v: number) => Math.min(1, Math.max(-1, v || 0));
+  // pan −1 → image's left/top edge at the area's edge; +1 → right/bottom edge at the area's edge.
+  return { x: area.x + ((area.w - w) / 2) * (1 + pan(fit.x)), y: area.y + ((area.h - h) / 2) * (1 + pan(fit.y)), w, h };
+}
