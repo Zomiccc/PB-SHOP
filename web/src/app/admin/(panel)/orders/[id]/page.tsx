@@ -17,6 +17,7 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
       items: { include: { variant: true } },
       payments: { orderBy: { createdAt: "desc" } },
       notes: { orderBy: { createdAt: "desc" }, include: { author: true } },
+      attachments: { orderBy: { createdAt: "asc" }, select: { id: true, fileName: true, mimeType: true } },
       movements: { orderBy: { createdAt: "asc" }, include: { staff: true, variant: true } },
       loyaltyTx: true,
       customer: true,
@@ -52,6 +53,21 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
               <div className="flex justify-between text-base font-bold"><dt>Total</dt><dd>{pkr(o.total)}</dd></div>
             </dl>
           </Panel>
+
+          {o.attachments.length > 0 && (
+            <Panel title="Customer's own skin design">
+              <p className="mb-3 text-sm text-muted">Uploaded by the customer on the Custom Skins page — print this for their skin.</p>
+              <div className="flex flex-wrap gap-3">
+                {o.attachments.map((a) => (
+                  <a key={a.id} href={`/api/files/${a.id}`} target="_blank" rel="noreferrer" className="block w-32 overflow-hidden rounded-xl ring-1 ring-white/10 hover:ring-gold/60">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- permission-checked private file */}
+                    <img src={`/api/files/${a.id}`} alt={a.fileName} className="aspect-[3/5] w-full object-cover" />
+                    <span className="block truncate px-2 py-1 text-xs text-blue">Open / download</span>
+                  </a>
+                ))}
+              </div>
+            </Panel>
+          )}
 
           <Panel title="Payments (§3)">
             {o.payments.map((p) => (

@@ -23,7 +23,7 @@ export default async function LoyaltyPage() {
   const earn = [
     { icon: "wrench", pts: 1, t: `Per Rs ${rules.rupeesPerPoint} on repairs`, d: "Added when your repair is completed." },
     { icon: "bag", pts: 1, t: `Per Rs ${rules.rupeesPerPoint} on accessories`, d: "Cases, chargers, earbuds and more." },
-    { icon: "phone", pts: tiers.length ? tiers[tiers.length - 1].points : 0, t: "Per phone — up to", d: "By the phone's price (see the table below). New, used and installment phones." },
+    { icon: "phone", pts: tiers.length ? tiers[tiers.length - 1].points : 0, t: "Per phone", d: "By the phone's price (see the table below). New, used and installment phones." },
     { icon: "gift", pts: rules.welcomePoints, t: "Welcome reward", d: "Once, with your first purchase or repair after joining." },
     { icon: "user", pts: rules.referralPoints, t: "Refer a friend", d: "When a friend you refer makes their first purchase or repair." },
   ].filter((e) => e.pts > 0);
@@ -46,7 +46,7 @@ export default async function LoyaltyPage() {
               <Reveal key={e.t} delay={i * 0.06} className="relative overflow-hidden rounded-[1.5rem] bg-card p-6 ring-1 ring-white/8">
                 <div aria-hidden className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue/15 blur-2xl" />
                 <Icon name={e.icon} className="relative h-6 w-6 text-gold" />
-                <p className="display relative mt-5 text-5xl text-gold">+{e.pts}</p>
+                <p className="display relative mt-5 text-5xl text-gold">{e.pts}</p>
                 <p className="relative mt-1 font-semibold">{e.t}</p>
                 <p className="relative mt-1 text-sm text-muted">{e.d}</p>
               </Reveal>

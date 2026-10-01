@@ -34,6 +34,7 @@ export default async function SkinModelPage(props: PageProps<"/custom-skins/[bra
       </nav>
       <SkinConfigurator
         title={title}
+        modelId={page.model.id}
         currentHref={`/custom-skins/${page.brand.slug}/${page.model.slug}`}
         models={catalogue.flatMap((b) => b.models.map((m) => ({ brand: b.name, name: m.name, href: `/custom-skins/${b.slug}/${m.slug}` })))}
         template={toTemplate(page.model)}

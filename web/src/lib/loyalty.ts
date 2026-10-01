@@ -32,7 +32,7 @@ export function addMonths(date: Date, months: number) {
  * Points a paid order earns (v4 §3), on the net amount paid (an order discount reduces each line
  * proportionally; delivery fees never count):
  *  - phones: the price tier of each unit (new and used alike);
- *  - accessories and spare parts: 1 point per Rs 100 of their combined spend;
+ *  - accessories, spare parts and custom skins: 1 point per Rs 100 of their combined spend;
  *  - tablets: nothing (not in the criteria).
  */
 export function pointsForItems(
@@ -48,7 +48,7 @@ export function pointsForItems(
     if (!p.loyaltyEligible) continue;
     const unit = i.unitPrice * net;
     if (p.type === "PHONE") out[p.condition === "USED" ? "USED_PHONE" : "NEW_PHONE"] += phoneTierPoints(unit, rules.phoneTiers) * i.qty;
-    else if (p.type === "ACCESSORY" || p.type === "PART") spend += unit * i.qty;
+    else if (p.type === "ACCESSORY" || p.type === "PART" || p.type === "SKIN") spend += unit * i.qty;
   }
   out.ACCESSORY = pointsForSpend(spend, rules.rupeesPerPoint);
   return out;

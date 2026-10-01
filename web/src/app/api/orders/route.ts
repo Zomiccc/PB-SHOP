@@ -10,11 +10,25 @@ import { getCurrentCustomer, newPassportNo } from "@/lib/auth";
 import { StockError } from "@/lib/inventory";
 import { orderToken } from "@/lib/order-token";
 import { notify } from "@/lib/notify";
+import { SkinOrderError, ownImageFile, resolveSkinLine } from "@/lib/skin-orders";
+import { saveAttachment } from "@/lib/attachments";
 
 
 const Checkout = z
   .object({
-    items: z.array(z.object({ variantId: z.string(), qty: z.number().int().min(1).max(20) })).min(1, "Your bag is empty"),
+    items: z
+      .array(
+        z.union([
+          z.object({ variantId: z.string(), qty: z.number().int().min(1).max(20) }),
+          // Custom skin: rebuilt and priced on the server (src/lib/skin-orders.ts).
+          z.object({
+            qty: z.number().int().min(1).max(20),
+            skin: z.object({ typeId: z.string().max(40), modelId: z.string().max(40), designId: z.string().max(40).nullable(), cameraCover: z.boolean(), ownImage: z.string().max(3_000_000).nullish() }),
+          }),
+        ]),
+      )
+      .min(1, "Your bag is empty")
+      .max(30),
     name: z.string().trim().min(2, "Enter your name").max(80),
     phone: z.string({ message: "Enter your mobile number" }).trim().min(1, "Enter your mobile number").refine(isPkMobile, "Enter a valid Pakistani mobile number, e.g. 0300 1234567"),
     email: z.union([z.literal(""), z.string().trim().email("Enter a valid email")]).optional(),
@@ -41,13 +55,29 @@ export async function POST(req: Request) {
   const d = parsed.data;
   const phone = normalizePhone(d.phone);
 
+  const productItems = d.items.filter((i): i is { variantId: string; qty: number } => "variantId" in i);
+  const skinItems = d.items.filter((i) => "skin" in i);
   const variants = await db.variant.findMany({
-    where: { id: { in: d.items.map((i) => i.variantId) }, active: true, product: { active: true, type: { not: "PART" } } },
+    where: { id: { in: productItems.map((i) => i.variantId) }, active: true, product: { active: true, type: { notIn: ["PART", "SKIN"] } } },
     include: { product: true },
   });
 
   const lines: { variantId: string; name: string; sku: string; grade: string | null; unitPrice: number; unitCost: number | null; qty: number }[] = [];
-  for (const item of d.items) {
+  // Customers' own designs, attached to the order once it exists.
+  const ownImages: string[] = [];
+  if (skinItems.length) {
+    try {
+      const resolved = await db.$transaction(async (tx) => Promise.all(skinItems.map(async (i) => ({ i, line: await resolveSkinLine(tx, i.skin) }))));
+      for (const { i, line } of resolved) {
+        lines.push({ variantId: line.variantId, name: line.name, sku: line.sku, grade: null, unitPrice: line.unitPrice, unitCost: null, qty: i.qty });
+        if (line.own && i.skin.ownImage) ownImages.push(i.skin.ownImage);
+      }
+    } catch (e) {
+      if (e instanceof SkinOrderError) return NextResponse.json({ error: e.message }, { status: 409 });
+      throw e;
+    }
+  }
+  for (const item of productItems) {
     const v = variants.find((x) => x.id === item.variantId);
     if (!v) return NextResponse.json({ error: "An item in your bag is no longer available. Please review your bag." }, { status: 409 });
     if (v.stockQty < item.qty && !v.allowBackorder) {
@@ -93,6 +123,12 @@ export async function POST(req: Request) {
     });
     return o;
   });
+
+  // The customer's own skin designs, kept privately with the order for the print team (never a catalogue skin).
+  for (const [n, dataUrl] of ownImages.entries()) {
+    const file = ownImageFile(dataUrl, `${order.number}-own-design-${n + 1}`);
+    if (file) await saveAttachment(file, { kind: "PHOTO", orderId: order.id, sensitive: false }).catch(() => null);
+  }
 
   const token = orderToken(order.number);
 

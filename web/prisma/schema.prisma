@@ -169,7 +169,7 @@ model Product {
   slug            String   @unique
   name            String
   brand           String
-  type            String // PHONE | TABLET | ACCESSORY | PART (phone spare parts)
+  type            String // PHONE | TABLET | ACCESSORY | PART (phone spare parts) | SKIN (hidden, made-to-order custom skins — one variant per skin type)
   condition       String   @default("NEW") // NEW | USED  (accessories are NEW)
   accessoryType   String? // CASE | CHARGER | CABLE | SCREEN_PROTECTOR | POWER_BANK | EARBUDS | OTHER
   partType        String? // spare parts: SCREEN | BATTERY | CHARGING_PORT | CAMERA | BACK_GLASS | SPEAKER | OTHER
@@ -322,6 +322,7 @@ model Order {
   notes      Note[]
   movements  StockMovement[]
   loyaltyTx  LoyaltyTransaction[]
+  attachments Attachment[] // e.g. the customer's own design for a custom skin
 
   @@index([createdAt])
   @@index([paymentStatus])
@@ -635,6 +636,8 @@ model Attachment {
   usedPurchase      UsedPhonePurchase? @relation(fields: [usedPurchaseId], references: [id])
   chatMessageId     String?
   chatMessage       ChatMessage?       @relation(fields: [chatMessageId], references: [id])
+  orderId           String?
+  order             Order?             @relation(fields: [orderId], references: [id])
   uploadedById      String? // staff uploader (null = uploaded by a customer)
   uploadedBy        Staff?             @relation(fields: [uploadedById], references: [id])
   createdAt         DateTime           @default(now())
@@ -643,6 +646,7 @@ model Attachment {
   @@index([installmentSaleId])
   @@index([usedPurchaseId])
   @@index([chatMessageId])
+  @@index([orderId])
 }
 
 // ─────────────────────────────── Broadcasts (master brief §9) ───────────────────────────────

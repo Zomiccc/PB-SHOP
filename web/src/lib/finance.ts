@@ -14,7 +14,7 @@ export type FinancingConfig = {
   minDownPaymentPercent: number;
   /** Comma-separated down-payment choices in %, e.g. "10,20,30,40,50" (as in the partner app). */
   downPaymentOptions: string;
-  /** Comma-separated number of repayment terms offered, e.g. "3,6,9,12". */
+  /** Comma-separated number of repayment terms offered, e.g. "3,6,9". */
   termOptions: string;
   /** "MONTHLY" or "WEEKLY" repayments. */
   period: string;

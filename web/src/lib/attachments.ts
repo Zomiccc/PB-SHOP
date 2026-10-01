@@ -79,6 +79,7 @@ export type AttachmentLinks = {
   installmentSaleId?: string | null;
   usedPurchaseId?: string | null;
   chatMessageId?: string | null;
+  orderId?: string | null;
 };
 
 /** Validates one uploaded file and returns the bytes + detected type (no writes yet). */
@@ -120,6 +121,7 @@ export async function saveAttachment(
       installmentSaleId: opts.installmentSaleId ?? null,
       usedPurchaseId: opts.usedPurchaseId ?? null,
       chatMessageId: opts.chatMessageId ?? null,
+      orderId: opts.orderId ?? null,
       uploadedById: opts.uploadedById ?? null,
     },
     select: { id: true, kind: true, fileName: true, mimeType: true, size: true },

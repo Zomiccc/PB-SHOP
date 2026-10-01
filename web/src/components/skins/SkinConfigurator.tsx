@@ -10,6 +10,7 @@ import { Icon } from "../ui/Icon";
 import { SkinPreview } from "./SkinPreview";
 import { OwnDesignUpload } from "./OwnDesignUpload";
 import { useOwnDesign } from "./ownDesign";
+import { useCart } from "@/store/cart";
 
 type Design = { id: string; name: string; description: string | null; imageUrl: string; fullImageUrl: string | null; focus: string; price: number };
 type SkinType = { id: string; name: string; description: string | null; price: number; look: string; designMode: string };
@@ -25,6 +26,7 @@ const OWN = "own";
  */
 export function SkinConfigurator({
   title,
+  modelId,
   currentHref,
   template,
   designs,
@@ -33,6 +35,7 @@ export function SkinConfigurator({
   models,
 }: {
   title: string;
+  modelId: string;
   currentHref: string;
   template: SkinTemplate;
   designs: Design[];
@@ -68,6 +71,32 @@ export function SkinConfigurator({
   const what = type ? `${type.name}${usingOwn ? " with my own design" : design ? ` — "${design.name}" design` : mode === "PHOTO" ? " with my own photo" : ""}` : "a skin";
   const message = `Hi PB Mobiles, I'd like ${what} for my ${title}${canCover ? `, camera ${cover ? "covered" : "not covered"}` : ""}${price != null ? ` (${pkr(price)})` : ""}.${usingOwn || mode === "PHOTO" ? " I'll send my picture here." : ""}`;
   const noDesigns = mode === "DESIGN" && designs.length === 0 && !ownDesign;
+  const addToCart = useCart((s) => s.add);
+  const [added, setAdded] = useState(false);
+  const canBuy = !!type && price != null && !(mode === "DESIGN" && !design);
+  const ownImage = usingOwn && own ? own.dataUrl : null;
+
+  /** Add this exact skin (type + design + model + camera) to the bag; the server re-prices it at checkout. */
+  const toCart = (buyNow: boolean) => {
+    if (!type || price == null || !canBuy) return;
+    addToCart({
+      key: `skin:${type.id}:${design ? (usingOwn ? `own-${own?.dataUrl.length ?? 0}` : design.id) : "none"}:${modelId}:${cover ? 1 : 0}`,
+      variantId: "",
+      slug: currentHref.replace(/^\//, ""),
+      name: type.name,
+      variantLabel: [title, usingOwn ? "Your design" : design?.name ?? (mode === "PHOTO" ? "Your photo (send on WhatsApp)" : null), canCover ? (cover ? "camera covered" : "camera open") : null].filter(Boolean).join(" · "),
+      sku: "Made to order",
+      price,
+      qty: 1,
+      maxQty: 5,
+      kind: "SKIN",
+      skin: { typeId: type.id, modelId, designId: usingOwn ? null : design?.id ?? null, cameraCover: cover, ownImage, template, imageUrl: usingOwn ? null : design?.imageUrl ?? null, look: type.look },
+    });
+    if (buyNow) {
+      useCart.getState().setOpen(false);
+      router.push("/checkout");
+    } else setAdded(true);
+  };
 
   const phone = (
     <SkinPreview
@@ -91,8 +120,8 @@ export function SkinConfigurator({
       <div>
         <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-[#161b24] to-[#07090d] ring-1 ring-white/8">
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_45%,rgba(0,119,217,.18),transparent_70%)]" />
-          {/* Absolutely sized so the whole phone (or artwork) always fits the box. */}
-          <div className={cn("absolute inset-6 md:inset-10", !showFull && "transition-transform duration-500 [transform:perspective(1400px)_rotateY(-8deg)] hover:[transform:perspective(1400px)_rotateY(0deg)]")}>{stage}</div>
+          {/* Absolutely sized so the whole phone (or artwork) always fits the box. No 3D tilt — it rasterises the drawing and blurs it. */}
+          <div className="absolute inset-6 md:inset-10">{stage}</div>
           {fullUrl && (
             <div role="tablist" aria-label="Preview" className="absolute left-4 top-4 flex rounded-full bg-black/60 p-1 text-xs ring-1 ring-white/15">
               {(["phone", "full"] as const).map((v) => (
@@ -193,14 +222,22 @@ export function SkinConfigurator({
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <a href={`https://wa.me/${BRAND.whatsapp}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" className="btn btn-gold">
+              <button type="button" disabled={!canBuy} onClick={() => toCart(false)} className="btn btn-gold disabled:opacity-50">
+                <Icon name="bag" className="h-4 w-4" /> {added ? "Added — add another" : "Add to cart"}
+              </button>
+              <button type="button" disabled={!canBuy} onClick={() => toCart(true)} className="btn btn-red disabled:opacity-50">
+                Buy now <Icon name="arrow-right" className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
+              <a href={`https://wa.me/${BRAND.whatsapp}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-gold hover:underline">
                 <Icon name="chat" className="h-4 w-4" /> Order on WhatsApp
               </a>
-              <Link href={`/contact?subject=${encodeURIComponent(`Custom skin — ${title}`)}`} className="btn btn-ghost-light">
+              <Link href={`/contact?subject=${encodeURIComponent(`Custom skin — ${title}`)}`} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:underline">
                 <Icon name="pin" className="h-4 w-4" /> Order in store
               </Link>
             </div>
-            <p className="text-xs text-muted">{usingOwn ? "Your picture is only on this device — send it to us on WhatsApp when you order." : `Preview is a guide: every skin is cut for the ${title} and fitted by our lab.`}</p>
+            <p className="text-xs text-muted">{usingOwn ? "Your picture is sent with your order so our lab can print it — it isn't added to our designs." : `Preview is a guide: every skin is cut for the ${title} and fitted by our lab.`}</p>
           </div>
         )}
       </div>

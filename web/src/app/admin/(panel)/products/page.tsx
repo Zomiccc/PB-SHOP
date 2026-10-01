@@ -11,7 +11,8 @@ export default async function ProductsPage(props: PageProps<"/admin/products">) 
   const view = typeof sp.view === "string" ? sp.view : "all";
   const where =
     view === "new" ? { type: "PHONE", condition: "NEW" } : view === "used" ? { type: "PHONE", condition: "USED" } : view === "tablets" ? { type: "TABLET" } : view === "accessories" ? { type: "ACCESSORY" } : view === "hidden" ? { active: false } : {};
-  const products = await db.product.findMany({ where, include: { variants: true }, orderBy: [{ active: "desc" }, { updatedAt: "desc" }] });
+  // Custom skins are managed in Admin → Custom skins (their hidden made-to-order product isn't listed here).
+  const products = await db.product.findMany({ where: { ...where, type: { not: "SKIN", ...("type" in where ? { equals: where.type } : {}) } }, include: { variants: true }, orderBy: [{ active: "desc" }, { updatedAt: "desc" }] });
   const needle = q.toLowerCase();
   const list = needle
     ? products.filter((p) => `${p.name} ${p.brand} ${p.variants.map((v) => `${v.sku} ${v.barcode}`).join(" ")}`.toLowerCase().includes(needle))

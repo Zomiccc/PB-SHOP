@@ -116,7 +116,7 @@ export function FinanceCalculator({ config, phones, initialPrice, initialSlug, p
                 onClick={() => choosePlan({ phoneModel: productName ?? eligiblePhones.find((p) => p.slug === slug)?.name ?? `Phone around ${pkr(price)}`, price, downPercent: dpPercent, terms: term, perInstallment: q.perInstallment })}
                 className="btn btn-gold w-full"
               >
-                <Icon name="clock" className="h-4 w-4" /> Book an appointment with this plan
+                <Icon name="clock" className="h-4 w-4" /> Book an appointment
               </button>
             </div>
           )}

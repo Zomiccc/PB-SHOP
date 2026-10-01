@@ -23,6 +23,7 @@ export async function commitOrderStock(tx: Tx, orderId: string, staffId: string 
 
   for (const item of order.items) {
     const v = item.variant;
+    if (v.product.type === "SKIN") continue; // custom skins are made to order — no stock
     if (v.stockQty < item.qty && !v.allowBackorder) {
       if (!opts.overrideBy) throw new StockError(`${v.product.name} (${v.sku}) has only ${v.stockQty} in stock`, v.sku);
       // Zero-stock exception authorised by a super admin (§6) — always audited.
@@ -52,9 +53,10 @@ export async function commitOrderStock(tx: Tx, orderId: string, staffId: string 
 
 /** Restores stock when a return/cancellation is finalised (§6, §19). */
 export async function restoreOrderStock(tx: Tx, orderId: string, staffId: string | null, type: "RETURN" | "CANCEL") {
-  const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
+  const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: { include: { variant: { include: { product: true } } } } } });
   if (!order.stockCommitted) return;
   for (const item of order.items) {
+    if (item.variant.product.type === "SKIN") continue; // made to order — nothing to put back
     const updated = await tx.variant.update({ where: { id: item.variantId }, data: { stockQty: { increment: item.qty } } });
     await tx.stockMovement.create({
       data: {

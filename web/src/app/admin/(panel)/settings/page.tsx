@@ -37,7 +37,7 @@ export default async function SettingsPage() {
               <Field label="Financing partner name"><input name="partnerName" defaultValue={financing.partnerName} className="field" /></Field>
               <Field label="Min. down payment %"><input name="minDownPaymentPercent" type="number" step="0.01" min={0} max={100} defaultValue={financing.minDownPaymentPercent} className="field" /></Field>
               <Field label="Down-payment choices %" hint="Comma-separated, e.g. 10,20,30,40,50"><input name="downPaymentOptions" defaultValue={financing.downPaymentOptions} className="field" /></Field>
-              <Field label="Plans (number of terms)" hint="Comma-separated, e.g. 3,6,9,12"><input name="termOptions" defaultValue={financing.termOptions} className="field" /></Field>
+              <Field label="Plans (number of terms)" hint="Comma-separated, e.g. 3,6,9"><input name="termOptions" defaultValue={financing.termOptions} className="field" /></Field>
               <Field label="Repayment period">
                 <select name="period" defaultValue={financing.period} className="field">
                   <option value="MONTHLY">Monthly</option>

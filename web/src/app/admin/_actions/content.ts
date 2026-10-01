@@ -7,6 +7,8 @@ import { requireStaff } from "@/lib/staff";
 import { parseMedia, parsePkt, safeHref } from "@/lib/broadcasts";
 import { notifyVisitorsBroadcast } from "@/lib/push";
 import { AVAILABILITY, planProblem } from "@/lib/installments";
+import { termList } from "@/lib/finance";
+import { getSetting } from "@/lib/settings";
 import { brandSlugFor } from "@/lib/brands";
 import type { FormState } from "./auth";
 import { bool, diff, int, optStr, run, str } from "./util";
@@ -120,6 +122,9 @@ export async function saveListingAction(_: FormState, f: FormData): Promise<Form
   const staff = await requireStaff();
   return run(async () => {
     const data = listingData(f);
+    // Only the plan lengths offered on the website (Settings → Installment calculator), e.g. 3 / 6 / 9 months.
+    const terms = termList(await getSetting("installmentCalc"));
+    if (terms.length && !terms.includes(data.durationMonths)) throw new Error(`Duration must be one of the offered plans: ${terms.join(", ")} months`);
     const id = str(f, "id");
     await db.$transaction(async (tx) => {
       if (id) {

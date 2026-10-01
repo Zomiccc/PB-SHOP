@@ -2,8 +2,25 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { SkinTemplate } from "@/lib/skin-template";
+
+/** A custom skin in the bag: the server rebuilds its name and price from these ids at checkout. */
+export type CartSkin = {
+  typeId: string;
+  modelId: string;
+  designId: string | null; // null = no design (jelly) or the customer's own picture
+  cameraCover: boolean;
+  /** The customer's own picture (JPEG data URL) — sent with the order so staff can print it. */
+  ownImage?: string | null;
+  /** For the bag thumbnail only. */
+  template: SkinTemplate;
+  imageUrl?: string | null;
+  look?: string;
+};
 
 export type CartItem = {
+  /** Unique line id: the variant id for products; one per configuration for custom skins. */
+  key?: string;
   variantId: string;
   slug: string;
   name: string;
@@ -13,16 +30,19 @@ export type CartItem = {
   qty: number;
   maxQty: number;
   colorHex?: string | null;
-  kind: "PHONE" | "TABLET" | "ACCESSORY";
+  kind: "PHONE" | "TABLET" | "ACCESSORY" | "SKIN";
   accessoryType?: string | null;
+  skin?: CartSkin;
 };
+
+export const lineKey = (i: Pick<CartItem, "key" | "variantId">) => i.key ?? i.variantId;
 
 type CartState = {
   items: CartItem[];
   open: boolean;
   add: (item: CartItem) => void;
-  setQty: (variantId: string, qty: number) => void;
-  remove: (variantId: string) => void;
+  setQty: (key: string, qty: number) => void;
+  remove: (key: string) => void;
   clear: () => void;
   setOpen: (open: boolean) => void;
 };
@@ -34,18 +54,18 @@ export const useCart = create<CartState>()(
       open: false,
       add: (item) =>
         set((s) => {
-          const existing = s.items.find((i) => i.variantId === item.variantId);
+          const existing = s.items.find((i) => lineKey(i) === lineKey(item));
           if (existing) {
             return {
               open: true,
-              items: s.items.map((i) => (i.variantId === item.variantId ? { ...i, qty: Math.min(i.qty + item.qty, i.maxQty) } : i)),
+              items: s.items.map((i) => (lineKey(i) === lineKey(item) ? { ...i, qty: Math.min(i.qty + item.qty, i.maxQty) } : i)),
             };
           }
           return { open: true, items: [...s.items, { ...item, qty: Math.min(item.qty, item.maxQty) }] };
         }),
-      setQty: (variantId, qty) =>
-        set((s) => ({ items: s.items.map((i) => (i.variantId === variantId ? { ...i, qty: Math.max(1, Math.min(qty, i.maxQty)) } : i)) })),
-      remove: (variantId) => set((s) => ({ items: s.items.filter((i) => i.variantId !== variantId) })),
+      setQty: (key, qty) =>
+        set((s) => ({ items: s.items.map((i) => (lineKey(i) === key ? { ...i, qty: Math.max(1, Math.min(qty, i.maxQty)) } : i)) })),
+      remove: (key) => set((s) => ({ items: s.items.filter((i) => lineKey(i) !== key) })),
       clear: () => set({ items: [] }),
       setOpen: (open) => set({ open }),
     }),

@@ -3,13 +3,13 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The customer's own skin design (v6 §4), kept only in this browser tab (sessionStorage) — it is never uploaded
- * to the server and never becomes a catalogue skin. It stays while they switch brands / models.
+ * The customer's own skin design (v6 §4), kept in this browser tab (sessionStorage) while they try it on different
+ * brands / models. It's only sent to us if they order that skin (attached to the order), and never becomes a catalogue skin.
  */
 
 const KEY = "pb-own-skin";
 const listeners = new Set<() => void>();
-const MAX_EDGE = 1600;
+const MAX_EDGE = 2000;
 
 export type OwnDesign = { dataUrl: string; name: string; width: number; height: number };
 
@@ -45,7 +45,7 @@ export function clearOwnDesign() {
   listeners.forEach((l) => l());
 }
 
-/** Reads a gallery image, scales it to ≤1600px and keeps it on this device. Throws a friendly message on failure. */
+/** Reads a gallery image, scales it to ≤2000px (high-quality smoothing) and keeps it on this device. Throws a friendly message on failure. */
 export async function setOwnDesignFromFile(file: File) {
   if (!file.type.startsWith("image/")) throw new Error("Choose a picture (JPG, PNG or WebP)");
   if (file.size > 25 * 1024 * 1024) throw new Error("That picture is too large (max 25 MB)");
@@ -59,8 +59,13 @@ export async function setOwnDesignFromFile(file: File) {
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  }
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
   const design: OwnDesign = { dataUrl, name: file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "My design", width: canvas.width, height: canvas.height };
   try {
     sessionStorage.setItem(KEY, JSON.stringify(design));

@@ -7,7 +7,8 @@ import { clearOwnDesign, setOwnDesignFromFile, useOwnDesign } from "./ownDesign"
 
 /**
  * "Upload your own design" (v6 §4): pick a picture from the phone gallery to preview it on any model. The picture
- * stays on this device — it isn't sent to us and never becomes one of our catalogue designs.
+ * stays on this device unless the customer orders that skin (then it's attached to their order for printing);
+ * it never becomes one of our catalogue designs.
  */
 export function OwnDesignUpload({ onChange, compact = false }: { onChange?: () => void; compact?: boolean }) {
   const id = useId();
@@ -26,7 +27,7 @@ export function OwnDesignUpload({ onChange, compact = false }: { onChange?: () =
         )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{own ? "Your design is ready to preview" : "Have your own design?"}</p>
-          <p className="text-xs text-muted">{own ? `${own.name} · stays on your device` : "Upload a picture from your gallery and see it on any phone."}</p>
+          <p className="text-xs text-muted">{own ? `${own.name} · only sent to us if you order it` : "Upload a picture from your gallery and see it on any phone."}</p>
         </div>
         <label htmlFor={id} className={cn("btn shrink-0 cursor-pointer !py-2 !text-sm", own ? "btn-ghost-light" : "btn-gold")}>
           {busy ? "Loading…" : own ? "Change" : "Upload"}

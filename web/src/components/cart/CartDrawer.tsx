@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { cartSubtotal, useCart } from "@/store/cart";
+import { cartSubtotal, lineKey, useCart } from "@/store/cart";
+import { CartThumb, cartHref } from "./CartThumb";
 import { pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
-import { ProductArt } from "../product/ProductArt";
 
 export function CartDrawer() {
   const { items, open, setOpen, setQty, remove } = useCart();
@@ -58,26 +58,26 @@ export function CartDrawer() {
               <>
                 <ul className="flex-1 space-y-3 overflow-y-auto px-6 py-5">
                   {items.map((item) => (
-                    <li key={item.variantId} className="card flex gap-4 p-3">
+                    <li key={lineKey(item)} className="card flex gap-4 p-3">
                       <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-cream-200">
-                        <ProductArt kind={item.kind} accessoryType={item.accessoryType} colorHex={item.colorHex} name={item.name} compact />
+                        <CartThumb item={item} />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <Link href={`/product/${item.slug}`} onClick={() => setOpen(false)} className="truncate font-semibold hover:text-blue">
+                        <Link href={cartHref(item)} onClick={() => setOpen(false)} className="truncate font-semibold hover:text-blue">
                           {item.name}
                         </Link>
                         <p className="truncate text-xs text-muted">{item.variantLabel}</p>
                         <p className="font-mono text-[0.65rem] text-muted">{item.sku}</p>
                         <div className="mt-auto flex items-center justify-between">
                           <div className="flex items-center rounded-full border border-ink/15">
-                            <button aria-label="Decrease quantity" onClick={() => setQty(item.variantId, item.qty - 1)} className="grid h-8 w-8 place-items-center">
+                            <button aria-label="Decrease quantity" onClick={() => setQty(lineKey(item), item.qty - 1)} className="grid h-8 w-8 place-items-center">
                               <Icon name="minus" className="h-3.5 w-3.5" />
                             </button>
                             <span className="w-6 text-center text-sm font-semibold">{item.qty}</span>
                             <button
                               aria-label="Increase quantity"
                               disabled={item.qty >= item.maxQty}
-                              onClick={() => setQty(item.variantId, item.qty + 1)}
+                              onClick={() => setQty(lineKey(item), item.qty + 1)}
                               className="grid h-8 w-8 place-items-center disabled:opacity-30"
                             >
                               <Icon name="plus" className="h-3.5 w-3.5" />
@@ -86,7 +86,7 @@ export function CartDrawer() {
                           <span className="font-semibold">{pkr(item.price * item.qty)}</span>
                         </div>
                       </div>
-                      <button onClick={() => remove(item.variantId)} aria-label={`Remove ${item.name}`} className="self-start text-muted hover:text-red">
+                      <button onClick={() => remove(lineKey(item))} aria-label={`Remove ${item.name}`} className="self-start text-muted hover:text-red">
                         <Icon name="close" className="h-4 w-4" />
                       </button>
                     </li>

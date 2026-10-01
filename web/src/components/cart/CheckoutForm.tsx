@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { phoneTierPoints, spendPoints, type PointsRules } from "@/lib/points-rules";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { cartSubtotal, useCart } from "@/store/cart";
+import { cartSubtotal, lineKey, useCart } from "@/store/cart";
+import { CartThumb } from "./CartThumb";
 import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/constants";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
-import { ProductArt } from "../product/ProductArt";
 
 type Props = {
   shipping: { flatFee: number; freeOver: number };
@@ -44,7 +44,7 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
   // Same rules as the server (src/lib/loyalty.ts): phone price tiers + 1 point per Rs 100 on accessories.
   const points =
     items.reduce((s, i) => s + (i.kind === "PHONE" ? phoneTierPoints(i.price, pointsRules.phoneTiers) * i.qty : 0), 0) +
-    spendPoints(items.reduce((s, i) => s + (i.kind === "ACCESSORY" ? i.price * i.qty : 0), 0), pointsRules.rupeesPerPoint);
+    spendPoints(items.reduce((s, i) => s + (i.kind === "ACCESSORY" || i.kind === "SKIN" ? i.price * i.qty : 0), 0), pointsRules.rupeesPerPoint);
   const err = (k: string) => errors[k]?.[0];
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -58,7 +58,11 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
+          items: items.map((i) =>
+            i.kind === "SKIN" && i.skin
+              ? { qty: i.qty, skin: { typeId: i.skin.typeId, modelId: i.skin.modelId, designId: i.skin.designId, cameraCover: i.skin.cameraCover, ownImage: i.skin.ownImage ?? null } }
+              : { variantId: i.variantId, qty: i.qty },
+          ),
           name: f.get("name"),
           phone: f.get("phone"),
           email: f.get("email"),
@@ -189,9 +193,9 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
             <h2 className="display text-2xl">Order summary</h2>
             <ul className="mt-5 space-y-4">
               {items.map((i) => (
-                <li key={i.variantId} className="flex gap-3">
+                <li key={lineKey(i)} className="flex gap-3">
                   <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-white/5">
-                    <ProductArt kind={i.kind} accessoryType={i.accessoryType} colorHex={i.colorHex} name={i.name} compact />
+                    <CartThumb item={i} />
                     <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-gold text-[0.65rem] font-bold text-navy-950">{i.qty}</span>
                   </div>
                   <div className="min-w-0 flex-1 text-sm">

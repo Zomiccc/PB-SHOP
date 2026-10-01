@@ -39,7 +39,7 @@ export const SETTING_DEFAULTS = {
     partnerName: "our financing partner",
     minDownPaymentPercent: 30, // v6 §6: plans start at 30% — 10% and 20% removed
     downPaymentOptions: "30,40,50",
-    termOptions: "3,6,9,12",
+    termOptions: "3,6,9", // the 12-month plan was removed (client request)
     period: "MONTHLY",
     markupPercentPerMonth: 6,
     serviceFeePercent: 0,
