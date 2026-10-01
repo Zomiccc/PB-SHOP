@@ -151,10 +151,11 @@ const PARTS: P[] = [
 ].map((p) => ({ ...p, type: "PART" as const, condition: "NEW" as const }));
 
 // Phone Passport rewards exactly as the master brief (§4) specifies. The owner can edit them in Settings.
+// Final PB Points redemption table (v6 final amendment §6).
 const REWARDS = [
-  { name: "Phone case of your choice", pointsCost: 100, kind: "ITEM", appliesTo: "ACCESSORY", description: "Any in-stock phone case.", sortOrder: 10 },
-  { name: "AirPods", pointsCost: 200, kind: "ITEM", appliesTo: "ACCESSORY", description: "One AirPods reward (subject to stock).", sortOrder: 20 },
-  { name: "50% off a repair", pointsCost: 500, kind: "REPAIR_DISCOUNT", appliesTo: "REPAIR", discountPercent: 50, exclusions: "Excludes parts — applies to the labour charge only.", sortOrder: 30 },
+  { name: "Free Screen Protector", pointsCost: 50, kind: "ITEM", appliesTo: "ACCESSORY", description: "A screen protector for your phone (subject to stock).", sortOrder: 10 },
+  { name: "Free Custom 3D Mobile Skin", pointsCost: 100, kind: "ITEM", appliesTo: "ACCESSORY", description: "Any 3D skin design, cut and fitted for your phone.", sortOrder: 20 },
+  { name: "Free AirPods", pointsCost: 200, kind: "ITEM", appliesTo: "ACCESSORY", description: "One AirPods reward (subject to stock).", sortOrder: 30 },
 ];
 
 // SAMPLE installment plans so the homepage section can be reviewed — the owner replaces these in Admin → Installments.
@@ -351,11 +352,25 @@ async function upgradeExisting() {
     await createProducts(PARTS, await nextSeq(), "23");
     console.log(`Added ${PARTS.length} demo spare parts.`);
   }
-  // Updated brief: Care Card removed, new Passport rewards. Old rewards are switched off (kept for history).
-  if ((await db.reward.count({ where: { kind: "REPAIR_DISCOUNT" } })) === 0) {
+  // v6 final PB Points table: 50 screen protector / 100 custom 3D skin / 200 AirPods. Older rewards are switched
+  // off, not deleted (past redemptions keep their history). Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.rewardsV6" } }))) {
     await db.reward.updateMany({ data: { active: false } });
     await db.reward.createMany({ data: REWARDS });
-    console.log("Installed the Phone Passport rewards from the updated brief.");
+    await db.setting.create({ data: { key: "migration.rewardsV6", value: JSON.stringify({ at: new Date().toISOString() }) } });
+    console.log("Installed the final PB Points rewards (50 / 100 / 200).");
+  }
+  // v6 §6: installment plans start at 30% down — 10% and 20% are removed from any saved settings. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.installments30" } }))) {
+    const row = await db.setting.findUnique({ where: { key: "installmentCalc" } });
+    if (row) {
+      const cfg = JSON.parse(row.value) as { minDownPaymentPercent?: number; downPaymentOptions?: string };
+      const options = String(cfg.downPaymentOptions ?? "").split(/[,\s]+/).map(Number).filter((n) => Number.isFinite(n) && n >= 30 && n < 100);
+      const next = { ...cfg, minDownPaymentPercent: Math.max(30, Number(cfg.minDownPaymentPercent ?? 30)), downPaymentOptions: (options.length ? [...new Set(options)] : [30, 40, 50]).join(",") };
+      await db.setting.update({ where: { key: "installmentCalc" }, data: { value: JSON.stringify(next) } });
+    }
+    await db.setting.create({ data: { key: "migration.installments30", value: JSON.stringify({ at: new Date().toISOString() }) } });
+    console.log("Installment plans now start at 30% down payment.");
   }
   if ((await db.installmentListing.count()) === 0) {
     await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });

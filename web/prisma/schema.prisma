@@ -651,6 +651,7 @@ model Attachment {
 model Broadcast {
   id          String    @id @default(cuid())
   message     String
+  media       String    @default("[]") // JSON [{url, type: IMAGE | VIDEO}] — pictures / videos shown with the text (v6 §1–§2)
   ctaLabel    String?
   ctaHref     String?
   active      Boolean   @default(false) // published
@@ -670,8 +671,23 @@ model MediaFile {
   fileName  String
   mimeType  String
   size      Int
-  data      Bytes
+  data      Bytes? // small files in one piece; large ones (videos) in MediaChunk rows
+  chunked   Boolean  @default(false)
+  complete  Boolean  @default(true) // false while a chunked upload is still arriving
   createdAt DateTime @default(now())
+  chunks    MediaChunk[]
+}
+
+/// One piece of a large upload (e.g. a broadcast video) kept in the database when no object storage is
+/// configured. Uploaded in ~3 MB pieces so each request stays under hosting body limits; served with Range support.
+model MediaChunk {
+  id      String    @id @default(cuid())
+  mediaId String
+  media   MediaFile @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  idx     Int
+  data    Bytes
+
+  @@unique([mediaId, idx])
 }
 
 // ─────────────────────────────── Custom Skins (Passport requirements v4 §9–§11) ───────────────────────────────
@@ -736,6 +752,7 @@ model Skin {
   name        String
   description String?
   imageUrl    String
+  fullImageUrl String? // optional full / uncut artwork customers can view (v6 §5); imageUrl is used when empty
   focus       String       @default("xMidYMid") // which part of the artwork stays in view when cropped to fit
   price       Int          @default(0) // Rs — optional extra charge for this design, on top of the skin type's price
   allModels   Boolean      @default(false) // available for every phone model, including ones added later
@@ -744,4 +761,32 @@ model Skin {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   models      PhoneModel[]
+}
+
+// ─────────────── Installment requests & appointments (v6 §7) ───────────────
+
+/// A customer's online installment request with a store appointment. The purchase itself is still completed
+/// in store with the original CNIC (no CNIC is collected online).
+model InstallmentRequest {
+  id             String    @id @default(cuid())
+  ref            String    @unique // PBA-1001
+  name           String
+  phone          String
+  email          String?
+  city           String?
+  phoneModel     String
+  listingId      String?
+  price          Int?
+  downPercent    Int?
+  terms          Int?
+  perInstallment Int?
+  appointmentAt  DateTime // the booked slot (UTC; shown in Pakistan time)
+  status         String    @default("NEW") // NEW | CONFIRMED | COMPLETED | NO_SHOW | CANCELLED
+  notes          String?
+  customerId     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([appointmentAt])
+  @@index([status, appointmentAt])
 }

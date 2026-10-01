@@ -53,7 +53,7 @@ export function AuthForms() {
             }}
             className={cn("rounded-full py-2.5 text-sm font-semibold transition", tab === t ? "bg-navy-950 text-white" : "text-muted")}
           >
-            {t === "login" ? "Log in" : "Create Passport"}
+            {t === "login" ? "Log in" : "Create Account"}
           </button>
         ))}
       </div>
@@ -100,7 +100,7 @@ export function AuthForms() {
           </F>
         )}
         <button disabled={busy} className="btn btn-red w-full disabled:opacity-60">
-          {busy ? "Please wait…" : tab === "login" ? "Log in" : "Create my Passport"}
+          {busy ? "Please wait…" : tab === "login" ? "Log in" : "Create Account"}
         </button>
         {tab === "register" && <p className="text-center text-xs text-muted">Already bought or repaired with us? Use the same number and we&apos;ll link your history.</p>}
       </form>

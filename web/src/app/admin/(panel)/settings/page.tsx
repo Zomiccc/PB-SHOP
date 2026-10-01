@@ -12,7 +12,7 @@ export const metadata = { title: "Settings & rules" };
 /** Owner-only configuration: Phone Passport points & rewards, installment calculator, social proof, delivery. */
 export default async function SettingsPage() {
   await requireStaffPage({ superAdmin: true });
-  const [financing, social, passport, shipping, rewards, passportCard, skins] = await Promise.all([
+  const [financing, social, passport, shipping, rewards, passportCard, skins, appts] = await Promise.all([
     getSetting("installmentCalc"),
     getSetting("socialProof"),
     getSetting("passport"),
@@ -20,6 +20,7 @@ export default async function SettingsPage() {
     db.reward.findMany({ orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
     getSetting("passportCard"),
     getSetting("customSkins"),
+    getSetting("installmentAppointments"),
   ]);
 
   return (
@@ -54,6 +55,23 @@ export default async function SettingsPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={financing.enabled} className="h-4 w-4" /> Show installments on the website</label>
               <Submit>Save calculator</Submit>
             </div>
+          </ActionForm>
+        </Panel>
+
+        <Panel title="Installment appointments" id="appointments">
+          <ActionForm action={saveSettingAction} className="space-y-3">
+            <input type="hidden" name="key" value="installmentAppointments" />
+            <p className="text-sm text-muted">Times customers can book from the Installments page (Pakistan time, 24-hour “HH:MM”, comma-separated).</p>
+            <Field label="Mon–Sat times"><input name="slots" defaultValue={appts.slots} className="field font-mono !text-sm" /></Field>
+            <Field label="Sunday times" hint="Leave empty to close on Sundays"><input name="sundaySlots" defaultValue={appts.sundaySlots} className="field font-mono !text-sm" /></Field>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Bookings per time"><input name="perSlot" type="number" min={1} defaultValue={appts.perSlot} className="field" /></Field>
+              <Field label="Days ahead"><input name="daysAhead" type="number" min={1} defaultValue={appts.daysAhead} className="field" /></Field>
+              <Field label="Min. notice (hours)"><input name="leadHours" type="number" min={0} defaultValue={appts.leadHours} className="field" /></Field>
+            </div>
+            <Field label="Closed dates" hint="e.g. 2026-10-12, 2026-10-13"><input name="closedDates" defaultValue={appts.closedDates} className="field font-mono !text-sm" /></Field>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={appts.enabled} className="h-4 w-4" /> Online booking open {appts.enabled ? <Badge tone="green">On</Badge> : <Badge>Off</Badge>}</label>
+            <Submit>Save appointment times</Submit>
           </ActionForm>
         </Panel>
 

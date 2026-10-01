@@ -48,7 +48,7 @@ export function useChatNotifications(audience: "VISITOR" | "STAFF", conversation
     return reg;
   }, [audience, conversationId]);
 
-  // Keep the server subscription attached to the current conversation.
+  // Keep the server subscription attached to the current conversation (once there is one).
   useEffect(() => {
     if (enabled && (audience === "STAFF" || conversationId)) subscribe().catch(() => {});
   }, [enabled, conversationId, audience, subscribe]);

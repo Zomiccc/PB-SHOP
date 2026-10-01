@@ -5,6 +5,7 @@ import type { Brand } from "@/lib/brands";
 import type { FinancingConfig } from "@/lib/finance";
 import { cn, pkr } from "@/lib/format";
 import { FinanceCalculator } from "./FinanceCalculator";
+import { choosePlan } from "./InstallmentRequestForm";
 import { ProductArt } from "./product/ProductArt";
 import { Icon } from "./ui/Icon";
 
@@ -148,9 +149,16 @@ export function InstallmentPicker({ brands, listings, config, initialBrand, init
                 <Fact k="Total on plan" v={pkr(plan.installmentTotal)} />
                 <Fact k="Cash price" v={pkr(plan.regularPrice)} />
               </dl>
+              <button
+                type="button"
+                onClick={() => choosePlan({ phoneModel: plan.model, listingId: plan.id, price: plan.regularPrice, downPercent: Math.round((plan.downPayment / plan.regularPrice) * 100), terms: plan.durationMonths, perInstallment: monthly(plan) })}
+                className="btn btn-gold mt-5 w-full"
+              >
+                <Icon name="clock" className="h-4 w-4" /> Book an appointment
+              </button>
               <p className="mt-4 text-xs text-white/55">Want a different down payment or number of months? Use the calculator.</p>
             </div>
-            <FinanceCalculator key={plan.id} config={config} initialPrice={plan.regularPrice} productName={plan.model} />
+            <FinanceCalculator key={plan.id} config={config} initialPrice={plan.regularPrice} productName={plan.model} bookable />
           </div>
         ) : (
           <p className="mt-4 rounded-2xl bg-card p-5 text-sm text-muted ring-1 ring-white/10">Choose a model to see its monthly payment and try different down payments.</p>

@@ -39,6 +39,7 @@ async function asDataUri(url: string) {
   if (media) {
     // Photo kept in the database fallback (no object storage configured).
     const m = await db.mediaFile.findUniqueOrThrow({ where: { id: media[1] } });
+    if (!m.data) throw new Error("Photo not found");
     return `data:${m.mimeType};base64,${Buffer.from(m.data).toString("base64")}`;
   }
   const file = path.join(process.cwd(), "public", url.replace(/^\//, ""));

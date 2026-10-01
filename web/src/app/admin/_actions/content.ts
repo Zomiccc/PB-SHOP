@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
-import { parsePkt, safeHref } from "@/lib/broadcasts";
+import { parseMedia, parsePkt, safeHref } from "@/lib/broadcasts";
+import { notifyVisitorsBroadcast } from "@/lib/push";
 import { AVAILABILITY, planProblem } from "@/lib/installments";
 import { brandSlugFor } from "@/lib/brands";
 import type { FormState } from "./auth";
@@ -26,16 +27,20 @@ export async function saveBroadcastAction(_: FormState, f: FormData): Promise<Fo
   return run(async () => {
     const message = str(f, "message");
     if (message.length < 3) throw new Error("Write the announcement text");
-    if (message.length > 220) throw new Error("Keep the announcement under 220 characters");
+    if (message.length > 400) throw new Error("Keep the announcement under 400 characters");
     const rawHref = optStr(f, "ctaHref");
     const ctaHref = safeHref(rawHref);
     if (rawHref && !ctaHref) throw new Error("Link must be a page on this site (e.g. /used-phones) or an https:// address");
-    const data = { message, ctaLabel: optStr(f, "ctaLabel"), ctaHref, startsAt: date(f, "startsAt"), endsAt: date(f, "endsAt"), active: bool(f, "active") };
+    // Pictures / videos (v6 §2) — only files uploaded through the dashboard are accepted.
+    const media = JSON.stringify(parseMedia(str(f, "media")));
+    const data = { message, media, ctaLabel: optStr(f, "ctaLabel"), ctaHref, startsAt: date(f, "startsAt"), endsAt: date(f, "endsAt"), active: bool(f, "active") };
     if (data.startsAt && data.endsAt && data.endsAt <= data.startsAt) throw new Error("End must be after start");
     const id = str(f, "id");
+    let published = false;
     await db.$transaction(async (tx) => {
       if (id) {
         const before = await tx.broadcast.findUniqueOrThrow({ where: { id } });
+        published = !before.active && data.active;
         const d = diff(before as unknown as Record<string, unknown>, data);
         if (!d.changed) return;
         await tx.broadcast.update({ where: { id }, data });
@@ -43,11 +48,14 @@ export async function saveBroadcastAction(_: FormState, f: FormData): Promise<Fo
         await audit({ staffId: staff.id, action, entityType: "BROADCAST", entityId: id, recordLabel: message.slice(0, 80), before: d.before, after: d.after }, tx);
       } else {
         const b = await tx.broadcast.create({ data: { ...data, createdById: staff.id } });
+        published = data.active;
         await audit({ staffId: staff.id, action: data.active ? "BROADCAST_PUBLISHED" : "BROADCAST_CREATED", entityType: "BROADCAST", entityId: b.id, recordLabel: message.slice(0, 80), after: data }, tx);
       }
     });
     revalidatePath("/admin/broadcasts");
     revalidatePath("/");
+    // Customers who tapped "Enable Notifications" hear about newly published broadcasts (v6 §9).
+    if (published && (!data.startsAt || data.startsAt <= new Date())) await notifyVisitorsBroadcast(message).catch(() => 0);
     return id ? "Broadcast saved" : data.active ? "Broadcast published" : "Broadcast saved as draft";
   });
 }
@@ -62,6 +70,7 @@ export async function toggleBroadcastAction(_: FormState, f: FormData): Promise<
     });
     revalidatePath("/admin/broadcasts");
     revalidatePath("/");
+    if (!b.active) await notifyVisitorsBroadcast(b.message).catch(() => 0);
     return b.active ? "Unpublished" : "Published";
   });
 }
@@ -164,5 +173,25 @@ export async function deleteListingAction(_: FormState, f: FormData): Promise<Fo
     revalidatePath("/admin/installments");
     revalidatePath("/");
     return "Listing removed";
+  });
+}
+
+// ─────────────── Installment requests & appointments (v6 §7) ───────────────
+
+const REQUEST_STATUSES = ["NEW", "CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"];
+
+export async function installmentRequestStatusAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return run(async () => {
+    const status = str(f, "status");
+    if (!REQUEST_STATUSES.includes(status)) throw new Error("Choose a status");
+    const r = await db.installmentRequest.findUniqueOrThrow({ where: { id: str(f, "id") } });
+    if (r.status === status) return "No change";
+    await db.$transaction(async (tx) => {
+      await tx.installmentRequest.update({ where: { id: r.id }, data: { status } });
+      await audit({ staffId: staff.id, action: "INSTALLMENT_APPOINTMENT_STATUS", entityType: "INSTALLMENT", entityId: r.id, recordLabel: r.ref, before: { status: r.status }, after: { status } }, tx);
+    });
+    revalidatePath("/admin/installments");
+    return status === "CANCELLED" ? "Cancelled — the slot is free again" : "Status updated";
   });
 }

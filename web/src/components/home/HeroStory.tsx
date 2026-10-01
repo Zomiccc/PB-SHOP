@@ -39,18 +39,18 @@ function useIsDesktop() {
  * Phones: the 3D phone gets its own frame and the copy flows underneath — nothing is layered
  * over the canvas, so text and 3D can never overlap on small screens.
  */
-export function HeroStory() {
+export function HeroStory({ belowCtas }: { belowCtas?: React.ReactNode }) {
   const isDesktop = useIsDesktop();
   return (
     <>
-      <MobileHero active={isDesktop === false} />
+      <MobileHero active={isDesktop === false} belowCtas={belowCtas} />
       <DesktopHero active={isDesktop === true} />
     </>
   );
 }
 
 /** Phones: gentle float and slow turn (front → back → front), driven inside the 3D scene; subtle motion per the master brief. */
-function MobileHero({ active }: { active: boolean }) {
+function MobileHero({ active, belowCtas }: { active: boolean; belowCtas?: React.ReactNode }) {
   const progress = useRef(0);
   const reduced = useReducedMotion() ?? false;
 
@@ -85,6 +85,8 @@ function MobileHero({ active }: { active: boolean }) {
           <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> Shop phones</span>
           <Icon name="arrow-right" className="h-4 w-4" />
         </Link>
+        {/* Broadcasts: directly beneath Shop Phones, centred (v6 §1). */}
+        {belowCtas && <div className="mt-3 min-w-0">{belowCtas}</div>}
       </div>
     </section>
   );

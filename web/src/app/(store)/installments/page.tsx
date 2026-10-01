@@ -9,6 +9,8 @@ import { IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { listProducts } from "@/lib/catalog";
 import { activeListings } from "@/lib/installments";
 import { getSetting } from "@/lib/settings";
+import { InstallmentRequestForm } from "@/components/InstallmentRequestForm";
+import { bookableDates } from "@/lib/appointments";
 
 export const metadata: Metadata = {
   title: "Phone Installments — Plans & Calculator",
@@ -22,7 +24,9 @@ export const dynamic = "force-dynamic";
  */
 export default async function InstallmentsPage(props: PageProps<"/installments">) {
   const sp = await props.searchParams;
-  const [config, listings, phones] = await Promise.all([getSetting("installmentCalc"), activeListings(), listProducts({ type: "PHONE" })]);
+  const [config, listings, phones, appts] = await Promise.all([getSetting("installmentCalc"), activeListings(), listProducts({ type: "PHONE" }), getSetting("installmentAppointments")]);
+  const dates = appts.enabled ? bookableDates(appts) : [];
+  const phoneNames = [...new Set([...listings.map((l) => l.model), ...phones.filter((p) => p.totalStock > 0 && p.condition === "NEW").map((p) => p.name)])];
 
   // Any-price calculator: in-stock shop phones (the brand picker covers the installment phones).
   const shopOptions = phones
@@ -44,6 +48,7 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
         {[
           { href: "#step-brand", label: "Choose brand & model" },
           { href: "#any-price", label: "Calculate any price" },
+          { href: "#book", label: "Book an appointment" },
           { href: "#how", label: "How it works" },
           { href: "#id-documents", label: "Your ID is safe" },
         ].map((l) => (
@@ -73,9 +78,22 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
                 <Icon name="arrow-right" className="h-4 w-4 transition group-open:rotate-90" />
               </summary>
               <div className="p-2 pt-0 md:p-4 md:pt-0">
-                <FinanceCalculator key={price ?? "any"} config={config} phones={shopOptions} initialPrice={price} />
+                <FinanceCalculator key={price ?? "any"} config={config} phones={shopOptions} initialPrice={price} bookable />
               </div>
             </details>
+          </div>
+        </section>
+      )}
+
+      {config.enabled && appts.enabled && (
+        <section id="book" className="scroll-mt-24 pb-20">
+          <div className="container-pb">
+            <p className="eyebrow text-gold">Book your visit</p>
+            <h2 className="display mt-3 text-4xl md:text-5xl">Apply &amp; book an appointment.</h2>
+            <p className="mt-3 max-w-xl text-muted">Tell us about you and the phone you want, then pick a date and time. Bring your original CNIC — we&apos;ll complete the plan with you in store.</p>
+            <div className="mt-8">
+              <InstallmentRequestForm dates={dates} phones={phoneNames} />
+            </div>
           </div>
         </section>
       )}

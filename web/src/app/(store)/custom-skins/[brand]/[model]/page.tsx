@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SkinConfigurator } from "@/components/skins/SkinConfigurator";
 import { Icon } from "@/components/ui/Icon";
-import { skinModelPage, toTemplate } from "@/lib/skins";
+import { skinCatalogue, skinModelPage, toTemplate } from "@/lib/skins";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function generateMetadata(props: PageProps<"/custom-skins/[brand]/[
 /** Selected-model Custom Skins page (v4 §9 step 4 — product-style layout from the client's reference). */
 export default async function SkinModelPage(props: PageProps<"/custom-skins/[brand]/[model]">) {
   const { brand, model } = await props.params;
-  const [page, cfg] = await Promise.all([skinModelPage(brand, model), getSetting("customSkins")]);
+  const [page, cfg, catalogue] = await Promise.all([skinModelPage(brand, model), getSetting("customSkins"), skinCatalogue()]);
   if (!page || !cfg.enabled) notFound();
   const title = `${page.brand.name} ${page.model.name}`;
 
@@ -34,8 +34,10 @@ export default async function SkinModelPage(props: PageProps<"/custom-skins/[bra
       </nav>
       <SkinConfigurator
         title={title}
+        currentHref={`/custom-skins/${page.brand.slug}/${page.model.slug}`}
+        models={catalogue.flatMap((b) => b.models.map((m) => ({ brand: b.name, name: m.name, href: `/custom-skins/${b.slug}/${m.slug}` })))}
         template={toTemplate(page.model)}
-        designs={page.skins.map((s) => ({ id: s.id, name: s.name, description: s.description, imageUrl: s.imageUrl, focus: s.focus, price: s.price }))}
+        designs={page.skins.map((s) => ({ id: s.id, name: s.name, description: s.description, imageUrl: s.imageUrl, fullImageUrl: s.fullImageUrl, focus: s.focus, price: s.price }))}
         types={page.types.map((t) => ({ id: t.id, name: t.name, description: t.description, price: t.price, look: t.look, designMode: t.designMode }))}
         cameraCoverPrice={cfg.cameraCoverPrice}
       />

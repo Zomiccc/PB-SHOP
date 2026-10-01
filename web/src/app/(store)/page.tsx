@@ -12,12 +12,16 @@ import { pkr } from "@/lib/format";
 import { activeListings } from "@/lib/installments";
 import { InstallmentPhones } from "@/components/home/InstallmentPhones";
 import { parseTiers } from "@/lib/points-rules";
+import { activeBroadcasts } from "@/lib/broadcasts";
+import { BroadcastShowcase } from "@/components/home/BroadcastShowcase";
+import { SkinPreview } from "@/components/skins/SkinPreview";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 /** Homepage — follows the master brief's reference layout on a fully dark, logo-coloured theme. */
 export default async function HomePage() {
-  const [phones, tablets, accessories, passport, installments, reviews, stats] = await Promise.all([
+  const [phones, tablets, accessories, passport, installments, reviews, stats, broadcasts, rewards] = await Promise.all([
     listProducts({ type: "PHONE" }),
     listProducts({ type: "TABLET" }),
     listProducts({ type: "ACCESSORY" }),
@@ -25,6 +29,8 @@ export default async function HomePage() {
     activeListings(),
     approvedReviews({ take: 9 }),
     reviewStats(),
+    activeBroadcasts().catch(() => []),
+    db.reward.findMany({ where: { active: true }, orderBy: [{ pointsCost: "asc" }, { sortOrder: "asc" }], select: { id: true, name: true, pointsCost: true } }),
   ]);
   const featuredPhones = phones.filter((p) => p.featured && p.condition === "NEW").slice(0, 6);
   // One card per used SKU, each with its single grade (master brief §12).
@@ -36,11 +42,17 @@ export default async function HomePage() {
 
   return (
     <>
-      <HeroStory />
+      <HeroStory belowCtas={broadcasts.length ? <BroadcastShowcase broadcasts={broadcasts} /> : undefined} />
+      {/* Desktop: the hero is a pinned scroll story, so broadcasts sit centred straight after it (v6 §1). */}
+      {broadcasts.length > 0 && (
+        <div className="container-pb relative z-10 hidden pt-10 md:block">
+          <BroadcastShowcase broadcasts={broadcasts} />
+        </div>
+      )}
 
       {/* Category entry points */}
       <section className="relative z-10 pb-6 pt-6 md:pt-14">
-        <div className="container-pb grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
+        <div className="container-pb grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 xl:grid-cols-7">
           {[
             { href: "/repair", title: "Phone repairs", sub: "Screen, battery, software & more.", art: <RepairArt />, glow: "rgba(0,119,217,.45)" },
             { href: "/new-phones", title: "New phones", sub: "Latest models, official warranty.", art: <ProductArt kind="PHONE" colorHex="#3a3f4a" brand="Apple" name="iPhone 16 Pro" />, glow: "rgba(215,25,32,.4)" },
@@ -48,8 +60,10 @@ export default async function HomePage() {
             { href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <ProductArt kind="TABLET" colorHex="#8fa7c4" brand="Apple" name="iPad Air" />, glow: "rgba(0,119,217,.4)" },
             { href: "/accessories", title: "Accessories", sub: "Cases, chargers & essentials.", art: <ProductArt kind="ACCESSORY" accessoryType="EARBUDS" colorHex="#e8e8e8" />, glow: "rgba(217,166,46,.4)" },
             { href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <ProductArt kind="PHONE" colorHex="#b8955a" brand="Samsung" name="Galaxy A55" />, glow: "rgba(215,25,32,.35)" },
+            // Custom Skins (v6 §3): opens the brand → model → preview page.
+            { href: "/custom-skins", title: "Custom Skins", sub: "Try designs on your exact phone — or upload your own.", art: <SkinTileArt />, glow: "rgba(217,166,46,.45)", wide: true },
           ].map((c, i) => (
-            <Reveal key={c.href} delay={i * 0.05}>
+            <Reveal key={c.href} delay={i * 0.05} className={"wide" in c ? "col-span-2 xl:col-span-1" : undefined}>
               <Link href={c.href} className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-gold/25 transition hover:ring-gold/70">
                 <div className="relative aspect-[4/3.2] overflow-hidden bg-gradient-to-b from-[#0d1016] to-black">
                   <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(60% 60% at 50% 60%, ${c.glow}, transparent 70%)` }} />
@@ -137,16 +151,36 @@ export default async function HomePage() {
               <span className="text-gradient-gold">PB Rewards</span>
               <CrownIcon />
             </h2>
-            <p className="mt-3 text-lg text-white/85">Your PB Phone Passport earns points every time you repair or buy a phone.</p>
+            <p className="mt-3 text-lg text-white/85">Your PB Phone Passport earns PB Points when you shop, repair or buy a phone.</p>
+            {/* Finalised PB Points system (v6 §10 + final amendment) — same rules as the engine and the /loyalty page. */}
             <ul className="mt-5 space-y-2.5 text-sm">
-              {[`1 point per Rs ${passport.rupeesPerPoint} on repairs & accessories`, `${tierRange} points for every phone you buy`, "Redeem for AirPods, a phone case or 50% off repairs", `Points last ${passport.expiryMonths} months from when you earn them`]
-                .map((t) => (
+              {[
+                `1 PB Point per Rs ${passport.rupeesPerPoint} spent on repairs & accessories`,
+                `${tierRange} PB Points per phone, by phone value — new, used & installment phones`,
+                ...(passport.welcomePoints > 0 ? [`${passport.welcomePoints} welcome points after your first purchase or repair`] : []),
+                ...(passport.referralPoints > 0 ? [`${passport.referralPoints} points for every friend you refer, after their first purchase`] : []),
+                "Extra bonus points from our team from time to time",
+                `PB Points are valid for ${passport.expiryMonths} months from the date earned`,
+              ].map((t) => (
                   <li key={t} className="flex items-center gap-2.5">
                     <span className="grid h-5 w-5 place-items-center rounded-full bg-gold text-[#120d02]"><Icon name="check" className="h-3 w-3" strokeWidth={3} /></span>
                     {t}
                   </li>
                 ))}
             </ul>
+            {rewards.length > 0 && (
+              <div className="mt-6 rounded-2xl bg-black/40 p-4 ring-1 ring-gold/30">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">Redeem your PB Points</p>
+                <ul className="mt-2 divide-y divide-white/10 text-sm">
+                  {rewards.map((r) => (
+                    <li key={r.id} className="flex items-center justify-between gap-3 py-2">
+                      <span className="flex items-center gap-2"><Icon name="star" className="h-4 w-4 text-gold" /> <b>{r.pointsCost} Points</b></span>
+                      <span className="text-right text-white/85">{r.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/account" className="btn btn-gold">Join for free <Icon name="arrow-right" className="h-4 w-4" /></Link>
               <Link href="/loyalty" className="btn border border-white/20 text-white hover:border-white/50">How it works</Link>
@@ -159,8 +193,8 @@ export default async function HomePage() {
         <div className="container-pb relative mt-12 grid grid-cols-3 gap-3 text-center md:gap-6">
           {[
             { icon: "user", t: "1. Join free", d: "Create your account in seconds." },
-            { icon: "gift", t: "2. Earn points", d: "On every repair and phone you buy." },
-            { icon: "star", t: "3. Redeem rewards", d: "AirPods, cases & repair discounts." },
+            { icon: "gift", t: "2. Earn points", d: "On repairs, accessories and phones." },
+            { icon: "star", t: "3. Redeem rewards", d: rewards.length ? rewards.map((r) => r.name.replace(/^Free\s+/i, "")).join(", ") + "." : "Rewards in store." },
           ].map((s) => (
             <div key={s.t}>
               <span className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-gold/60 text-gold"><Icon name={s.icon} className="h-6 w-6" /></span>
@@ -324,5 +358,16 @@ function RepairArt() {
         <path d="M-20 -8 a22 22 0 0 1 40 0 l-9 8 l-8 -9 l-6 0 l-8 9 z" fill="url(#rp-gold)" />
       </g>
     </svg>
+  );
+}
+
+/** Custom Skins tile art: a phone back wearing one of the sample designs, fitted like on the skins page. */
+function SkinTileArt() {
+  const template = { widthMm: 71.5, heightMm: 149.6, cornerMm: 11, cameraX: 5, cameraY: 5, cameraW: 36, cameraH: 36, cameraCornerMm: 9.5, lenses: 3, bodyHex: "#2a2d33" };
+  return (
+    <div className="flex h-full items-center justify-center gap-[6%]">
+      <SkinPreview template={template} imageUrl="/skins/pb-racing.svg" look="GLOSS" className="h-full w-auto -rotate-6" label="Custom skin preview" />
+      <SkinPreview template={template} imageUrl="/skins/gold-marble.svg" look="MATTE" className="hidden h-[88%] w-auto rotate-6 sm:block xl:hidden" label="Custom skin preview" />
+    </div>
   );
 }

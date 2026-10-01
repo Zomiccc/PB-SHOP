@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BRAND } from "@/lib/constants";
-import { cn } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 import { ChatThread, type ThreadMessage } from "./ChatThread";
 import { useChatNotifications } from "./useChatNotifications";
@@ -30,6 +29,8 @@ export function Chatbox() {
   const [unread, setUnread] = useState(0);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const seen = useRef<Set<string>>(new Set());
+  // The "Enable Notifications" control lives at the top of the homepage (v6 §9); this keeps the browser's
+  // subscription attached to the conversation and shows replies while the tab is in the background.
   const notify = useChatNotifications("VISITOR", conversationId);
   const showNote = notify.show;
 
@@ -151,29 +152,11 @@ export function Chatbox() {
                   <p className="font-semibold">PB Mobiles Support</p>
                   <p className="flex items-center gap-1.5 text-xs text-white/60"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Typically replies in minutes</p>
                 </div>
-                {notify.supported && (
-                  <button
-                    onClick={notify.toggle}
-                    disabled={notify.busy}
-                    aria-pressed={notify.enabled}
-                    aria-label={notify.enabled ? "Turn off notifications" : "Enable notifications"}
-                    title={notify.enabled ? "Notifications on" : "Enable notifications"}
-                    className={cn("grid h-9 w-9 place-items-center rounded-full transition", notify.enabled ? "bg-gold/20 text-gold" : "text-white/70 hover:bg-white/10")}
-                  >
-                    <Icon name={notify.enabled ? "bell" : "bell-off"} className="h-4 w-4" />
-                  </button>
-                )}
                 <button onClick={() => setOpen(false)} aria-label="Close chat" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/10">
                   <Icon name="close" className="h-4 w-4" />
                 </button>
               </div>
             </div>
-            {(notify.problem || (!notify.enabled && notify.supported && msgs.some((m) => m.from === "VISITOR"))) && (
-              <button onClick={notify.toggle} className="flex items-center gap-2 bg-gold/10 px-4 py-2 text-left text-xs text-gold-soft">
-                <Icon name="bell" className="h-3.5 w-3.5 shrink-0" />
-                {notify.problem ?? "Enable notifications to know when we reply"}
-              </button>
-            )}
 
             <ChatThread
               side="VISITOR"

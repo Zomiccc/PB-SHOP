@@ -70,7 +70,7 @@ export default function TermsPage() {
       <ul>
         <li>Points are earned on eligible purchases and repairs, have no cash value, and expire as stated on the Loyalty page.</li>
         <li>Points: 1 per Rs 100 spent on repairs and accessories; phones by price — Rs 10,000–29,999: 50, Rs 30,000–49,999: 100, Rs 50,000–79,999: 150, Rs 80,000+: 200 (installment phones on the same tiers). New members get 25 welcome points with their first purchase or repair, and 25 referral points for each friend who joins with their referral code and makes a first purchase or repair. Each award expires six months after it is earned; expired points cannot be redeemed.</li>
-        <li>Points can be redeemed for repairs and accessories, e.g. 100 points for a phone case of your choice, 200 points for AirPods, or 500 points for 50% off a repair (labour only — parts are excluded).</li>
+        <li>Points can be redeemed in store: 50 points for a free screen protector, 100 points for a free custom 3D mobile skin, 200 points for free AirPods (subject to stock). Points can be accumulated until redeemed or expired; redeemed points cannot be restored; no points are earned on redeemed rewards; points from refunded or cancelled transactions are reversed; points are calculated on the eligible / net amount after discounts.</li>
         <li>PB Mobiles may update rewards and rules; the current rules are always shown on the Loyalty page.</li>
       </ul>
 

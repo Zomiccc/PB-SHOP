@@ -259,7 +259,7 @@ export async function givePointsForOrderAction(_: FormState, f: FormData): Promi
 
 /**
  * Redeems a Phone Passport reward (master brief §4). Only unexpired points can be used.
- * Repair rewards (e.g. 500 pts = 50% off) are applied to a repair and never discount the parts.
+ * Repair-discount rewards (if the owner creates any) are applied to a repair and never discount the parts.
  */
 export async function redeemRewardAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { BrandModelPicker } from "@/components/skins/BrandModelPicker";
+import { OwnDesignUpload } from "@/components/skins/OwnDesignUpload";
 import { Icon } from "@/components/ui/Icon";
 import { skinCatalogue } from "@/lib/skins";
 import { getSetting } from "@/lib/settings";
@@ -18,11 +19,15 @@ export default async function CustomSkinsPage() {
 
   return (
     <>
-      <PageHero eyebrow="Custom Skins" title="Your phone," accent="your style." intro="Find your phone, try our designs on your exact model, then pick the finish. Precision-cut and fitted in store." />
+      <PageHero eyebrow="Custom Skins" title="Your phone," accent="your style." intro="Find your phone and try our designs on your exact model — or upload your own picture to see it on any phone. Precision-cut and fitted in store." />
       <section className="pb-16">
         <div className="container-pb">
           {cfg.enabled && brands.length ? (
-            <BrandModelPicker brands={brands} />
+            <>
+              {/* v6 §4: customers can preview their own picture on any model (it stays on their device). */}
+              <div className="mx-auto mb-4 max-w-2xl"><OwnDesignUpload /></div>
+              <BrandModelPicker brands={brands} />
+            </>
           ) : (
             <p className="card mx-auto max-w-2xl p-8 text-center text-muted">Custom skins are coming soon. Ask us in store or on chat.</p>
           )}

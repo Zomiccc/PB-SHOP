@@ -96,18 +96,20 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
         </Panel>
 
         <Panel title="Redeem a reward">
-          <ActionForm action={redeemRewardAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <ActionForm action={redeemRewardAction} className={`grid gap-2 ${rewards.some((r) => r.kind === "REPAIR_DISCOUNT") ? "sm:grid-cols-[1fr_1fr_auto]" : "sm:grid-cols-[1fr_auto]"}`}>
             <input type="hidden" name="customerId" value={c.id} />
             <select name="rewardId" aria-label="Reward" className="field">
               {rewards.map((r) => <option key={r.id} value={r.id} disabled={r.pointsCost > c.loyaltyPoints}>{r.name} — {r.pointsCost} pts</option>)}
             </select>
-            <select name="repairId" aria-label="Repair (for repair discounts)" className="field">
-              <option value="">Repair (for repair discounts)</option>
-              {openRepairs.map((r) => <option key={r.id} value={r.id}>{r.ref} · {r.brand} {r.model}</option>)}
-            </select>
+            {rewards.some((r) => r.kind === "REPAIR_DISCOUNT") && (
+              <select name="repairId" aria-label="Repair (for repair discounts)" className="field">
+                <option value="">Repair (for repair discounts)</option>
+                {openRepairs.map((r) => <option key={r.id} value={r.id}>{r.ref} · {r.brand} {r.model}</option>)}
+              </select>
+            )}
             <Submit variant="gold">Redeem</Submit>
           </ActionForm>
-          <p className="mt-2 text-xs text-muted">Only unexpired points can be used; the soonest-expiring points are spent first. Repair discounts apply to labour only (final charge minus parts).</p>
+          <p className="mt-2 text-xs text-muted">Only unexpired points can be used; the soonest-expiring points are spent first. Redeemed points can&apos;t be restored, and no points are earned on the free reward itself.</p>
           <p className="mt-5 border-t border-ink/10 pt-5 text-xs font-semibold text-muted">Correct or deduct points</p>
           <ActionForm action={adjustPointsAction} resetOnSuccess className="mt-2 grid gap-2 sm:grid-cols-[100px_140px_1fr_auto]">
             <input type="hidden" name="customerId" value={c.id} />

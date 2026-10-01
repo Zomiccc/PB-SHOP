@@ -2,7 +2,7 @@ import { db } from "./db";
 import { audit } from "./audit";
 import { getSetting } from "./settings";
 import { notify } from "./notify";
-import { earnPoints, pointsForRepair } from "./loyalty";
+import { earnPoints, pointsForRepair, reverseRepairPoints } from "./loyalty";
 import { firstTransactionRewards } from "./passport";
 import { REPAIR_STATUSES } from "./constants";
 
@@ -32,6 +32,8 @@ export async function changeRepairStatus(repairId: string, to: string, staffId: 
       if (!already) await earnPoints(tx, { customerId: r.customerId, points: repairPts, source: "REPAIR", reason: `Repair ${r.ref}`, repairId, staffId });
     }
     if (to === "COMPLETED" && r.customerId) await firstTransactionRewards(tx, r.customerId, `repair ${r.ref}`, staffId);
+    // Cancelled after completion (e.g. refunded): its points are reversed (v6 final amendment §7).
+    if (to === "CANCELLED") await reverseRepairPoints(tx, repairId, `repair ${r.ref}`, staffId);
     return updated;
   });
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { downPaymentList, quote, termList, type FinancingConfig } from "@/lib/finance";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "./ui/Icon";
+import { choosePlan } from "./InstallmentRequestForm";
 
 type PhoneOption = { slug: string; name: string; price: number };
 
@@ -14,7 +15,7 @@ type PhoneOption = { slug: string; name: string; price: number };
  * app (flat monthly markup on the financed amount, rounded to the rupee). Informational only — installment
  * purchases are completed in store with the customer's CNIC (master brief §3).
  */
-export function FinanceCalculator({ config, phones, initialPrice, initialSlug, productName, compact = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; initialSlug?: string; productName?: string; compact?: boolean }) {
+export function FinanceCalculator({ config, phones, initialPrice, initialSlug, productName, compact = false, bookable = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; initialSlug?: string; productName?: string; compact?: boolean; /** Show "Book an appointment with this plan" (Installments page, v6 §7). */ bookable?: boolean }) {
   const terms = termList(config);
   const downOptions = downPaymentList(config);
   const eligiblePhones = (phones ?? []).filter((p) => p.price >= config.minPrice);
@@ -107,6 +108,18 @@ export function FinanceCalculator({ config, phones, initialPrice, initialSlug, p
               <Row label="Total you pay" value={pkr(q.totalCost + q.guaranteeDeposit)} strong />
             </dl>
           </details>
+
+          {bookable && (
+            <div className="border-t border-white/10 px-5 py-4 md:px-7">
+              <button
+                type="button"
+                onClick={() => choosePlan({ phoneModel: productName ?? eligiblePhones.find((p) => p.slug === slug)?.name ?? `Phone around ${pkr(price)}`, price, downPercent: dpPercent, terms: term, perInstallment: q.perInstallment })}
+                className="btn btn-gold w-full"
+              >
+                <Icon name="clock" className="h-4 w-4" /> Book an appointment with this plan
+              </button>
+            </div>
+          )}
 
           <div className="border-t border-white/10 px-5 py-4 md:px-7">
             <p className="text-xs leading-relaxed text-blue-soft">{config.disclaimer}</p>

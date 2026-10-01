@@ -26,7 +26,7 @@ export default async function EditSkinPage(props: PageProps<"/admin/skins/[id]">
       {sp.created && <p className="mb-4 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-400">Design created.</p>}
       {sp.copied && <p className="mb-4 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-400">Copy created (disabled) — rename it, change what you need, tick Enabled and save.</p>}
       <Panel>
-        <SkinForm brands={brands} skin={{ id: skin.id, name: skin.name, description: skin.description, imageUrl: skin.imageUrl, focus: skin.focus, price: skin.price, allModels: skin.allModels, active: skin.active, sortOrder: skin.sortOrder, modelIds: skin.models.map((m) => m.id) }} />
+        <SkinForm brands={brands} skin={{ id: skin.id, name: skin.name, description: skin.description, imageUrl: skin.imageUrl, fullImageUrl: skin.fullImageUrl, focus: skin.focus, price: skin.price, allModels: skin.allModels, active: skin.active, sortOrder: skin.sortOrder, modelIds: skin.models.map((m) => m.id) }} />
       </Panel>
       <Panel title="Delete design" className="mt-6 ring-1 ring-red/30">
         <p className="text-sm text-muted">Removes this design from every model. To hide it for now, disable it instead.</p>

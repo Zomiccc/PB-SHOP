@@ -4,18 +4,16 @@ import { StoreProviders } from "@/components/layout/StoreProviders";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Chatbox } from "@/components/chat/Chatbox";
 import { SocialProof } from "@/components/SocialProof";
-import { BroadcastBar } from "@/components/layout/BroadcastBar";
-import { activeBroadcast, safeHref } from "@/lib/broadcasts";
+import { NotificationsBar } from "@/components/layout/NotificationsBar";
 
-export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const b = await activeBroadcast().catch(() => null);
-  const broadcast = b ? { ...b, ctaHref: safeHref(b.ctaHref) } : null;
+export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <StoreProviders>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-gold focus:px-4 focus:text-[#120d02] focus:py-2">
         Skip to content
       </a>
-      <BroadcastBar broadcast={broadcast} />
+      {/* Top of the homepage: "Enable Notifications" (v6 §9). Broadcasts now sit beneath Shop Phones (v6 §1). */}
+      <NotificationsBar />
       <Header />
       <main id="main">{children}</main>
       <Footer />

@@ -66,10 +66,11 @@ describe("Matches the partner (Palm) app exactly", () => {
     expect([30, 40, 50].map((p) => Math.round((73999 * p) / 100))).toEqual([22200, 29600, 37000]);
   });
 
-  it("minimum down payment is 10%", () => {
-    expect(palm.minDownPaymentPercent).toBe(10);
-    expect(downPaymentList(palm)[0]).toBe(10);
-    expect(minDownPayment(73999, palm)).toBe(7400);
+  it("minimum down payment is 30% — 10% and 20% are removed (v6 §6)", () => {
+    expect(palm.minDownPaymentPercent).toBe(30);
+    expect(downPaymentList(palm)).toEqual([30, 40, 50]);
+    expect(downPaymentList({ ...palm, downPaymentOptions: "10,20,30,40,50" })).toEqual([30, 40, 50]); // never below the minimum
+    expect(minDownPayment(73999, palm)).toBe(22200);
   });
 });
 

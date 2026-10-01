@@ -18,6 +18,6 @@ describe("Six-photo 3D uploads on a read-only server (§11)", () => {
     expect(url).toMatch(/^\/api\/media\/\w+$/);
     const m = await db.mediaFile.findUniqueOrThrow({ where: { id: url.split("/").pop()! } });
     expect(m.mimeType).toBe("image/jpeg");
-    expect(Buffer.from(m.data).equals(Buffer.from(jpg))).toBe(true);
+    expect(Buffer.from(m.data!).equals(Buffer.from(jpg))).toBe(true);
   });
 });

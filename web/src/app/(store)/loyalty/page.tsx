@@ -10,7 +10,7 @@ import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "PB Phone Passport — Points & Rewards",
-  description: "Earn 1 point per Rs 100 on repairs and accessories, and 50–200 points per phone by price. Redeem for AirPods, a phone case of your choice or 50% off repairs.",
+  description: "Earn 1 point per Rs 100 on repairs and accessories, and 50–200 points per phone by price. Redeem 50 points for a free screen protector, 100 for a free custom 3D skin, 200 for free AirPods.",
 };
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ export default async function LoyaltyPage() {
         <div className="container-pb">
           <p className="eyebrow text-gold">Redeem</p>
           <h2 className="display mt-3 text-4xl md:text-5xl">What points get you.</h2>
-          <p className="mt-3 max-w-lg text-white/65">Points can be used on repairs and accessories. Ask at the counter — staff apply the reward to your Passport straight away.</p>
+          <p className="mt-3 max-w-lg text-white/65">Swap your PB Points for these rewards at the counter — staff apply them to your Passport straight away.</p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {rewards.map((r, i) => (
               <Reveal key={r.id} delay={i * 0.05}>
@@ -89,18 +89,39 @@ export default async function LoyaltyPage() {
               <Icon name="user" className="h-4 w-4" /> See my Passport
             </Link>
           </div>
+          {/* Final PB Points system (v6 final amendment) — same numbers as the points engine. */}
           <dl className="space-y-5 text-sm">
-            <Rule t="Earning">
-              1 point per Rs {rules.rupeesPerPoint} spent on repairs and accessories. Phones earn by price:
-              <span className="mt-2 grid max-w-sm grid-cols-2 gap-x-6 gap-y-1 rounded-xl bg-card p-3 text-xs ring-1 ring-white/10">
-                {tiers.map((t) => (
-                  <span key={t.label} className="contents"><span className="text-muted">{t.label}</span><b className="text-right text-gold">{t.points} pts</b></span>
+            <Rule t="Repairs & accessories">
+              Earn 1 PB Point for every Rs {rules.rupeesPerPoint} spent.
+              <span className="mt-2 flex flex-wrap gap-2">
+                {[500, 1000, 1500, 5000].map((rs) => (
+                  <span key={rs} className="rounded-full bg-card px-3 py-1 text-xs ring-1 ring-white/10">Rs {rs.toLocaleString("en-PK")} → <b className="text-gold">{Math.floor(rs / rules.rupeesPerPoint)} points</b></span>
                 ))}
               </span>
-              <span className="mt-2 block">Installment phones earn on the same tiers. Purchase points are added once payment is confirmed.</span>{rules.welcomePoints > 0 && ` New members get a ${rules.welcomePoints}-point welcome reward with their first purchase or repair.`}{rules.referralPoints > 0 && ` Refer a friend with your Passport ID and get ${rules.referralPoints} points when they make their first purchase or repair.`}</Rule>
-            <Rule t="Expiry">Each set of points expires {rules.expiryMonths} months after the day it was earned. Expired points can&apos;t be redeemed; your Passport shows what&apos;s expiring and when.</Rule>
-            <Rule t="Redeeming">Rewards are redeemed in store. Points that expire soonest are used first.</Rule>
-            <Rule t="Exclusions">{rules.exclusions}</Rule>
+            </Rule>
+            <Rule t="New, used & installment phones">
+              Points by eligible phone value:
+              <span className="mt-2 grid max-w-sm grid-cols-2 gap-x-6 gap-y-1 rounded-xl bg-card p-3 text-xs ring-1 ring-white/10">
+                {tiers.map((t) => (
+                  <span key={t.label} className="contents"><span className="text-muted">{t.label}</span><b className="text-right text-gold">{t.points} points</b></span>
+                ))}
+              </span>
+              <span className="mt-2 block">Installment phones follow the same points structure, based on the eligible phone value.</span>
+            </Rule>
+            {rules.welcomePoints > 0 && <Rule t="Welcome reward">{rules.welcomePoints} PB Points when your new account completes its first eligible purchase or repair — on top of the standard points for it.</Rule>}
+            {rules.referralPoints > 0 && <Rule t="Referral reward">Share your referral code (your Passport ID). You get {rules.referralPoints} PB Points when a friend who joined with it completes their first eligible purchase or repair. Creating the account alone doesn&apos;t count.</Rule>}
+            <Rule t="Bonus points">Our team can award extra PB Points from time to time — they show in your points history with the reason.</Rule>
+            <Rule t="Points validity">Each PB Point is valid for {rules.expiryMonths} months from the date it is earned. Your Passport shows what&apos;s expiring and when; points that expire soonest are used first.</Rule>
+            <Rule t="Important rules">
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                <li>Points can be accumulated until redeemed or expired.</li>
+                <li>Redeemed points cannot be restored.</li>
+                <li>No points are earned on redeemed rewards.</li>
+                <li>Points from refunded or cancelled transactions are reversed.</li>
+                <li>Points are calculated on the eligible / net transaction amount after discounts.</li>
+              </ul>
+            </Rule>
+            <Rule t="Redeeming">Rewards are redeemed in store — staff apply them to your Passport straight away.</Rule>
           </dl>
         </div>
       </section>

@@ -155,6 +155,24 @@ export async function spendPoints(
   return take;
 }
 
+/**
+ * Reverses the points a cancelled / refunded transaction earned (v6: "points from refunded or cancelled
+ * transactions are reversed"): its unspent points are removed first, and anything already spent is taken from
+ * the customer's other points (as far as they have). Redeemed points are never restored. Returns points reversed.
+ */
+export async function reverseRepairPoints(tx: Tx, repairId: string, label: string, staffId: string | null) {
+  const lots = await tx.loyaltyTransaction.findMany({ where: { repairId, type: "EARN" } });
+  const customerId = lots[0]?.customerId;
+  const earned = lots.reduce((n, t) => n + t.points, 0);
+  if (!customerId || earned <= 0 || (await tx.loyaltyTransaction.findFirst({ where: { repairId, type: "ADJUST", points: { lt: 0 } } }))) return 0;
+  const unspent = lots.reduce((n, t) => n + (t.remaining ?? 0), 0);
+  for (const lot of lots) await tx.loyaltyTransaction.update({ where: { id: lot.id }, data: { remaining: 0 } });
+  await tx.loyaltyTransaction.create({ data: { customerId, type: "ADJUST", points: -unspent, repairId, reason: `Cancelled — ${label}`, staffId } });
+  if (earned - unspent > 0) await spendPoints(tx, { customerId, points: earned - unspent, type: "ADJUST", reason: `Cancelled — ${label} (points already used)`, repairId, staffId, allowPartial: true });
+  else await syncBalance(tx, customerId);
+  return earned;
+}
+
 /** Points expiring within `days` (shown on the customer's Passport). */
 export async function expiringSoon(customerId: string, days = 30, now = new Date()) {
   const until = new Date(now.getTime() + days * 86_400_000);

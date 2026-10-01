@@ -8,7 +8,7 @@ import { SkinPreview } from "../skins/SkinPreview";
 
 type Model = { id: string; name: string; template: SkinTemplate };
 type Brand = { id: string; name: string; models: Model[] };
-type Skin = { id: string; name: string; description: string | null; imageUrl: string; focus: string; price: number; allModels: boolean; active: boolean; sortOrder: number; modelIds: string[] };
+type Skin = { id: string; name: string; description: string | null; imageUrl: string; fullImageUrl: string | null; focus: string; price: number; allModels: boolean; active: boolean; sortOrder: number; modelIds: string[] };
 
 /**
  * Create / edit a design (v4 §10): artwork upload, optional extra charge, crop focus, and where it's
@@ -59,6 +59,18 @@ export function SkinForm({ brands, skin }: { brands: Brand[]; skin?: Skin }) {
               className="field file:mr-3 file:rounded-full file:border-0 file:bg-gold file:px-3 file:py-1 file:text-sm file:font-semibold file:text-[#120d02]"
             />
             <span className="mt-1 block text-xs text-muted">Portrait artwork works best (about 1:2). JPG, PNG or WebP, max 4 MB.</span>
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="label">Full / uncut artwork (optional)</span>
+            <input name="fullImage" type="file" accept="image/jpeg,image/png,image/webp" className="field file:mr-3 file:rounded-full file:border-0 file:bg-white/15 file:px-3 file:py-1 file:text-sm file:font-semibold file:text-white" />
+            <span className="mt-1 block text-xs text-muted">The complete design without any phone cut-outs — customers can switch to “Full artwork” to see it. If empty, the artwork above is shown.</span>
+            {skin?.fullImageUrl && (
+              <span className="mt-2 flex items-center gap-3 text-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element -- admin thumbnail */}
+                <img src={skin.fullImageUrl} alt="" className="h-12 w-12 rounded object-cover" />
+                <label className="flex items-center gap-1.5"><input type="checkbox" name="removeFull" className="h-4 w-4" /> Remove full artwork</label>
+              </span>
+            )}
           </label>
           <label className="block">
             <span className="label">Keep in view when cropped</span>

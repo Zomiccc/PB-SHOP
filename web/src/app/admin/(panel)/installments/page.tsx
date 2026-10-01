@@ -6,7 +6,9 @@ import { AVAILABILITY, maskCnic, monthlyPayment } from "@/lib/installments";
 import { INSTALLMENT_BRANDS, brandBySlug } from "@/lib/brands";
 import { Badge, Field, PageTitle, Panel, Table, Td, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
-import { deleteListingAction, moveListingAction, saveListingAction } from "../../_actions/content";
+import { deleteListingAction, installmentRequestStatusAction, moveListingAction, saveListingAction } from "../../_actions/content";
+import { formatPkt } from "@/lib/appointments";
+import { recentInstallmentRequests } from "@/lib/installment-requests";
 
 export const metadata = { title: "Installments" };
 
@@ -15,9 +17,11 @@ export const metadata = { title: "Installments" };
  * sales (master brief §3, §5). There is no online installment checkout.
  */
 export default async function InstallmentsAdminPage() {
-  const [listings, sales] = await Promise.all([
+  const [listings, sales, requests] = await Promise.all([
     db.installmentListing.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { _count: { select: { sales: true } } } }),
     db.installmentSale.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { staff: true, _count: { select: { attachments: true } } } }),
+    // Upcoming and recent online requests with their appointment (v6 §7).
+    recentInstallmentRequests(),
   ]);
   return (
     <>
@@ -25,6 +29,41 @@ export default async function InstallmentsAdminPage() {
         <Link href="/admin/installments/sales/new" className="btn btn-gold !py-2.5 !text-sm">+ New installment sale</Link>
         <Link href="/#installments" target="_blank" className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>View on homepage</span></Link>
       </PageTitle>
+
+      <Panel title={`Appointment requests (${requests.length})`} className="mb-6">
+        <p className="mb-3 text-sm text-muted">Booked online from the Installments page. Times are Pakistan time. Cancelling frees the slot.</p>
+        <Table head={["Appointment", "Customer", "Phone & plan", "Status", ""]} empty="No appointment requests yet.">
+          {requests.map((r) => (
+            <tr key={r.id}>
+              <Td><b>{formatPkt(r.appointmentAt)}</b><span className="block font-mono text-xs text-muted">{r.ref}</span></Td>
+              <Td>
+                <b>{r.name}</b>
+                <span className="block text-xs"><a href={`tel:${r.phone}`} className="text-blue">{r.phone}</a> · <a href={`https://wa.me/92${r.phone.slice(1)}`} target="_blank" rel="noreferrer" className="text-blue">WhatsApp</a></span>
+                {(r.email || r.city) && <span className="block text-xs text-muted">{[r.email, r.city].filter(Boolean).join(" · ")}</span>}
+              </Td>
+              <Td className="max-w-xs text-xs">
+                <b className="text-sm">{r.phoneModel}</b>
+                <span className="block text-muted">{[r.price && pkr(r.price), r.downPercent != null && `${r.downPercent}% down`, r.terms && r.perInstallment && `${r.terms} × ${pkr(r.perInstallment)}`].filter(Boolean).join(" · ") || "No plan chosen"}</span>
+                {r.notes && <span className="mt-1 block italic text-muted">“{r.notes}”</span>}
+              </Td>
+              <Td><Badge tone={r.status === "NEW" ? "gold" : r.status === "CONFIRMED" ? "blue" : r.status === "COMPLETED" ? "green" : "red"}>{r.status.replace("_", " ")}</Badge></Td>
+              <Td>
+                <ActionForm action={installmentRequestStatusAction} className="flex gap-2">
+                  <input type="hidden" name="id" value={r.id} />
+                  <select name="status" defaultValue={r.status} aria-label="Status" className="field !w-36 !py-2 !text-sm">
+                    <option value="NEW">New</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="COMPLETED">Completed (visited)</option>
+                    <option value="NO_SHOW">No-show</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                  <Submit variant="ghost">Save</Submit>
+                </ActionForm>
+              </Td>
+            </tr>
+          ))}
+        </Table>
+      </Panel>
 
       <div className="grid gap-6 2xl:grid-cols-[1.3fr_1fr]">
         <Panel title={`Homepage listings (${listings.length})`}>

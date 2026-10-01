@@ -37,6 +37,15 @@ export async function notifyVisitor(conversationId: string, preview: string) {
   return send(subs, { title: "PB Mobiles replied", body: preview, url: "/?chat=open", tag: `chat-${conversationId}` });
 }
 
+/**
+ * A newly published broadcast → every customer browser that turned on "Enable Notifications" at the top of the
+ * homepage (v6 §9), whether or not they've chatted with us.
+ */
+export async function notifyVisitorsBroadcast(message: string) {
+  const subs = await db.pushSubscription.findMany({ where: { audience: "VISITOR" } });
+  return send(subs, { title: "PB Mobiles", body: message.slice(0, 160), url: "/", tag: "broadcast" });
+}
+
 /** A customer message → every staff member who turned notifications on. */
 export async function notifyStaffChat(conversationId: string, preview: string) {
   const subs = await db.pushSubscription.findMany({ where: { audience: "STAFF" } });

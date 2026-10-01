@@ -1,5 +1,19 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Developer Requirements v6 (final) — implemented
+
+| § | Requirement | Where / status |
+|---|---|---|
+| 1–2 | **Broadcasts with text, pictures and videos**, centred directly beneath Shop Phones; several live broadcasts = swipeable carousel. Admin: upload pictures / videos (sent in 3 MB pieces, so large videos work on Vercel; served with Range support), live **preview before publishing**, publish / edit / disable / remove. Customers who enabled notifications are alerted on publish | Home, Admin → Broadcasts ✅ + tests |
+| 3 | **Custom Skins tile** on the homepage → /custom-skins | ✅ |
+| 4 | **Customer-uploaded skin preview**: pick a gallery picture, preview it on any brand / model, auto-fitted; kept on the device only (never uploaded, never a catalogue skin); stays when switching models | /custom-skins ✅ |
+| 5 | **Full / uncut artwork**: optional upload per design in admin; customers toggle "On phone" / "Full artwork" | ✅ |
+| 6 | Installments **start at 30%** (10% and 20% removed; saved settings migrated once) | ✅ + tests |
+| 7 | **Installment request form + appointment**: details, plan, date, time slot (full / past slots blocked, capacity per slot), confirmation; admin list with status; times & capacity in Settings | /installments#book, Admin → Installments ✅ + tests |
+| 8 | Account page: **Create Account** wording | ✅ |
+| 9 | **Enable Notifications** at the top of the homepage (removed from the chatbox); works before chatting | ✅ |
+| 10 + final amendment | PB Points wording site-wide: 1/Rs 100, 50–200 per phone, 25 welcome, 25 referral, manual bonus, 6-month validity; **rewards 50 = Free Screen Protector, 100 = Free Custom 3D Mobile Skin, 200 = Free AirPods** (old rewards switched off, kept for history); important rules listed; points of cancelled repairs reversed | Home, /loyalty, terms, chat bot ✅ + tests |
+
 ## PB Phone Passport — Developer Requirements (final v4) + client requests (1 Oct 2026) — implemented
 
 | § | Requirement | Where / status |

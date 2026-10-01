@@ -168,7 +168,11 @@ export async function saveSkinAction(_: FormState, f: FormData): Promise<FormSta
     const upload = file instanceof File && file.size > 0 ? file : null;
     if (!id && !upload) throw new Error("Upload the skin artwork");
     const imageUrl = upload ? await saveUpload(upload, "skins", SKIN_IMAGE) : null;
-    const data = { name, price, focus, allModels, description: str(f, "description") || null, active: bool(f, "active"), sortOrder: int(f, "sortOrder") ?? 0, ...(imageUrl ? { imageUrl } : {}) };
+    // Optional full / uncut artwork customers can view (v6 §5).
+    const fullFile = f.get("fullImage");
+    const fullUpload = fullFile instanceof File && fullFile.size > 0 ? fullFile : null;
+    const fullImageUrl = fullUpload ? await saveUpload(fullUpload, "skins", SKIN_IMAGE) : bool(f, "removeFull") ? null : undefined;
+    const data = { name, price, focus, allModels, ...(fullImageUrl !== undefined ? { fullImageUrl } : {}), description: str(f, "description") || null, active: bool(f, "active"), sortOrder: int(f, "sortOrder") ?? 0, ...(imageUrl ? { imageUrl } : {}) };
     if (id) {
       const before = await db.skin.findUniqueOrThrow({ where: { id }, include: { models: { select: { id: true } } } });
       await db.skin.update({ where: { id }, data: { ...data, models: { set: modelIds.map((m) => ({ id: m })) } } });
