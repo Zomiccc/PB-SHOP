@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
 import { SETTING_DEFAULTS, getSetting, type SettingKey } from "@/lib/settings";
+import { parseTiers } from "@/lib/points-rules";
 import type { FormState } from "./auth";
 import { bool, diff, int, run, str } from "./util";
 
@@ -29,6 +30,8 @@ export async function saveSettingAction(_: FormState, f: FormData): Promise<Form
       } else next[k] = str(f, k);
     }
     if (key === "passport" && Number(next.expiryMonths) < 1) throw new Error("Points must last at least 1 month");
+    if (key === "passport" && Number(next.rupeesPerPoint) < 1) throw new Error("Rs per point must be at least 1");
+    if (key === "passport" && !parseTiers(String(next.phoneTiers)).length) throw new Error("Enter the phone tiers as price:points, e.g. 10000:50, 30000:100");
     await db.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(next) }, update: { value: JSON.stringify(next) } });
     const d = diff(before as Record<string, unknown>, next);
     await audit({ staffId: staff.id, action: "SETTING_CHANGED", entityType: "SETTING", entityId: key, recordLabel: key, before: d.before, after: d.after });

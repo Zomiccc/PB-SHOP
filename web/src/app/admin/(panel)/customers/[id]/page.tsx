@@ -12,7 +12,7 @@ import { getSetting } from "@/lib/settings";
 import { MONTHS, formatCardExpiry } from "@/lib/passport-rules";
 import { AwardPointsForm } from "@/components/admin/AwardPointsForm";
 
-const SOURCE_LABEL: Record<string, string> = { WELCOME: "Welcome reward", REFERRAL: "Referral reward", REPAIR: "Repair", NEW_PHONE: "New phone", USED_PHONE: "Used phone", MANUAL: "Staff" };
+const SOURCE_LABEL: Record<string, string> = { WELCOME: "Welcome reward", REFERRAL: "Referral reward", REPAIR: "Repair", NEW_PHONE: "New phone", USED_PHONE: "Used phone", ACCESSORY: "Accessories", INSTALLMENT_PHONE: "Installment phone", MANUAL: "Staff" };
 const TYPE_LABEL: Record<string, string> = { AWARD: "MANUAL AWARD" };
 
 export const metadata = { title: "Customer" };
@@ -29,6 +29,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
       loyaltyTx: { orderBy: { createdAt: "desc" }, include: { staff: true, reward: true } },
       notes: { where: { kind: "CUSTOMER" }, orderBy: { createdAt: "desc" }, include: { author: true } },
       referredBy: { select: { id: true, name: true, passportNo: true } },
+      referrals: { orderBy: { createdAt: "desc" }, select: { id: true, name: true, passportNo: true, createdAt: true, referralRewardedAt: true } },
       _count: { select: { referrals: true } },
     },
   });
@@ -79,8 +80,19 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
             <div className="flex justify-between gap-3"><dt className="text-muted">On the digital card</dt><dd>{card.showExpiryOnDigital ? "Shown" : "Hidden"} <Link href="/admin/settings#passport-card" className="text-xs text-blue">change</Link></dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Referred by</dt><dd>{c.referredBy ? <Link href={`/admin/customers/${c.referredBy.id}`} className="text-blue">{c.referredBy.name} ({c.referredBy.passportNo})</Link> : "—"}{c.referredBy && <span className="block text-right text-xs text-muted">{c.referralRewardedAt ? `referrer rewarded ${dt(c.referralRewardedAt)}` : "rewarded on first purchase / repair"}</span>}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Welcome reward</dt><dd>{c.loyaltyTx.some((t) => t.source === "WELCOME") ? "Given" : c.passportJoinedAt ? "Pending — on first purchase / repair" : "Not a Passport sign-up"}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-muted">Friends referred</dt><dd>{c._count.referrals}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">Referral code</dt><dd className="font-mono">{c.passportNo}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">Accounts referred</dt><dd>{c._count.referrals}</dd></div>
           </dl>
+          {c.referrals.length > 0 && (
+            <ul className="mt-3 divide-y divide-ink/10 rounded-xl bg-cream/40 px-3 text-sm">
+              {c.referrals.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 py-2">
+                  <Link href={`/admin/customers/${r.id}`} className="hover:text-blue">{r.name} <span className="font-mono text-xs text-muted">{r.passportNo}</span></Link>
+                  {r.referralRewardedAt ? <Badge tone="green">Rewarded</Badge> : <Badge tone="gold">Pending</Badge>}
+                </li>
+              ))}
+            </ul>
+          )}
         </Panel>
 
         <Panel title="Redeem a reward">

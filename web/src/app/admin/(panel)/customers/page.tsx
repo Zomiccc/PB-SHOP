@@ -16,7 +16,7 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
     where: q ? { OR: [{ name: like(q) }, { passportNo: { contains: q.toUpperCase() } }, { email: like(q) }, ...(digits.length >= 4 ? [{ phone: { contains: digits } }] : [])] } : {},
     orderBy: { updatedAt: "desc" },
     take: 200,
-    include: { _count: { select: { orders: true, repairs: true } } },
+    include: { _count: { select: { orders: true, repairs: true } }, referredBy: { select: { id: true, name: true } } },
   });
   return (
     <>
@@ -25,7 +25,7 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
       </PageTitle>
       {sp.deleted && <p className="mb-4 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-400">Customer deleted. Their orders and repairs are kept as business records.</p>}
       <Panel>
-        <Table head={["Customer", "Passport", "Points", "Orders", "Repairs", "Account", "Since", ""]} empty="No customers found.">
+        <Table head={["Customer", "Passport / referral code", "Points", "Orders", "Repairs", "Referred by", "Account", "Since", ""]} empty="No customers found.">
           {customers.map((c) => (
             <tr key={c.id} className="hover:bg-cream/60">
               <Td><Link href={`/admin/customers/${c.id}`} className="font-semibold hover:text-blue">{c.name}</Link><span className="block text-xs text-muted">{c.phone}</span></Td>
@@ -33,6 +33,7 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
               <Td className="font-semibold">{c.loyaltyPoints}</Td>
               <Td>{c._count.orders}</Td>
               <Td>{c._count.repairs}</Td>
+              <Td className="text-xs">{c.referredBy ? <Link href={`/admin/customers/${c.referredBy.id}`} className="text-blue hover:underline">{c.referredBy.name}</Link> : <span className="text-muted">—</span>}</Td>
               <Td className="text-xs">{c.passwordHash ? "Online account" : "Guest / walk-in"}</Td>
               <Td className="text-xs text-muted">{dt(c.createdAt)}</Td>
               <Td className="whitespace-nowrap text-xs">

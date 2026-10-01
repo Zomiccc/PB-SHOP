@@ -53,7 +53,7 @@ export function AwardPointsForm({ customer }: { customer: { id: string; name: st
           <p className="mt-1 text-xs text-muted">Reason: {review.reason} · New balance {customer.points + review.points}. Recorded under your name with the date and time.</p>
           <div className="mt-3 flex gap-2">
             <button disabled={pending} className="btn btn-gold !py-2 !text-sm disabled:opacity-50">{pending ? "Awarding…" : "Confirm award"}</button>
-            <button type="button" disabled={pending} onClick={() => setReview(null)} className="btn btn-ghost !py-2 !text-sm text-navy-950">Edit</button>
+            <button type="button" disabled={pending} onClick={() => setReview(null)} className="btn btn-ghost !py-2 !text-sm text-ink"><span>Edit</span></button>
           </div>
         </div>
       )}

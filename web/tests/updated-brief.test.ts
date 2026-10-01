@@ -34,19 +34,19 @@ describe("Care Card removed (§4, §20)", () => {
 });
 
 describe("PB Phone Passport earning rules (§4)", () => {
-  it("defaults: 10 per repair, 20 per new phone, 15 per used phone, 6-month expiry", () => {
-    expect(SETTING_DEFAULTS.passport).toMatchObject({ repairPoints: 10, newPhonePoints: 20, usedPhonePoints: 15, expiryMonths: 6 });
+  it("defaults (v4 §3): 1 point per Rs 100 on repairs & accessories, phone tiers 50/100/150/200, 6-month expiry", () => {
+    expect(SETTING_DEFAULTS.passport).toMatchObject({ rupeesPerPoint: 100, phoneTiers: "10000:50, 30000:100, 50000:150, 80000:200", expiryMonths: 6 });
   });
 
-  it("repair completion earns 10 points once, as its own lot", async () => {
+  it("repair completion earns 1 point per Rs 100 once, as its own lot", async () => {
     const staff = await makeStaff();
     const c = await makeCustomer();
-    const r = await makeRepair(c.id);
+    const r = await db.repairRequest.update({ where: { id: (await makeRepair(c.id)).id }, data: { finalPrice: 1000 } });
     await changeRepairStatus(r.id, "COMPLETED", staff.id);
     await changeRepairStatus(r.id, "COMPLETED", staff.id);
     const lots = await db.loyaltyTransaction.findMany({ where: { repairId: r.id, type: "EARN" } });
     expect(lots).toHaveLength(1);
-    expect(lots[0]).toMatchObject({ points: 10, remaining: 10, source: "REPAIR" });
+    expect(lots[0]).toMatchObject({ points: 10, remaining: 10, source: "REPAIR" }); // Rs 1,000 → 10
   });
 
   it("new and used phones earn separate lots with their own expiry", async () => {
@@ -55,7 +55,7 @@ describe("PB Phone Passport earning rules (§4)", () => {
     const o = await makeOrder(used.id, 2, c.id);
     await finalizeOrder(o.id, { markPaid: true });
     const lot = await db.loyaltyTransaction.findFirstOrThrow({ where: { orderId: o.id, type: "EARN" } });
-    expect(lot).toMatchObject({ points: 30, source: "USED_PHONE" });
+    expect(lot).toMatchObject({ points: 400, source: "USED_PHONE" }); // 2 × Rs 100,000 phones → 2 × 200
     const months = (lot.expiresAt!.getFullYear() - lot.createdAt.getFullYear()) * 12 + lot.expiresAt!.getMonth() - lot.createdAt.getMonth();
     expect(months).toBe(6);
   });
@@ -77,7 +77,7 @@ describe("Manual points at the till (client request)", () => {
     const v = await makeVariant({ stock: 3 });
     const phone = `0346${String(Math.floor(Math.random() * 1e7)).padStart(7, "0")}`;
     await createPosSale({ items: [{ variantId: v.id, qty: 1 }], method: "CASH", customerPhone: phone }, staff);
-    expect((await db.customer.findUniqueOrThrow({ where: { phone } })).loyaltyPoints).toBe(20);
+    expect((await db.customer.findUniqueOrThrow({ where: { phone } })).loyaltyPoints).toBe(200); // Rs 100,000 phone
   });
 });
 

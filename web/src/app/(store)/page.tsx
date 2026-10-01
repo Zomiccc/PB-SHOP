@@ -11,6 +11,7 @@ import { getSetting } from "@/lib/settings";
 import { pkr } from "@/lib/format";
 import { activeListings } from "@/lib/installments";
 import { InstallmentPhones } from "@/components/home/InstallmentPhones";
+import { parseTiers } from "@/lib/points-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export default async function HomePage() {
   const usedPhones = toCatalogItems(phones.filter((p) => p.condition === "USED")).filter((c) => c.totalStock > 0).sort((a, b) => Number(b.featured) - Number(a.featured)).slice(0, 6);
   const featuredTablets = tablets.filter((p) => p.featured).concat(tablets.filter((p) => !p.featured)).slice(0, 3);
   const featuredAcc = accessories.filter((p) => p.featured).slice(0, 4);
+  const tiers = parseTiers(passport.phoneTiers);
+  const tierRange = tiers.length ? `${tiers[0].points}–${tiers[tiers.length - 1].points}` : "Bonus";
 
   return (
     <>
@@ -136,7 +139,7 @@ export default async function HomePage() {
             </h2>
             <p className="mt-3 text-lg text-white/85">Your PB Phone Passport earns points every time you repair or buy a phone.</p>
             <ul className="mt-5 space-y-2.5 text-sm">
-              {[`${passport.repairPoints} points for every repair`, `${passport.newPhonePoints} points per new phone · ${passport.usedPhonePoints} per used phone`, "Redeem for AirPods, a phone case or 50% off repairs", `Points last ${passport.expiryMonths} months from when you earn them`]
+              {[`1 point per Rs ${passport.rupeesPerPoint} on repairs & accessories`, `${tierRange} points for every phone you buy`, "Redeem for AirPods, a phone case or 50% off repairs", `Points last ${passport.expiryMonths} months from when you earn them`]
                 .map((t) => (
                   <li key={t} className="flex items-center gap-2.5">
                     <span className="grid h-5 w-5 place-items-center rounded-full bg-gold text-[#120d02]"><Icon name="check" className="h-3 w-3" strokeWidth={3} /></span>

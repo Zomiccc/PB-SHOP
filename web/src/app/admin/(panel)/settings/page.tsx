@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Reward } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireStaffPage } from "@/lib/staff";
@@ -11,13 +12,14 @@ export const metadata = { title: "Settings & rules" };
 /** Owner-only configuration: Phone Passport points & rewards, installment calculator, social proof, delivery. */
 export default async function SettingsPage() {
   await requireStaffPage({ superAdmin: true });
-  const [financing, social, passport, shipping, rewards, passportCard] = await Promise.all([
+  const [financing, social, passport, shipping, rewards, passportCard, skins] = await Promise.all([
     getSetting("installmentCalc"),
     getSetting("socialProof"),
     getSetting("passport"),
     getSetting("shipping"),
     db.reward.findMany({ orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
     getSetting("passportCard"),
+    getSetting("customSkins"),
   ]);
 
   return (
@@ -59,9 +61,8 @@ export default async function SettingsPage() {
           <ActionForm action={saveSettingAction} className="space-y-3">
             <input type="hidden" name="key" value="passport" />
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Points per completed repair"><input name="repairPoints" type="number" min={0} defaultValue={passport.repairPoints} className="field" /></Field>
-              <Field label="Points per new phone bought"><input name="newPhonePoints" type="number" min={0} defaultValue={passport.newPhonePoints} className="field" /></Field>
-              <Field label="Points per used phone bought"><input name="usedPhonePoints" type="number" min={0} defaultValue={passport.usedPhonePoints} className="field" /></Field>
+              <Field label="Repairs & accessories: Rs per 1 point" hint="100 = 1 point per Rs 100 spent"><input name="rupeesPerPoint" type="number" min={1} defaultValue={passport.rupeesPerPoint} className="field" /></Field>
+              <Field label="Phone price tiers" hint="From price : points — e.g. 10000:50, 30000:100, 50000:150, 80000:200. Also used for installment phones."><input name="phoneTiers" defaultValue={passport.phoneTiers} className="field font-mono !text-sm" /></Field>
               <Field label="Points expire after (months)" hint="Counted separately for each earning event"><input name="expiryMonths" type="number" min={1} defaultValue={passport.expiryMonths} className="field" /></Field>
               <Field label="Welcome reward (points)" hint="Once, when a customer joins the Passport"><input name="welcomePoints" type="number" min={0} defaultValue={passport.welcomePoints} className="field" /></Field>
               <Field label="Referral reward (points)" hint="To the referrer, on the friend's first purchase or repair"><input name="referralPoints" type="number" min={0} defaultValue={passport.referralPoints} className="field" /></Field>
@@ -79,6 +80,16 @@ export default async function SettingsPage() {
             <Field label="Default card validity (months)" hint="Sets the expiry when a new card is issued; 0 = no automatic expiry"><input name="validityMonths" type="number" min={0} defaultValue={passportCard.validityMonths} className="field" /></Field>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="showExpiryOnDigital" defaultChecked={passportCard.showExpiryOnDigital} className="h-4 w-4" /> Show the expiry date on the customer&apos;s digital card {passportCard.showExpiryOnDigital ? <Badge tone="green">Shown</Badge> : <Badge>Hidden</Badge>}</label>
             <Submit>Save card settings</Submit>
+          </ActionForm>
+        </Panel>
+
+        <Panel title="Custom Skins page" id="custom-skins">
+          <ActionForm action={saveSettingAction} className="space-y-3">
+            <input type="hidden" name="key" value="customSkins" />
+            <p className="text-sm text-muted">Skin types and their prices, designs and phone models are managed in <Link href="/admin/skins" className="text-blue underline">Custom skins</Link>.</p>
+            <Field label="Camera cover add-on (Rs)" hint="Added to the skin type's price when the customer covers the camera; 0 = included"><input name="cameraCoverPrice" type="number" min={0} defaultValue={skins.cameraCoverPrice} className="field" /></Field>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={skins.enabled} className="h-4 w-4" /> Show the Custom Skins page {skins.enabled ? <Badge tone="green">On</Badge> : <Badge>Off</Badge>}</label>
+            <Submit>Save skins settings</Submit>
           </ActionForm>
         </Panel>
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { normalizePhone } from "@/lib/format";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
@@ -24,7 +25,7 @@ export async function generateCardAction(_: FormState, f: FormData): Promise<For
   const res = await run(async () => {
     const first = tidy(str(f, "firstName"));
     const last = tidy(str(f, "lastName"));
-    const phone = str(f, "phone").replace(/[\s-]/g, "");
+    const phone = normalizePhone(str(f, "phone"));
     if (first.length < 2) throw new Error("Enter the first name");
     if (last.length < 1) throw new Error("Enter the last name");
     if (!PHONE_RX.test(phone)) throw new Error("Enter a valid mobile number, e.g. 0300 1234567");

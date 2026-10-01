@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { normalizePhone } from "./format";
 import { db } from "./db";
 import { finalizeOrder, nextOrderNumber } from "./orders";
 import { newPassportNo } from "./auth";
@@ -49,7 +50,7 @@ export async function createPosSale(input: PosSaleInput, staff: { id: string; ro
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const discount = Math.max(0, Math.min(input.discount ?? 0, subtotal));
 
-  const phone = input.customerPhone?.replace(/[\s-]/g, "") || null;
+  const phone = input.customerPhone ? normalizePhone(input.customerPhone) || null : null;
   const order = await db.$transaction(async (tx) => {
     let customerId: string | null = null;
     if (phone) {

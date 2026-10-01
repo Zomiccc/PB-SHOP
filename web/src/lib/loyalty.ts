@@ -1,11 +1,13 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "./db";
 import { getSetting, type SettingValue } from "./settings";
+import { phoneTierPoints, spendPoints as pointsForSpend } from "./points-rules";
 
 /**
  * PB Phone Passport points engine (master brief §4).
  *
- *  - Earning: 10 points per completed repair, 20 per new phone, 15 per used phone (configurable).
+ *  - Earning (v4 §3): repairs & accessories 1 point per Rs 100; phones by price tier (50–200 points);
+ *    installment phones on the same tiers (configurable, see src/lib/points-rules.ts).
  *  - Every earning event is a separate "lot" with its own expiry date (default: six months) and a
  *    `remaining` balance, so expiry is exact per event.
  *  - Spending (rewards) and deductions use the lots that expire soonest first; expired points can never be spent.
@@ -26,19 +28,35 @@ export function addMonths(date: Date, months: number) {
   return d;
 }
 
-/** Points a paid order earns: per phone unit, by condition. Accessories, parts and tablets earn nothing by default. */
+/**
+ * Points a paid order earns (v4 §3), on the net amount paid (an order discount reduces each line
+ * proportionally; delivery fees never count):
+ *  - phones: the price tier of each unit (new and used alike);
+ *  - accessories and spare parts: 1 point per Rs 100 of their combined spend;
+ *  - tablets: nothing (not in the criteria).
+ */
 export function pointsForItems(
-  items: { qty: number; variant: { product: { type: string; condition: string; loyaltyEligible: boolean } } }[],
-  rules: Pick<PassportRules, "newPhonePoints" | "usedPhonePoints">,
+  items: { qty: number; unitPrice: number; variant: { product: { type: string; condition: string; loyaltyEligible: boolean } } }[],
+  rules: Pick<PassportRules, "rupeesPerPoint" | "phoneTiers">,
+  order: { subtotal: number; discount: number } = { subtotal: 0, discount: 0 },
 ) {
-  const out = { NEW_PHONE: 0, USED_PHONE: 0 };
+  const net = order.subtotal > 0 ? Math.max(0, order.subtotal - order.discount) / order.subtotal : 1;
+  const out = { NEW_PHONE: 0, USED_PHONE: 0, ACCESSORY: 0 };
+  let spend = 0;
   for (const i of items) {
     const p = i.variant.product;
-    if (!p.loyaltyEligible || p.type !== "PHONE") continue;
-    if (p.condition === "USED") out.USED_PHONE += rules.usedPhonePoints * i.qty;
-    else out.NEW_PHONE += rules.newPhonePoints * i.qty;
+    if (!p.loyaltyEligible) continue;
+    const unit = i.unitPrice * net;
+    if (p.type === "PHONE") out[p.condition === "USED" ? "USED_PHONE" : "NEW_PHONE"] += phoneTierPoints(unit, rules.phoneTiers) * i.qty;
+    else if (p.type === "ACCESSORY" || p.type === "PART") spend += unit * i.qty;
   }
+  out.ACCESSORY = pointsForSpend(spend, rules.rupeesPerPoint);
   return out;
+}
+
+/** Points for a completed repair: 1 per Rs 100 of what the customer pays (after any Passport discount). */
+export function pointsForRepair(r: { finalPrice: number | null; quote: number | null; rewardDiscount: number | null }, rules: Pick<PassportRules, "rupeesPerPoint">) {
+  return pointsForSpend((r.finalPrice ?? r.quote ?? 0) - (r.rewardDiscount ?? 0), rules.rupeesPerPoint);
 }
 
 /** Passport repair discount: a percentage of the labour only — parts are always excluded (master brief §4). */
@@ -73,7 +91,7 @@ export async function expirePoints(tx: Tx, customerId: string, now = new Date())
 /** One earning event → one lot. */
 export async function earnPoints(
   tx: Tx,
-  input: { customerId: string; points: number; source: string; reason: string; type?: "EARN" | "PROMO" | "ADJUST" | "AWARD"; orderId?: string | null; repairId?: string | null; staffId?: string | null; now?: Date },
+  input: { customerId: string; points: number; source: string; reason: string; type?: "EARN" | "PROMO" | "ADJUST" | "AWARD"; orderId?: string | null; repairId?: string | null; installmentSaleId?: string | null; staffId?: string | null; now?: Date },
 ) {
   if (input.points <= 0) return null;
   const rules = await getSetting("passport", tx as Prisma.TransactionClient);
@@ -88,6 +106,7 @@ export async function earnPoints(
       reason: input.reason,
       orderId: input.orderId ?? null,
       repairId: input.repairId ?? null,
+      installmentSaleId: input.installmentSaleId ?? null,
       staffId: input.staffId ?? null,
       expiresAt: addMonths(now, rules.expiryMonths),
       createdAt: now,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizePhone } from "@/lib/format";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   if (d.productId && !(await db.product.findFirst({ where: { id: d.productId, active: true } }))) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
-  const phone = d.phone ? d.phone.replace(/[\s-]/g, "") : null;
+  const phone = d.phone ? normalizePhone(d.phone) : null;
   await db.review.create({
     data: {
       productId: d.productId || null,

@@ -131,6 +131,8 @@ model LoyaltyTransaction {
   order      Order?    @relation(fields: [orderId], references: [id])
   repairId   String?
   repair     RepairRequest? @relation(fields: [repairId], references: [id])
+  installmentSaleId String? // points for an installment phone (v4 §3)
+  installmentSale   InstallmentSale? @relation(fields: [installmentSaleId], references: [id])
   rewardId   String?
   reward     Reward?   @relation(fields: [rewardId], references: [id])
   staffId    String?
@@ -561,6 +563,7 @@ model InstallmentSale {
   phoneModel      String
   imei            String?
   totalPrice      Int
+  phoneValue      Int? // the phone's cash price — PB Points use the phone tiers on this (v4 §3)
   downPayment     Int
   monthlyPayment  Int
   durationMonths  Int
@@ -573,6 +576,7 @@ model InstallmentSale {
   updatedAt       DateTime            @updatedAt
 
   attachments Attachment[]
+  loyaltyTx   LoyaltyTransaction[]
 }
 
 // ─────────────────────────────── Buying used phones (master brief §6) ───────────────────────────────
@@ -668,4 +672,76 @@ model MediaFile {
   size      Int
   data      Bytes
   createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────── Custom Skins (Passport requirements v4 §9–§11) ───────────────────────────────
+
+/// Phone brand offered on the Custom Skins page (managed by admin).
+model SkinBrand {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  active    Boolean      @default(true)
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  models    PhoneModel[]
+}
+
+/// A phone model with its skin template: back dimensions and camera-island placement, all in millimetres
+/// (origin = top-left of the phone's back). Skins are scaled / cropped to fit this template automatically.
+model PhoneModel {
+  id             String    @id @default(cuid())
+  brandId        String
+  brand          SkinBrand @relation(fields: [brandId], references: [id])
+  name           String // e.g. "Mi 12 Pro"
+  slug           String
+  active         Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  widthMm        Float
+  heightMm       Float
+  cornerMm       Float     @default(9)
+  cameraX        Float     @default(6)
+  cameraY        Float     @default(6)
+  cameraW        Float     @default(28)
+  cameraH        Float     @default(28)
+  cameraCornerMm Float     @default(7)
+  lenses         Int       @default(3) // 1–4, drawn in the preview
+  bodyHex        String    @default("#2b2f36") // phone colour shown where the skin is cut out
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  skins          Skin[]
+
+  @@unique([brandId, slug])
+}
+
+/// Skin type / material with its price (client's list: 3D Skin, Leather Skin, Transparent Printed Skin,
+/// Customize Photo Skin, Transparent Jelly, UV Curved Jelly). Managed in Admin → Custom skins → Skin types.
+model SkinType {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Int // Rs
+  look        String   @default("MATTE") // preview look: MATTE | GLOSS | CLEAR | TEXTURED | LEATHER | JELLY
+  designMode  String   @default("DESIGN") // DESIGN (customer picks a design) | PHOTO (their own photo, sent on WhatsApp) | PLAIN (no design, e.g. jelly)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Admin-uploaded skin design. Customers can only preview enabled designs that are either available for
+/// all models (incl. models added later) or assigned to their model.
+model Skin {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String
+  focus       String       @default("xMidYMid") // which part of the artwork stays in view when cropped to fit
+  price       Int          @default(0) // Rs — optional extra charge for this design, on top of the skin type's price
+  allModels   Boolean      @default(false) // available for every phone model, including ones added later
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  models      PhoneModel[]
 }

@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { normalizePhone } from "./format";
 
 /**
  * Customer reviews (master brief §3, §17). Only genuine submissions — nothing is ever seeded or
@@ -44,7 +45,7 @@ export async function reviewStats(productId?: string) {
 }
 
 export async function isVerifiedCustomer(phone: string | null | undefined) {
-  const p = (phone ?? "").replace(/[\s-]/g, "");
+  const p = normalizePhone(phone);
   if (p.length < 10) return false;
   const [orders, repairs] = await Promise.all([
     db.order.count({ where: { customerPhone: p, paymentStatus: "PAID" } }),

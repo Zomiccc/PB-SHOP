@@ -64,12 +64,12 @@ describe("Inventory & sales (§6, §19)", () => {
 });
 
 describe("Phone Passport points on orders (master brief §4)", () => {
-  it("awards 20 points per new phone for a paid order — no Care Card any more", async () => {
+  it("awards the phone price tier per phone for a paid order (Rs 80,000+ → 200 each) — no Care Card any more", async () => {
     const c = await makeCustomer();
     const v = await makeVariant({ stock: 2, price: 150000 });
     const o = await makeOrder(v.id, 2, c.id);
     await finalizeOrder(o.id, { markPaid: true });
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(40);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(400);
   });
 
   it("gives nothing to unpaid (COD) orders until they are marked paid, and awards once", async () => {
@@ -80,7 +80,7 @@ describe("Phone Passport points on orders (master brief §4)", () => {
     expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(0);
     await db.$transaction((tx) => awardOrderBenefits(tx, o.id, null));
     await db.$transaction((tx) => awardOrderBenefits(tx, o.id, null)); // idempotent
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(15);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(150); // Rs 50,000 used phone → 150
   });
 
   it("does not award points on accessories", async () => {
@@ -131,11 +131,11 @@ describe("Repairs (§8)", () => {
   it("logs every status change and awards repair points once on completion", async () => {
     const staff = await makeStaff();
     const c = await makeCustomer();
-    const r = await db.repairRequest.create({ data: { ref: `PBR-T${Date.now()}`, customerId: c.id, name: c.name, phone: c.phone, brand: "Apple", model: "iPhone 13", category: "SCREEN", description: "cracked screen" } });
+    const r = await db.repairRequest.create({ data: { ref: `PBR-T${Date.now()}`, customerId: c.id, name: c.name, phone: c.phone, brand: "Apple", model: "iPhone 13", category: "SCREEN", description: "cracked screen", finalPrice: 2500 } });
     for (const s of ["RECEIVED", "DIAGNOSING", "REPAIRING", "READY", "COMPLETED"]) await changeRepairStatus(r.id, s, staff.id);
     await changeRepairStatus(r.id, "COMPLETED", staff.id);
     expect(await db.repairStatusChange.count({ where: { repairId: r.id } })).toBe(5);
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(10);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(25); // Rs 2,500 → 25
   });
 });
 

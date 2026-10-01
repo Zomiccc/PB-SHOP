@@ -46,8 +46,8 @@ export async function finalizeOrder(orderId: string, opts: { staffId?: string | 
 }
 
 /**
- * Phone Passport points for a paid order: 20 per new phone, 15 per used phone (configurable), one
- * earning event (lot) per condition so each has its own six-month expiry. Also credits the customer's
+ * Phone Passport points for a paid order (v4 §3: phone price tiers + 1 point per Rs 100 on accessories),
+ * one earning event (lot) per kind so each has its own six-month expiry. Also credits the customer's
  * pending welcome reward and their referrer's referral reward. Idempotent.
  * `manualPoints`: staff typed the number of points at the till instead (0 = none) — audited.
  */
@@ -63,13 +63,14 @@ export async function awardOrderBenefits(tx: Tx, orderId: string, staffId: strin
   if (await tx.loyaltyTransaction.findFirst({ where: { orderId, type: "EARN" } })) return;
 
   if (manualPoints != null) {
-    const auto = pointsForItems(order.items, rules);
+    const auto = pointsForItems(order.items, rules, order);
     if (manualPoints > 0) await earnPoints(tx, { customerId: order.customerId, points: manualPoints, source: "MANUAL", reason: `Purchase ${order.number} (points set by staff)`, orderId, staffId });
-    await audit({ staffId, action: "PASSPORT_POINTS_SET_AT_SALE", entityType: "ORDER", entityId: orderId, recordLabel: `Order ${order.number}`, before: { automatic: auto.NEW_PHONE + auto.USED_PHONE }, after: { given: manualPoints } }, tx);
+    await audit({ staffId, action: "PASSPORT_POINTS_SET_AT_SALE", entityType: "ORDER", entityId: orderId, recordLabel: `Order ${order.number}`, before: { automatic: auto.NEW_PHONE + auto.USED_PHONE + auto.ACCESSORY }, after: { given: manualPoints } }, tx);
     return;
   }
 
-  const earned = pointsForItems(order.items, rules);
+  const earned = pointsForItems(order.items, rules, order);
   if (earned.NEW_PHONE > 0) await earnPoints(tx, { customerId: order.customerId, points: earned.NEW_PHONE, source: "NEW_PHONE", reason: `New phone — ${order.number}`, orderId, staffId });
   if (earned.USED_PHONE > 0) await earnPoints(tx, { customerId: order.customerId, points: earned.USED_PHONE, source: "USED_PHONE", reason: `Used phone — ${order.number}`, orderId, staffId });
+  if (earned.ACCESSORY > 0) await earnPoints(tx, { customerId: order.customerId, points: earned.ACCESSORY, source: "ACCESSORY", reason: `Accessories — ${order.number}`, orderId, staffId });
 }

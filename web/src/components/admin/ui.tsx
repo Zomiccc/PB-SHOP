@@ -59,10 +59,11 @@ export function ActionForm({
 
 export function Submit({ children, variant = "primary", className }: { children: React.ReactNode; variant?: "primary" | "red" | "gold" | "ghost"; className?: string }) {
   const pending = useContext(Pending);
-  const v = { primary: "btn-primary", red: "btn-red", gold: "btn-gold", ghost: "btn-ghost text-navy-950" }[variant];
+  // Ghost = outlined in the light ink colour (the admin is dark); the text sits in a <span> so .btn-ghost:hover can invert it.
+  const v = { primary: "btn-primary", red: "btn-red", gold: "btn-gold", ghost: "btn-ghost text-ink" }[variant];
   return (
     <button disabled={pending} className={cn("btn !py-2.5 !text-sm disabled:opacity-50", v, className)}>
-      {pending ? "Working…" : children}
+      <span>{pending ? "Working…" : children}</span>
     </button>
   );
 }

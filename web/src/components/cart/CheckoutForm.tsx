@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { phoneTierPoints, spendPoints, type PointsRules } from "@/lib/points-rules";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cartSubtotal, useCart } from "@/store/cart";
 import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/constants";
@@ -10,14 +11,14 @@ import { ProductArt } from "../product/ProductArt";
 
 type Props = {
   shipping: { flatFee: number; freeOver: number };
-  /** Passport points per phone bought (master brief §4). */
-  phonePoints: { NEW: number; USED: number };
+  /** Standard PB Points criteria, for the "you'll earn" estimate (v4 §3). */
+  pointsRules: PointsRules;
   defaults: { name?: string; phone?: string; email?: string };
 };
 
 type Errors = Record<string, string[] | undefined>;
 
-export function CheckoutForm({ shipping, phonePoints, defaults }: Props) {
+export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
   const items = useCart((s) => s.items);
   // Cart rehydrates from localStorage after mount; the server always renders the loading state.
   const hydrated = useSyncExternalStore(
@@ -40,7 +41,10 @@ export function CheckoutForm({ shipping, phonePoints, defaults }: Props) {
   const subtotal = cartSubtotal(items);
   const fee = fulfilment === "PICKUP" || subtotal >= shipping.freeOver ? 0 : shipping.flatFee;
   const total = subtotal + fee;
-  const points = items.reduce((s, i) => s + (i.kind === "PHONE" ? (i.name.endsWith("(Used)") ? phonePoints.USED : phonePoints.NEW) * i.qty : 0), 0);
+  // Same rules as the server (src/lib/loyalty.ts): phone price tiers + 1 point per Rs 100 on accessories.
+  const points =
+    items.reduce((s, i) => s + (i.kind === "PHONE" ? phoneTierPoints(i.price, pointsRules.phoneTiers) * i.qty : 0), 0) +
+    spendPoints(items.reduce((s, i) => s + (i.kind === "ACCESSORY" ? i.price * i.qty : 0), 0), pointsRules.rupeesPerPoint);
   const err = (k: string) => errors[k]?.[0];
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {

@@ -64,25 +64,27 @@ export function Header() {
           dark ? "bg-transparent" : "bg-cream/95 shadow-[0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-md md:bg-cream/85 md:backdrop-blur-xl",
         )}
       >
-        <div className="container-pb flex h-[var(--header-h)] items-center justify-between gap-6">
+        <div className="container-pb flex h-[var(--header-h)] items-center justify-between gap-6 2xl:max-w-[1440px]">
           <Logo dark={dark} />
 
-          <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
-            {NAV.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          {/* Full link bar only where it fits on one line (logo + links + actions ≈ 1,300px, header up to
+              1,440px wide at 2xl); smaller screens use the menu. The logo is the Home link here. */}
+          <nav aria-label="Main" className="hidden items-center gap-0.5 2xl:flex">
+            {NAV.filter((item) => item.href !== "/").map((item) => {
+              const active = pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative whitespace-nowrap rounded-full px-3 py-2 text-[0.9rem] font-medium transition-colors",
+                    "relative whitespace-nowrap rounded-full px-2.5 py-2 text-[0.88rem] font-medium transition-colors",
                     dark ? "text-white/75 hover:text-white" : "text-ink/70 hover:text-ink",
                     active && (dark ? "text-white" : "text-ink"),
                   )}
                 >
                   {item.label}
                   {active && (
-                    <motion.span layoutId="nav-dot" className="absolute inset-x-3 -bottom-0.5 h-[2px] rounded-full bg-red" />
+                    <motion.span layoutId="nav-dot" className="absolute inset-x-2.5 -bottom-0.5 h-[2px] rounded-full bg-red" />
                   )}
                 </Link>
               );
@@ -96,7 +98,7 @@ export function Header() {
               className={cn("hidden h-10 items-center gap-2 rounded-full px-3 text-sm font-medium sm:flex", dark ? "text-white hover:bg-white/10" : "text-ink hover:bg-ink/5")}
             >
               <Icon name="user" className="h-[18px] w-[18px]" />
-              <span className="hidden xl:inline">Account</span>
+              <span className="sr-only">Account</span>
             </Link>
             <button
               onClick={() => setOpen(true)}
@@ -110,14 +112,14 @@ export function Header() {
                 </span>
               )}
             </button>
-            <Link href="/repair" className={cn("btn hidden !py-2.5 !text-sm xl:inline-flex", dark ? "btn-gold" : "btn-red")}>
+            <Link href="/repair" className={cn("btn hidden !py-2.5 !text-sm 2xl:inline-flex", dark ? "btn-gold" : "btn-red")}>
               Book a repair <Icon name="arrow-up-right" className="h-4 w-4" />
             </Link>
             <button
               onClick={() => setMenu((m) => !m)}
               aria-expanded={menu}
               aria-label="Menu"
-              className={cn("grid h-10 w-10 place-items-center rounded-full xl:hidden", dark ? "text-white" : "text-ink")}
+              className={cn("grid h-10 w-10 place-items-center rounded-full 2xl:hidden", dark ? "text-white" : "text-ink")}
             >
               <Icon name={menu ? "close" : "menu"} className="h-5 w-5" />
             </button>
@@ -135,7 +137,7 @@ export function Header() {
               transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
               // Scrolls inside itself on short screens so the last links are always reachable.
               data-lenis-prevent
-              className="max-h-[calc(100svh-var(--header-h))] overflow-y-auto overscroll-contain border-t border-ink/10 bg-cream xl:hidden"
+              className="max-h-[calc(100svh-var(--header-h))] overflow-y-auto overscroll-contain border-t border-ink/10 bg-cream 2xl:hidden"
             >
               <div className="container-pb flex flex-col py-4">
                 {NAV.map((item, i) => (

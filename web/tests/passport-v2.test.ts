@@ -50,13 +50,13 @@ describe("Welcome reward (§4) and card expiry (§1)", () => {
     expect(after.passportJoinedAt).not.toBeNull();
     expect(after.cardExpiresAt).not.toBeNull();
 
-    const v = await makeVariant({ stock: 5, phone: false }); // accessory: no purchase points, still a transaction
+    const v = await makeVariant({ stock: 5, phone: false, price: 500 }); // Rs 500 accessory → 5 purchase points
     const o = await makeOrder(v.id, 1, c.id);
     await finalizeOrder(o.id, { markPaid: true });
     const o2 = await makeOrder(v.id, 1, c.id);
     await finalizeOrder(o2.id, { markPaid: true });
     after = await db.customer.findUniqueOrThrow({ where: { id: c.id } });
-    expect(after.loyaltyPoints).toBe(25);
+    expect(after.loyaltyPoints).toBe(25 + 5 + 5); // welcome once + standard purchase points each time
     const lots = await db.loyaltyTransaction.findMany({ where: { customerId: c.id, source: "WELCOME" } });
     expect(lots).toHaveLength(1);
     expect(lots[0].expiresAt).not.toBeNull(); // normal points expiry applies
@@ -66,9 +66,9 @@ describe("Welcome reward (§4) and card expiry (§1)", () => {
     const staff = await makeStaff();
     const c = await makeCustomer();
     await joinPassport(db, c.id);
-    const r = await makeRepair(c.id);
+    const r = await db.repairRequest.update({ where: { id: (await makeRepair(c.id)).id }, data: { finalPrice: 1000 } });
     await changeRepairStatus(r.id, "COMPLETED", staff.id);
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(10 + 25);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(10 + 25); // Rs 1,000 repair + welcome
   });
 
   it("is credited at once when a guest claims their profile (a past visit is the proof)", async () => {
@@ -139,12 +139,12 @@ describe("Referral reward (§3)", () => {
     expect(await creditReferral(db, friend.id, "again")).toBeNull();
   });
 
-  it("customers who weren't referred earn exactly as before", async () => {
+  it("customers who weren't referred earn just the standard points", async () => {
     const c = await makeCustomer();
     const v = await makeVariant({ stock: 5 });
     const o = await makeOrder(v.id, 1, c.id);
     await finalizeOrder(o.id, { markPaid: true });
-    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(20);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: c.id } })).loyaltyPoints).toBe(200); // Rs 100,000 phone
   });
 });
 

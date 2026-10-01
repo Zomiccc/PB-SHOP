@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { normalizePhone } from "@/lib/format";
 import { db } from "@/lib/db";
 
 /** Public repair status lookup — requires the reference AND the phone number used to book, for privacy. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const ref = (url.searchParams.get("ref") ?? "").trim().toUpperCase();
-  const phone = (url.searchParams.get("phone") ?? "").replace(/[\s-]/g, "");
+  const phone = normalizePhone(url.searchParams.get("phone"));
   if (!ref || !phone) return NextResponse.json({ error: "Enter your repair reference and phone number" }, { status: 400 });
 
   const r = await db.repairRequest.findUnique({

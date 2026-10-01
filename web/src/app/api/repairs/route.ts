@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizePhone } from "@/lib/format";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   const customer = await getCurrentCustomer();
-  const phone = data.phone.replace(/[\s-]/g, "");
+  const phone = normalizePhone(data.phone);
 
   const repair = await db.$transaction(async (tx) => {
     const ref = await nextRepairRef(tx);

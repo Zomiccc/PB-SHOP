@@ -15,7 +15,7 @@ export default async function CheckoutPage() {
       </div>
       <CheckoutForm
         shipping={shipping}
-        phonePoints={{ NEW: passport.newPhonePoints, USED: passport.usedPhonePoints }}
+        pointsRules={{ rupeesPerPoint: passport.rupeesPerPoint, phoneTiers: passport.phoneTiers }}
         defaults={{ name: customer?.name, phone: customer?.phone, email: customer?.email ?? undefined }}
       />
     </>

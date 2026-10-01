@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPkMobile, normalizePhone } from "@/lib/format";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -10,13 +11,12 @@ import { StockError } from "@/lib/inventory";
 import { orderToken } from "@/lib/order-token";
 import { notify } from "@/lib/notify";
 
-const phoneRx = /^(\+92|0)?3\d{2}[\s-]?\d{7}$/;
 
 const Checkout = z
   .object({
     items: z.array(z.object({ variantId: z.string(), qty: z.number().int().min(1).max(20) })).min(1, "Your bag is empty"),
     name: z.string().trim().min(2, "Enter your name").max(80),
-    phone: z.string().trim().regex(phoneRx, "Enter a valid Pakistani mobile number"),
+    phone: z.string({ message: "Enter your mobile number" }).trim().min(1, "Enter your mobile number").refine(isPkMobile, "Enter a valid Pakistani mobile number, e.g. 0300 1234567"),
     email: z.union([z.literal(""), z.string().trim().email("Enter a valid email")]).optional(),
     fulfilment: z.enum(["DELIVERY", "PICKUP"]),
     address: z.string().trim().max(300).optional(),
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please check the highlighted fields", fields: z.flattenError(parsed.error).fieldErrors }, { status: 422 });
   }
   const d = parsed.data;
-  const phone = d.phone.replace(/[\s-]/g, "");
+  const phone = normalizePhone(d.phone);
 
   const variants = await db.variant.findMany({
     where: { id: { in: d.items.map((i) => i.variantId) }, active: true, product: { active: true, type: { not: "PART" } } },

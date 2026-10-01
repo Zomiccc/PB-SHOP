@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { normalizePhone } from "@/lib/format";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
@@ -9,7 +10,7 @@ import { newPassportNo } from "@/lib/auth";
 import { suggestCodes } from "@/lib/barcode";
 import { assertVariantGrade } from "@/lib/grade";
 import { assertImeiFree, receiveStock } from "@/lib/inventory";
-import { formatCnic, maskCnic, monthlyPayment } from "@/lib/installments";
+import { HANDED_OVER, awardInstallmentPoints, formatCnic, maskCnic, monthlyPayment, reverseInstallmentPoints } from "@/lib/installments";
 import { filesFrom, inspectUpload, MAX_FILES_PER_FORM, saveAttachment, type AttachmentKind } from "@/lib/attachments";
 import { slugify } from "@/lib/format";
 import type { FormState } from "./auth";
@@ -38,7 +39,7 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
   const staff = await requireStaff();
   let createdId: string | null = null;
   const res = await run(async () => {
-    const phone = str(f, "customerPhone").replace(/[\s-]/g, "");
+    const phone = normalizePhone(str(f, "customerPhone"));
     const cnic = str(f, "cnicNumber");
     if (str(f, "customerName").length < 2) throw new Error("Enter the customer's full name");
     if (!PHONE_RX.test(phone)) throw new Error("Enter a valid mobile number, e.g. 0300 1234567");
@@ -47,12 +48,14 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
     const plan = {
       phoneModel: str(f, "phoneModel") || listing?.model || "",
       totalPrice: int(f, "totalPrice") ?? listing?.installmentTotal ?? 0,
+      phoneValue: int(f, "phoneValue") ?? listing?.regularPrice ?? null,
       downPayment: int(f, "downPayment") ?? listing?.downPayment ?? 0,
       durationMonths: int(f, "durationMonths") ?? listing?.durationMonths ?? 0,
     };
     if (plan.phoneModel.length < 2) throw new Error("Enter the phone model");
     if (plan.totalPrice <= 0 || plan.downPayment < 0 || plan.downPayment >= plan.totalPrice) throw new Error("Check the total and down payment");
     if (plan.durationMonths < 1 || plan.durationMonths > 60) throw new Error("Duration must be 1–60 months");
+    if (plan.phoneValue != null && plan.phoneValue <= 0) throw new Error("Phone cash price must be more than 0");
     const docs = await collectIdDocuments(f);
 
     const sale = await db.$transaction(async (tx) => {
@@ -97,12 +100,16 @@ export async function updateInstallmentSaleAction(_: FormState, f: FormData): Pr
     const status = str(f, "status");
     if (!SALE_STATUSES.includes(status)) throw new Error("Choose a status");
     const data = { status, imei: optStr(f, "imei"), notes: optStr(f, "notes") };
+    let points = 0;
     await db.$transaction(async (tx) => {
       await tx.installmentSale.update({ where: { id: s.id }, data });
-      await audit({ staffId: staff.id, action: "INSTALLMENT_SALE_UPDATED", entityType: "INSTALLMENT", entityId: s.id, recordLabel: s.ref, before: { status: s.status, imei: s.imei }, after: { status, imei: data.imei } }, tx);
+      // PB Points (v4 §3): given once the phone is handed over; reversed if the sale is then cancelled.
+      if (HANDED_OVER.includes(status)) points = await awardInstallmentPoints(tx, s.id, staff.id);
+      else if (status === "CANCELLED") points = -(await reverseInstallmentPoints(tx, s.id, staff.id));
+      await audit({ staffId: staff.id, action: "INSTALLMENT_SALE_UPDATED", entityType: "INSTALLMENT", entityId: s.id, recordLabel: s.ref, before: { status: s.status, imei: s.imei }, after: { status, imei: data.imei, points: points || undefined } }, tx);
     });
     revalidatePath(`/admin/installments/sales/${s.id}`);
-    return "Saved";
+    return points > 0 ? `Saved — ${points} PB Points added to the customer's Passport` : points < 0 ? `Saved — ${-points} PB Points reversed` : "Saved";
   });
 }
 
@@ -112,7 +119,7 @@ export async function createUsedPurchaseAction(_: FormState, f: FormData): Promi
   const staff = await requireStaff();
   let createdId: string | null = null;
   const res = await run(async () => {
-    const phone = str(f, "sellerPhone").replace(/[\s-]/g, "");
+    const phone = normalizePhone(str(f, "sellerPhone"));
     const cnic = str(f, "sellerCnic");
     const imei = str(f, "imei").replace(/\s/g, "");
     if (str(f, "sellerName").length < 2) throw new Error("Enter the seller's full name");

@@ -43,7 +43,7 @@ async function answer(raw: string): Promise<Reply> {
     return { reply: "Every used phone is tested by our lab, graded A+ to C, and listed with battery health and notes, plus a 30-day PB Lab warranty.", links: [{ label: "Used phones", href: "/used-phones" }] };
   }
   if (/passport|loyal|point|reward/.test(m)) {
-    return { reply: "The PB Phone Passport gives you 10 points per repair, 20 per new phone and 15 per used phone. Swap 100 points for a phone case, 200 for AirPods or 500 for 50% off a repair (excluding parts). Points last six months.", links: [{ label: "PB Phone Passport", href: "/loyalty" }] };
+    return { reply: "The PB Phone Passport gives you 1 point per Rs 100 on repairs and accessories and 50–200 points per phone (by price), plus 25 welcome points with your first purchase. Swap 100 points for a phone case, 200 for AirPods or 500 for 50% off a repair (excluding parts). Points last six months.", links: [{ label: "PB Phone Passport", href: "/loyalty" }] };
   }
   if (/tablet|ipad|galaxy tab|\bpad\b/.test(m)) {
     return { reply: "We stock new and lab-checked used tablets — iPad, Galaxy Tab, Xiaomi Pad and more.", links: [{ label: "Tablets", href: "/tablets" }] };

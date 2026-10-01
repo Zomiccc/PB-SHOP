@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPkMobile, normalizePhone } from "@/lib/format";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -6,13 +7,12 @@ import { db } from "@/lib/db";
 import { clearCustomerSession, setCustomerSession, uniquePassportNo } from "@/lib/auth";
 import { PassportError, findReferrer, joinPassport, parseBirthday } from "@/lib/passport";
 
-const phoneRx = /^(\+92|0)?3\d{2}[\s-]?\d{7}$/;
-const norm = (p: string) => p.replace(/[\s-]/g, "");
+const norm = normalizePhone; // +92 / 92 / 0 forms are the same number — one account per phone
 
 const Register = z.object({
   action: z.literal("register"),
   name: z.string().trim().min(2, "Enter your name").max(80),
-  phone: z.string().trim().regex(phoneRx, "Enter a valid Pakistani mobile number"),
+  phone: z.string({ message: "Enter your mobile number" }).trim().min(1, "Enter your mobile number").refine(isPkMobile, "Enter a valid Pakistani mobile number, e.g. 0300 1234567"),
   email: z.union([z.literal(""), z.string().trim().email("Enter a valid email")]).optional(),
   password: z.string().min(8, "Use at least 8 characters").max(100),
   // Birthday: month + day only — the year is not asked for (Passport requirements §2).

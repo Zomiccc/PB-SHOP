@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { normalizePhone } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
@@ -149,7 +150,7 @@ export async function repairDetailsAction(_: FormState, f: FormData): Promise<Fo
 export async function createWalkInRepairAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
-    const phone = str(f, "phone").replace(/[\s-]/g, "");
+    const phone = normalizePhone(str(f, "phone"));
     if (!/^(\+92|0)?3\d{9}$/.test(phone)) throw new Error("Enter a valid mobile number");
     for (const k of ["name", "brand", "model", "category", "description"]) if (!str(f, k)) throw new Error(`${k} is required`);
     const r = await db.$transaction(async (tx) => {

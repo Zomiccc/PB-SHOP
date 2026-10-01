@@ -50,7 +50,7 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\u003c") }} />
-      <ProductDetail product={product} phonePoints={product.type === "PHONE" ? (product.condition === "USED" ? passport.usedPhonePoints : passport.newPhonePoints) : 0} financing={financing} initialVariantId={typeof v === "string" ? v : undefined} />
+      <ProductDetail product={product} pointsRules={{ rupeesPerPoint: passport.rupeesPerPoint, phoneTiers: passport.phoneTiers }} financing={financing} initialVariantId={typeof v === "string" ? v : undefined} />
       <section id="reviews" className="border-t border-white/5 py-16">
         <div className="container-pb grid gap-10 lg:grid-cols-[1fr_1.3fr]">
           <div>

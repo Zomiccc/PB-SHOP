@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { phoneTierPoints, spendPoints, type PointsRules } from "@/lib/points-rules";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -18,7 +19,7 @@ const ProductViewer = dynamic(() => import("../three/ProductViewer"), {
   loading: () => <div className="aspect-square animate-pulse rounded-[var(--radius-card)] bg-navy-900" />,
 });
 
-export function ProductDetail({ product, phonePoints, financing, initialVariantId }: { product: ProductDTO; phonePoints: number; financing: FinancingConfig; initialVariantId?: string }) {
+export function ProductDetail({ product, pointsRules, financing, initialVariantId }: { product: ProductDTO; pointsRules: PointsRules; financing: FinancingConfig; initialVariantId?: string }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   // Phones and tablets share device features (3D viewer, installments, grades).
@@ -50,7 +51,8 @@ export function ProductDetail({ product, phonePoints, financing, initialVariantI
   const price = variant.salePrice ?? variant.price;
   const out = variant.stockQty <= 0;
   const low = !out && variant.stockQty <= Math.max(variant.lowStockThreshold, 2);
-  const points = phonePoints * qty;
+  // Standard PB Points criteria (v4 §3): phones by price tier; accessories 1 point per Rs 100; tablets none.
+  const points = product.type === "PHONE" ? phoneTierPoints(price, pointsRules.phoneTiers) * qty : product.type === "ACCESSORY" ? spendPoints(price * qty, pointsRules.rupeesPerPoint) : 0;
   const label = [variant.storage, variant.ram ? `${variant.ram} RAM` : null, variant.color, variant.grade ? `Grade ${variant.grade}` : null].filter(Boolean).join(" · ") || "Standard";
 
   const toCart = (buyNow = false) => {

@@ -107,7 +107,7 @@ export default async function AccountPage() {
           )}
           {rules.referralPoints > 0 && (
             <p className="rounded-xl bg-gold/10 p-4 text-sm ring-1 ring-gold/30">
-              <b className="text-gold">Refer a friend:</b> share your Passport ID <b className="font-mono">{customer.passportNo}</b>. You get {rules.referralPoints} points when they join with it and make their first purchase or repair.
+              <b className="text-gold">Refer a friend:</b> your referral code is <b className="font-mono">{customer.passportNo}</b>. When a friend creates their Passport with it and makes their first purchase or repair, you get {rules.referralPoints} points (and they get their welcome points).
             </p>
           )}
           {lots.length === 0 ? (

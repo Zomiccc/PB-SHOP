@@ -8,6 +8,7 @@ import crypto from "node:crypto";
 import { assertVariantGrade } from "../src/lib/grade";
 import { migrateLegacyBalances } from "../src/lib/loyalty";
 import { brandSlugFor } from "../src/lib/brands";
+import { normalizePhone, slugify } from "../src/lib/format";
 
 const db = new PrismaClient();
 
@@ -179,7 +180,7 @@ async function createProducts(list: P[], firstSeq: number, barcodePrefix: string
         accessoryType: p.accessoryType,
         partType: p.partType,
         compatibleModel: p.compatibleModel,
-        loyaltyEligible: p.type === "PHONE",
+        loyaltyEligible: p.type !== "TABLET", // v4 §3: phones, accessories and parts earn; tablets aren't in the criteria
         description: p.description,
         specs: JSON.stringify(p.specs ?? {}),
         finishHex: p.finishHex,
@@ -221,6 +222,76 @@ async function createProducts(list: P[], firstSeq: number, barcodePrefix: string
   }
 }
 
+/**
+ * Custom Skins demo data (v4 §9–§11): brands, phone models with their skin templates (mm, measured from
+ * the back, top-left origin — approximate, adjust in Admin → Custom skins → Brands & models), and five
+ * sample designs from /public/skins assigned to every model.
+ */
+type M = [name: string, w: number, h: number, corner: number, camX: number, camY: number, camW: number, camH: number, camR: number, lenses: number, hex: string];
+const SKIN_BRANDS: { name: string; models: M[] }[] = [
+  { name: "Apple", models: [
+    ["iPhone 16 Pro Max", 77.6, 163, 12, 5, 5, 38, 38, 10, 3, "#3b3a38"],
+    ["iPhone 16 Pro", 71.5, 149.6, 11, 5, 5, 36, 36, 9.5, 3, "#3b3a38"],
+    ["iPhone 15", 71.6, 147.6, 10, 5, 5, 30, 30, 8, 2, "#2e3a44"],
+    ["iPhone 13", 71.5, 146.7, 10, 5, 5, 29, 29, 7.5, 2, "#1d2733"],
+  ] },
+  { name: "Samsung", models: [
+    ["Galaxy S24 Ultra", 79, 162.3, 4, 9, 8, 14, 50, 7, 4, "#2b2d31"],
+    ["Galaxy S24", 70.6, 147, 9, 8, 8, 12, 40, 6, 3, "#2b2d31"],
+    ["Galaxy A55", 77.4, 161.1, 9, 9, 9, 12, 40, 6, 3, "#3c4a66"],
+  ] },
+  { name: "Xiaomi", models: [
+    ["Mi 12 Pro", 74.6, 163.6, 9, 6, 6, 25, 42, 6, 3, "#4a4e55"],
+    ["Xiaomi 14", 71.5, 152.8, 10, 6, 6, 30, 30, 8, 3, "#1c1f24"],
+    ["Redmi Note 13 Pro", 74.2, 161.2, 9, 7, 7, 24, 36, 6, 3, "#262a30"],
+  ] },
+  { name: "Infinix", models: [
+    ["Hot 40 Pro", 76.6, 168.6, 9, 7, 7, 30, 30, 8, 3, "#1b2230"],
+    ["Note 40 Pro", 74.8, 164.3, 10, 7, 7, 32, 32, 16, 3, "#2a2f38"],
+  ] },
+  { name: "Tecno", models: [
+    ["Camon 30", 75.5, 165, 9, 20, 7, 36, 36, 18, 3, "#23262d"],
+    ["Spark 20 Pro", 76, 168, 9, 7, 7, 24, 34, 6, 3, "#1f2430"],
+  ] },
+];
+// Skin types and prices from the client (1 Oct 2026). Editable in Admin → Custom skins.
+const SKIN_TYPES = [
+  { name: "3D Skin", price: 450, look: "TEXTURED", designMode: "DESIGN", description: "Raised 3D-textured finish." },
+  { name: "Leather Skin", price: 650, look: "LEATHER", designMode: "DESIGN", description: "Real leather feel and grip." },
+  { name: "Transparent Printed Skin", price: 550, look: "CLEAR", designMode: "DESIGN", description: "Design printed on a clear skin — your phone's colour shows through." },
+  { name: "Customize Photo Skin", price: 850, look: "MATTE", designMode: "PHOTO", description: "Your own photo, printed to fit your phone." },
+  { name: "Transparent Jelly", price: 350, look: "JELLY", designMode: "PLAIN", description: "Soft clear jelly cover." },
+  { name: "UV Curved Jelly", price: 1000, look: "JELLY", designMode: "PLAIN", description: "UV-cured curved clear jelly for full-edge protection." },
+];
+const SKIN_DESIGNS = [
+  { name: "Carbon Black", file: "carbon-black.svg", description: "Carbon-fibre look." },
+  { name: "PB Racing", file: "pb-racing.svg", description: "PB blue, red and gold racing stripes." },
+  { name: "Gold Marble", file: "gold-marble.svg", description: "White marble with gold veins." },
+  { name: "Midnight Camo", file: "midnight-camo.svg", description: "Dark urban camouflage." },
+  { name: "Sunset Wave", file: "sunset-wave.svg", description: "Warm sunset gradient with waves." },
+];
+
+async function seedSkinTypes() {
+  for (const [i, t] of SKIN_TYPES.entries()) await db.skinType.create({ data: { ...t, sortOrder: i } });
+}
+
+async function seedSkins() {
+  await seedSkinTypes();
+  const modelIds: string[] = [];
+  for (const [i, b] of SKIN_BRANDS.entries()) {
+    const brand = await db.skinBrand.create({ data: { name: b.name, slug: slugify(b.name), sortOrder: i } });
+    for (const [j, [name, widthMm, heightMm, cornerMm, cameraX, cameraY, cameraW, cameraH, cameraCornerMm, lenses, bodyHex]] of b.models.entries()) {
+      const m = await db.phoneModel.create({ data: { brandId: brand.id, name, slug: slugify(name), sortOrder: j, widthMm, heightMm, cornerMm, cameraX, cameraY, cameraW, cameraH, cameraCornerMm, lenses, bodyHex } });
+      modelIds.push(m.id);
+    }
+  }
+  for (const [i, d] of SKIN_DESIGNS.entries()) {
+    // "All phone models" — so every model added later shows these designs too.
+    await db.skin.create({ data: { name: d.name, description: d.description, imageUrl: `/skins/${d.file}`, price: 0, allModels: true, sortOrder: i } });
+  }
+  return { models: modelIds.length, designs: SKIN_DESIGNS.length };
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
   if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
@@ -230,6 +301,7 @@ async function main() {
   console.log("Resetting demo data…");
   // Order matters for FK constraints.
   await db.$transaction([
+    db.skin.deleteMany(), db.phoneModel.deleteMany(), db.skinBrand.deleteMany(), db.skinType.deleteMany(),
     db.attachment.deleteMany(), db.pushSubscription.deleteMany(), db.broadcast.deleteMany(),
     db.installmentSale.deleteMany(), db.installmentListing.deleteMany(), db.usedPhonePurchase.deleteMany(),
     db.review.deleteMany(), db.loyaltyTransaction.deleteMany(), db.note.deleteMany(),
@@ -254,8 +326,11 @@ async function main() {
 
   await createProducts([...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES, ...PARTS], 1, "20");
 
+  const skins = await seedSkins();
+
   const count = await db.product.count();
   console.log(`Seeded ${count} products (incl. spare parts), 7 staff accounts, ${REWARDS.length} Passport rewards, ${INSTALLMENT_LISTINGS.length} sample installment plans.`);
+  console.log(`Custom Skins: ${skins.models} phone models, ${skins.designs} sample designs.`);
   console.log(`Staff logins: owner@pbmobiles.pk, employee1-6@pbmobiles.pk — temporary password: ${tempPassword}`);
 }
 
@@ -293,8 +368,41 @@ async function upgradeExisting() {
   if ((await db.installmentListing.count({ where: { brand: "tecno" } })) === 0) {
     await db.installmentListing.create({ data: INSTALLMENT_LISTINGS[0] });
   }
-  // Only phones earn purchase points now (repairs earn separately).
-  await db.product.updateMany({ where: { type: { not: "PHONE" } }, data: { loyaltyEligible: false } });
+  // v4 §3 points criteria: accessories and parts earn (1 point per Rs 100), tablets don't. Run once, so
+  // later per-product choices by staff aren't overwritten on every deploy.
+  if (!(await db.setting.findUnique({ where: { key: "migration.pointsV4" } }))) {
+    await db.product.updateMany({ where: { type: { in: ["PHONE", "ACCESSORY", "PART"] } }, data: { loyaltyEligible: true } });
+    await db.product.updateMany({ where: { type: "TABLET" }, data: { loyaltyEligible: false } });
+    await db.setting.create({ data: { key: "migration.pointsV4", value: JSON.stringify({ at: new Date().toISOString() }) } });
+    console.log("Applied the v4 PB Points criteria to product eligibility.");
+  }
+  if ((await db.skinBrand.count()) === 0) {
+    const skins = await seedSkins();
+    console.log(`Added Custom Skins demo data: ${skins.models} phone models, ${skins.designs} sample designs.`);
+  }
+  if ((await db.skinType.count()) === 0) {
+    await seedSkinTypes();
+    // Sample designs priced before skin types existed: the type now sets the price, and they suit every model.
+    await db.skin.updateMany({ where: { imageUrl: { startsWith: "/skins/" } }, data: { price: 0, allModels: true } });
+    console.log(`Added ${SKIN_TYPES.length} skin types with the client's prices.`);
+  }
+  // One phone number = one customer: store every number as 03XXXXXXXXX (was "+92…" / "92…" for some).
+  if (!(await db.setting.findUnique({ where: { key: "migration.phonesV1" } }))) {
+    let fixed = 0;
+    const clashes: string[] = [];
+    for (const c of await db.customer.findMany({ select: { id: true, phone: true } })) {
+      const phone = normalizePhone(c.phone);
+      if (phone === c.phone) continue;
+      if (await db.customer.findUnique({ where: { phone } })) clashes.push(`${c.phone} → ${phone}`);
+      else {
+        await db.customer.update({ where: { id: c.id }, data: { phone } });
+        fixed++;
+      }
+    }
+    await db.setting.create({ data: { key: "migration.phonesV1", value: JSON.stringify({ at: new Date().toISOString(), fixed, clashes }) } });
+    if (fixed) console.log(`Normalised ${fixed} customer phone number(s).`);
+    if (clashes.length) console.log(`Duplicate customers share a phone in another format (merge by hand): ${clashes.join(", ")}`);
+  }
   const migrated = await migrateLegacyBalances();
   if (migrated) console.log(`Moved ${migrated} existing points balance(s) onto the new six-month points lots.`);
   console.log("Database already has data — upgrade checks done.");

@@ -91,7 +91,7 @@ export function AuthForms() {
         </F>
         {tab === "register" && !needsProof && (
           <F label="Referral code (optional)" error={err("referral")}>
-            <input name="referral" placeholder="Friend's Passport ID or mobile" autoComplete="off" className="field uppercase" aria-invalid={!!err("referral")} />
+            <input name="referral" placeholder="e.g. PBP-123456 (your friend's code)" autoComplete="off" className="field uppercase" aria-invalid={!!err("referral")} />
           </F>
         )}
         {tab === "register" && needsProof && (

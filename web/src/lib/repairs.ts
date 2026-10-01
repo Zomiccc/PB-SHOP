@@ -2,7 +2,7 @@ import { db } from "./db";
 import { audit } from "./audit";
 import { getSetting } from "./settings";
 import { notify } from "./notify";
-import { earnPoints } from "./loyalty";
+import { earnPoints, pointsForRepair } from "./loyalty";
 import { firstTransactionRewards } from "./passport";
 import { REPAIR_STATUSES } from "./constants";
 
@@ -25,9 +25,11 @@ export async function changeRepairStatus(repairId: string, to: string, staffId: 
     await tx.repairStatusChange.create({ data: { repairId, from: r.status, to, staffId } });
     await audit({ staffId, action: "REPAIR_STATUS_CHANGED", entityType: "REPAIR", entityId: repairId, recordLabel: `Repair ${r.ref}`, before: { status: r.status }, after: { status: to } }, tx);
 
-    if (to === "COMPLETED" && r.customerId && rules.repairPoints > 0) {
+    // 1 point per Rs 100 of the repair charge (v4 §3), once.
+    const repairPts = pointsForRepair(r, rules);
+    if (to === "COMPLETED" && r.customerId && repairPts > 0) {
       const already = await tx.loyaltyTransaction.findFirst({ where: { repairId, type: "EARN" } });
-      if (!already) await earnPoints(tx, { customerId: r.customerId, points: rules.repairPoints, source: "REPAIR", reason: `Repair ${r.ref}`, repairId, staffId });
+      if (!already) await earnPoints(tx, { customerId: r.customerId, points: repairPts, source: "REPAIR", reason: `Repair ${r.ref}`, repairId, staffId });
     }
     if (to === "COMPLETED" && r.customerId) await firstTransactionRewards(tx, r.customerId, `repair ${r.ref}`, staffId);
     return updated;

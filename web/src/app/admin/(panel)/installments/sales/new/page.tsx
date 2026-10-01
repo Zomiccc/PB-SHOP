@@ -38,6 +38,7 @@ export default async function NewInstallmentSalePage() {
             <Field label="Phone model (if custom)"><input name="phoneModel" className="field" /></Field>
             <Field label="IMEI (optional now)"><input name="imei" inputMode="numeric" className="field font-mono" /></Field>
             <Field label="Total on plan (Rs)" hint="Leave blank to use the listing"><input name="totalPrice" type="number" min={1} className="field" /></Field>
+            <Field label="Phone cash price (Rs)" hint="For PB Points tiers · blank = listing's regular price"><input name="phoneValue" type="number" min={1} className="field" /></Field>
             <Field label="Down payment (Rs)"><input name="downPayment" type="number" min={0} className="field" /></Field>
             <Field label="Duration (months)"><input name="durationMonths" type="number" min={1} max={60} className="field" /></Field>
           </div>

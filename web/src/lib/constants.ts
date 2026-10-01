@@ -26,6 +26,7 @@ export const NAV = [
   { href: "/tablets", label: "Tablets" },
   { href: "/accessories", label: "Accessories" },
   { href: "/installments", label: "Installments" },
+  { href: "/custom-skins", label: "Custom Skins" },
   { href: "/repair", label: "Repair" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

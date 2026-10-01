@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { describeTiers } from "@/lib/points-rules";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { FlipPassportCard } from "@/components/home/FlipPassportCard";
@@ -9,7 +10,7 @@ import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "PB Phone Passport — Points & Rewards",
-  description: "Earn 10 points per repair, 20 per new phone and 15 per used phone. Redeem for AirPods, a phone case of your choice or 50% off repairs.",
+  description: "Earn 1 point per Rs 100 on repairs and accessories, and 50–200 points per phone by price. Redeem for AirPods, a phone case of your choice or 50% off repairs.",
 };
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,11 @@ export default async function LoyaltyPage() {
     getSetting("passport"),
     db.reward.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { pointsCost: "asc" }] }),
   ]);
+  const tiers = describeTiers(rules.phoneTiers);
   const earn = [
-    { icon: "wrench", pts: rules.repairPoints, t: "Every repair", d: "Added when your repair is completed." },
-    { icon: "phone", pts: rules.newPhonePoints, t: "New phone", d: "Per new phone, once payment is confirmed." },
-    { icon: "shield", pts: rules.usedPhonePoints, t: "Used phone", d: "Per lab-checked used phone you buy." },
+    { icon: "wrench", pts: 1, t: `Per Rs ${rules.rupeesPerPoint} on repairs`, d: "Added when your repair is completed." },
+    { icon: "bag", pts: 1, t: `Per Rs ${rules.rupeesPerPoint} on accessories`, d: "Cases, chargers, earbuds and more." },
+    { icon: "phone", pts: tiers.length ? tiers[tiers.length - 1].points : 0, t: "Per phone — up to", d: "By the phone's price (see the table below). New, used and installment phones." },
     { icon: "gift", pts: rules.welcomePoints, t: "Welcome reward", d: "Once, with your first purchase or repair after joining." },
     { icon: "user", pts: rules.referralPoints, t: "Refer a friend", d: "When a friend you refer makes their first purchase or repair." },
   ].filter((e) => e.pts > 0);
@@ -88,7 +90,14 @@ export default async function LoyaltyPage() {
             </Link>
           </div>
           <dl className="space-y-5 text-sm">
-            <Rule t="Earning">{rules.repairPoints} points per completed repair, {rules.newPhonePoints} per new phone and {rules.usedPhonePoints} per used phone. Purchase points are added once payment is confirmed.{rules.welcomePoints > 0 && ` New members get a ${rules.welcomePoints}-point welcome reward with their first purchase or repair.`}{rules.referralPoints > 0 && ` Refer a friend with your Passport ID and get ${rules.referralPoints} points when they make their first purchase or repair.`}</Rule>
+            <Rule t="Earning">
+              1 point per Rs {rules.rupeesPerPoint} spent on repairs and accessories. Phones earn by price:
+              <span className="mt-2 grid max-w-sm grid-cols-2 gap-x-6 gap-y-1 rounded-xl bg-card p-3 text-xs ring-1 ring-white/10">
+                {tiers.map((t) => (
+                  <span key={t.label} className="contents"><span className="text-muted">{t.label}</span><b className="text-right text-gold">{t.points} pts</b></span>
+                ))}
+              </span>
+              <span className="mt-2 block">Installment phones earn on the same tiers. Purchase points are added once payment is confirmed.</span>{rules.welcomePoints > 0 && ` New members get a ${rules.welcomePoints}-point welcome reward with their first purchase or repair.`}{rules.referralPoints > 0 && ` Refer a friend with your Passport ID and get ${rules.referralPoints} points when they make their first purchase or repair.`}</Rule>
             <Rule t="Expiry">Each set of points expires {rules.expiryMonths} months after the day it was earned. Expired points can&apos;t be redeemed; your Passport shows what&apos;s expiring and when.</Rule>
             <Rule t="Redeeming">Rewards are redeemed in store. Points that expire soonest are used first.</Rule>
             <Rule t="Exclusions">{rules.exclusions}</Rule>

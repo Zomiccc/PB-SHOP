@@ -6,17 +6,20 @@ export const SETTING_DEFAULTS = {
   socialProof: { enabled: true, intervalSeconds: 25, displaySeconds: 6, lookbackDays: 14, maxItems: 20 },
   // PB Phone Passport (master brief §4). Stored under a new key so older saved loyalty rules can't override these.
   passport: {
-    repairPoints: 10, // per completed repair
-    newPhonePoints: 20, // per new phone bought
-    usedPhonePoints: 15, // per used phone bought
+    // Standard awarding criteria (Passport requirements v4 §3, see src/lib/points-rules.ts):
+    rupeesPerPoint: 100, // repairs & accessories: 1 point per Rs 100 spent
+    phoneTiers: "10000:50, 30000:100, 50000:150, 80000:200", // phone price from : points (also installment phones)
     expiryMonths: 6, // each earning event expires six months after it was earned
     welcomePoints: 25, // once, when a customer joins the Passport (Passport brief §4)
     referralPoints: 25, // to the referrer, once per referred friend's first purchase or repair (Passport brief §3)
-    exclusions: "Points are earned on repairs and phone purchases only — not on accessories, delivery fees, or orders that are cancelled or returned. Repair rewards exclude the cost of parts.",
+    exclusions: "Points are not earned on delivery fees, tablets, or orders that are cancelled or returned. Repair rewards exclude the cost of parts.",
   },
   // PB Rewards card expiry (Passport brief §1). The expiry is an admin field: it is never printed on the
   // physical card, and shown on the customer's digital card only when `showExpiryOnDigital` is on.
   passportCard: { showExpiryOnDigital: false, validityMonths: 24 },
+  // Custom Skins page (v4 §9–§11). Skin types and their prices are managed in Admin → Custom skins → Skin types;
+  // the camera-cover add-on is charged on top (0 = included).
+  customSkins: { enabled: true, cameraCoverPrice: 0 },
   shipping: { flatFee: 250, freeOver: 50000 },
   // Installment calculator — defaults match the partner (Palm) app's standard plan: 6% flat per month,
   // no extra fees. New key so older saved sample rates don't override these.

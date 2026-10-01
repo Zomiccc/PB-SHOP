@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 0 600 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2d33"/><stop offset="1" stop-color="#0c0d10"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1d2025"/><stop offset="1" stop-color="#050608"/></linearGradient>
+    <pattern id="weave" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="url(#a)"/><rect x="12" y="12" width="12" height="12" fill="url(#a)"/>
+      <rect x="12" width="12" height="12" fill="url(#b)"/><rect y="12" width="12" height="12" fill="url(#b)"/>
+    </pattern>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".06"/></linearGradient>
+  </defs>
+  <rect width="600" height="1200" fill="url(#weave)"/>
+  <rect width="600" height="1200" fill="url(#sheen)"/>
+</svg>

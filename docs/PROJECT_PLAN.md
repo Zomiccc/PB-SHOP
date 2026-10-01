@@ -1,5 +1,20 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## PB Phone Passport — Developer Requirements (final v4) + client requests (1 Oct 2026) — implemented
+
+| § | Requirement | Where / status |
+|---|---|---|
+| 3 | **Standard points:** repairs & accessories 1 pt per Rs 100 (net of discounts; spare parts count as accessories); phones by price — Rs 10,000–29,999: 50 · 30,000–49,999: 100 · 50,000–79,999: 150 · 80,000+: 200; **installment phones** on the same tiers (phone cash price), given when the sale is Active/Completed and reversed if cancelled. Tablets earn nothing (not in the table). Rates/tiers editable in Settings | `src/lib/points-rules.ts`, `loyalty.ts`, `installments.ts` ✅ + tests |
+| 4, 6 | Welcome 25 + referral 25 — only on the first eligible transaction (already in place) | ✅ |
+| 5 | Every account's **Passport ID is its referral code**; Referral code field on sign-up; admin sees who referred whom | Admin → **Referrals**, customer list & profile ✅ |
+| 7, 8 | Manual award, customer deletion (already in place) | ✅ |
+| 9–11 | **Custom Skins**: search brand → model dropdown → product-style page (reference layout); **skin types with prices**; designs fitted automatically to each model's template; customers only see admin-approved designs; WhatsApp / in-store ordering | `/custom-skins`, Admin → **Custom skins** ✅ + tests |
+| Client | **Skin prices:** 3D 450 · Leather 650 · Transparent Printed 550 · Customize Photo 850 (customer sends photo) · Transparent Jelly 350 · UV Curved Jelly 1000 — editable, new types can be added | Admin → Custom skins → Skin types ✅ |
+| Client | **Self-service:** bulk upload many designs at once, duplicate a design, designs "for all phone models" (new models get them automatically), add new phone models by copying a similar model's template / "duplicate as new model" | Admin → Custom skins, Brands & phone models ✅ |
+| Client | **One phone number = one account; phone compulsory on sign-up.** Numbers are stored in one format (03XXXXXXXXX) so +92 / 92 / 0 forms can't make duplicates; existing numbers normalised once on deploy | `normalizePhone` in `src/lib/format.ts` ✅ + tests |
+
+**To confirm with the client:** reward costs (100 / 200 / 500 points) now that phones earn 50–200 points each; camera-cover add-on price (currently Rs 0 = included); skin ordering is via WhatsApp / in store (no online checkout for skins yet).
+
 ## PB Phone Passport — Developer Requirements (final v2) — implemented
 
 | § | Requirement | Where / status |

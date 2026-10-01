@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { normalizePhone } from "./format";
 import { addMonths, earnPoints } from "./loyalty";
 import { getSetting } from "./settings";
 import { audit } from "./audit";
@@ -64,7 +65,7 @@ export async function firstTransactionRewards(tx: Tx, customerId: string, trigge
 export async function findReferrer(tx: Tx, code: string | null | undefined, selfPhone: string) {
   const raw = (code ?? "").trim();
   if (!raw) return null;
-  const phone = raw.replace(/[\s-]/g, "");
+  const phone = normalizePhone(raw);
   const referrer = /^(\+92|0)?3\d{9}$/.test(phone)
     ? await tx.customer.findUnique({ where: { phone }, select: { id: true, phone: true, name: true } })
     : await tx.customer.findUnique({ where: { passportNo: raw.toUpperCase() }, select: { id: true, phone: true, name: true } });

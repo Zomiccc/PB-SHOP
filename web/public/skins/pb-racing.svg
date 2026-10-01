@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 0 600 1200" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1420"/><stop offset="1" stop-color="#05070b"/></linearGradient></defs>
+  <rect width="600" height="1200" fill="url(#bg)"/>
+  <g transform="rotate(-24 300 600)">
+    <rect x="-300" y="430" width="1200" height="120" fill="#0077d9"/>
+    <rect x="-300" y="570" width="1200" height="64" fill="#d71920"/>
+    <rect x="-300" y="652" width="1200" height="14" fill="#d9a62e"/>
+  </g>
+  <g fill="#d9a62e" opacity=".85">
+    <circle cx="80" cy="1080" r="5"/><circle cx="110" cy="1080" r="5"/><circle cx="140" cy="1080" r="5"/>
+  </g>
+  <text x="520" y="1110" fill="#fff" fill-opacity=".85" font-family="Arial, sans-serif" font-size="64" font-weight="900" font-style="italic" text-anchor="end">PB</text>
+</svg>
