@@ -25,7 +25,7 @@ export default async function CardsPage() {
               <Field label="Birth month"><select name="birthMonth" defaultValue="" className="field"><option value="" disabled>Month</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></Field>
               <Field label="Day" hint="No year needed"><input name="birthDay" type="number" min={1} max={31} placeholder="Day" className="field" /></Field>
             </div>
-            <Field label="Referred by (optional)" hint="The friend's Rewards ID or mobile. They get the referral reward on this customer's first purchase or repair."><input name="referral" autoComplete="off" placeholder="PBP-123456 or 0300 1234567" className="field" /></Field>
+            <Field label="Referred by (optional)" hint="The friend's Rewards ID or mobile. They get the referral reward on this customer's first purchase or repair."><input name="referral" autoComplete="off" placeholder="PBM-0001 or 0300 1234567" className="field" /></Field>
             <Submit variant="gold">Generate card</Submit>
           </ActionForm>
         </Panel>

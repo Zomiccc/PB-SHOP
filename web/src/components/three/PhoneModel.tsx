@@ -99,19 +99,22 @@ function useScreenTexture(design: PhoneDesign, title: string | undefined, color:
       glow(W * 0.9, H * 0.35, 340, "rgba(0,119,217,0.35)");
     }
 
+    // The home-page PB device shows only the logo (change request V2 §2): no clock and no dock.
     const android = design.front !== "island" && design.front !== "notch";
-    g.fillStyle = "#fff";
-    g.textAlign = android ? "left" : "center";
-    const cx = android ? 52 : W / 2;
-    g.font = "600 32px Inter, system-ui, sans-serif";
-    g.globalAlpha = 0.85;
-    g.fillText("Friday, 25 September", cx, android ? 250 : 190);
-    g.globalAlpha = 1;
-    g.font = `${android ? 300 : 800} ${android ? 170 : 150}px Inter, system-ui, sans-serif`;
-    if (android) {
-      g.fillText("09", cx, 420);
-      g.fillText("41", cx, 580);
-    } else g.fillText("9:41", cx, 340);
+    if (!pb) {
+      g.fillStyle = "#fff";
+      g.textAlign = android ? "left" : "center";
+      const cx = android ? 52 : W / 2;
+      g.font = "600 32px Inter, system-ui, sans-serif";
+      g.globalAlpha = 0.85;
+      g.fillText("Friday, 25 September", cx, android ? 250 : 190);
+      g.globalAlpha = 1;
+      g.font = `${android ? 300 : 800} ${android ? 170 : 150}px Inter, system-ui, sans-serif`;
+      if (android) {
+        g.fillText("09", cx, 420);
+        g.fillText("41", cx, 580);
+      } else g.fillText("9:41", cx, 340);
+    }
 
     g.textAlign = "center";
     if (title && !pb) {
@@ -132,17 +135,19 @@ function useScreenTexture(design: PhoneDesign, title: string | undefined, color:
       g.fillText("at PB Mobiles", W / 2, H * 0.74 + lines.length * 54 + 6);
     }
 
-    // dock
-    g.fillStyle = "rgba(255,255,255,0.12)";
-    roundRect(g, 40, H - 170, W - 80, 120, 44);
-    g.fill();
-    ["#0077d9", "#d71920", "#d9a62e", "#ffffff"].forEach((col, i) => {
-      g.fillStyle = col;
-      g.globalAlpha = 0.85;
-      roundRect(g, 72 + i * 102, H - 150, 80, 80, android ? 40 : 22);
+    if (!pb) {
+      // dock
+      g.fillStyle = "rgba(255,255,255,0.12)";
+      roundRect(g, 40, H - 170, W - 80, 120, 44);
       g.fill();
-    });
-    g.globalAlpha = 1;
+      ["#0077d9", "#d71920", "#d9a62e", "#ffffff"].forEach((col, i) => {
+        g.fillStyle = col;
+        g.globalAlpha = 0.85;
+        roundRect(g, 72 + i * 102, H - 150, 80, 80, android ? 40 : 22);
+        g.fill();
+      });
+      g.globalAlpha = 1;
+    }
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -151,9 +156,11 @@ function useScreenTexture(design: PhoneDesign, title: string | undefined, color:
       // The store's logo on the home-page device (client change request §2), drawn once it has loaded.
       const logo = new Image();
       logo.onload = () => {
-        const lw = W * 0.82;
-        const lh = lw * (logo.naturalHeight / logo.naturalWidth);
-        g.drawImage(logo, (W - lw) / 2, H * 0.6 - lh / 2, lw, lh);
+        // Centred in the screen, aspect ratio kept (scaled down if it would be too tall).
+        const ratio = logo.naturalHeight / logo.naturalWidth;
+        const lw = Math.min(W * 0.82, (H * 0.6) / ratio);
+        const lh = lw * ratio;
+        g.drawImage(logo, (W - lw) / 2, (H - lh) / 2, lw, lh);
         tex.needsUpdate = true;
       };
       logo.src = BRAND_LOGO;

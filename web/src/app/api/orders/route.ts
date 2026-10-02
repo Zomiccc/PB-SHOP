@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
 import { finalizeOrder, nextOrderNumber } from "@/lib/orders";
 import { paymentProvider } from "@/lib/payments";
 import { getSetting } from "@/lib/settings";
-import { getCurrentCustomer, newPassportNo } from "@/lib/auth";
+import { getCurrentCustomer } from "@/lib/auth";
+import { nextRewardsId } from "@/lib/rewards-id";
 import { StockError } from "@/lib/inventory";
 import { orderToken } from "@/lib/order-token";
 import { notify } from "@/lib/notify";
@@ -100,7 +101,7 @@ export async function POST(req: Request) {
     const customer =
       loggedIn ??
       (await tx.customer.findUnique({ where: { phone } })) ??
-      (await tx.customer.create({ data: { name: d.name, phone, email: d.email || null, passportNo: newPassportNo() } }));
+      (await tx.customer.create({ data: { name: d.name, phone, email: d.email || null, passportNo: await nextRewardsId(tx) } }));
 
     const o = await tx.order.create({
       data: {

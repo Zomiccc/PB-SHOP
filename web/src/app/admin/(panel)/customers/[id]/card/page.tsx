@@ -16,7 +16,6 @@ export default async function CustomerCardPage(props: PageProps<"/admin/customer
   const c = await db.customer.findUnique({ where: { id } });
   if (!c) notFound();
   const points = await availablePoints(db, c.id);
-  const since = c.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" });
   const card = await getSetting("passportCard");
   const expiry = c.cardExpiresAt ? formatCardExpiry(c.cardExpiresAt) : null;
   return (
@@ -27,14 +26,14 @@ export default async function CustomerCardPage(props: PageProps<"/admin/customer
         <Link href="/admin/cards" className="text-sm text-blue">← Card generator</Link>
       </PageTitle>
       <div className="max-w-md rounded-3xl bg-black p-8 print:hidden">
-        <FlipPassportCard name={c.name} number={c.passportNo} points={points} phone={c.phone} since={since} expires={card.showExpiryOnDigital ? expiry : null} />
+        <FlipPassportCard name={c.name} number={c.passportNo} points={points} expires={card.showExpiryOnDigital ? expiry : null} />
       </div>
       <p className="mt-3 max-w-md text-sm text-muted print:hidden">
         Card expiry: <b className="text-ink">{expiry ?? "not set"}</b> · {card.showExpiryOnDigital ? "shown on the digital card" : "hidden on the digital card"} · never printed. <Link href={`/admin/customers/${c.id}#passport`} className="text-blue">Change</Link>
       </p>
-      <PassportCardPrint name={c.name} number={c.passportNo} points={points} phone={c.phone} since={since} />
+      <PassportCardPrint name={c.name} number={c.passportNo} />
       <p className="mt-6 max-w-xl text-sm text-muted print:hidden">
-        Prints at 85.6 × 54 mm (standard bank-card size): page 1 is the front, page 2 the back with the scannable Rewards ID barcode. For a card printer choose CR80, no margins, and turn on “background graphics”.
+        Prints at 85.6 × 54 mm (standard bank-card size): page 1 is the front, page 2 the back with the scannable Rewards ID barcode. The printed card never shows points — they stay live in the portal. For a card printer choose CR80, no margins, and turn on “background graphics”.
       </p>
     </>
   );

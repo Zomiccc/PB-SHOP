@@ -1,5 +1,13 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Dev Change Request V2 (Oct 2026) — implemented
+- **Hero:** "Buy Fix Style" with no full stops, nudged slightly left so the big letters line up with the paragraph.
+- **Animated phone screen:** the date, time and coloured dock icons are removed. The PB Mobiles logo is centred both ways, with its aspect ratio kept.
+- **PB Rewards card front:** redrawn as vector art from the reference: stacked logo, navy field, gold border and circuit lines, blue ribbon with the red sweep, and "PB REWARDS" with a crown. Tap to Reveal and the visits indicator are gone.
+- **Portal vs print:** `PassportCard` has a `digital` mode (live points; customer account and admin card page) and a `print` mode (no points, no expiry; used for print / PDF). Points are never part of the printed artwork.
+- **Card back:** follows the reference: logo, "SHOW THIS CARD AT THE COUNTER", a white barcode panel with the customer's ID, the "Earn points…" line and the website (`NEXT_PUBLIC_CARD_WEBSITE`, default pbisb.com).
+- **Customer ID format is now PBM-0001…** (`src/lib/rewards-id.ts`), issued in joining order and grows past four digits. Existing customers are renumbered once (`migration.rewardsIdV2`); their old PBP- number is kept in `Customer.legacyNo`, so old cards and referral codes still work.
+
 ## Dev Change Request (Oct 2026) — implemented
 - **Hero:** "Buy. Fix. Style." with "From new phones and used phones to repairs & skins, we've got you covered." CTAs are now Shop phones first, then **Book a repair** (renamed from "Create your repair note"), with the same styles.
 - **New logo** (`/brand/pb-logo-2026*.webp`) in the header, footer, rewards card, repair print, notifications and social preview (`og-2026.jpg`). The 3D phone screen shows the logo instead of text, and its back carries the supplied skin artwork (`pb-hero-skin.jpg`) edge to edge, with no unskinned strips.

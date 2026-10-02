@@ -14,7 +14,7 @@ export default async function ReferralsPage(props: PageProps<"/admin/referrals">
   const sp = await props.searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const status = sp.status === "pending" || sp.status === "rewarded" ? sp.status : "";
-  const who = q ? { OR: [{ name: like(q) }, { passportNo: { contains: q.toUpperCase() } }, { phone: { contains: q.replace(/\D/g, "") || q } }] } : null;
+  const who = q ? { OR: [{ name: like(q) }, { passportNo: { contains: q.toUpperCase() } }, { legacyNo: { contains: q.toUpperCase() } }, { phone: { contains: q.replace(/\D/g, "") || q } }] } : null;
   const [rows, totals, rules] = await Promise.all([
     db.customer.findMany({
       where: {

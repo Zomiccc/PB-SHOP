@@ -11,6 +11,7 @@ import { brandSlugFor } from "../src/lib/brands";
 import { normalizePhone, slugify } from "../src/lib/format";
 import { quote, type FinancingConfig } from "../src/lib/finance";
 import { SETTING_DEFAULTS } from "../src/lib/settings";
+import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
 
 const db = new PrismaClient();
 
@@ -399,6 +400,20 @@ async function upgradeExisting() {
     }
     await db.setting.create({ data: { key: "migration.no12MonthsFix", value: JSON.stringify({ at: new Date().toISOString(), fixed }) } });
     if (fixed) console.log(`Re-priced ${fixed} former 12-month installment listing(s) as 9-month plans.`);
+  }
+  // Change request V2 §5: customer IDs become PBM-0001, PBM-0002… in joining order. The old random number is
+  // kept in legacyNo so cards already printed still scan. Runs once (and only touches non-PBM numbers).
+  if (!(await db.setting.findUnique({ where: { key: "migration.rewardsIdV2" } }))) {
+    const all = await db.customer.findMany({ orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, passportNo: true } });
+    let n = Math.max(0, ...all.map((c) => rewardsIdNumber(c.passportNo)));
+    let renumbered = 0;
+    for (const c of all) {
+      if (c.passportNo.startsWith(REWARDS_ID_PREFIX)) continue;
+      await db.customer.update({ where: { id: c.id }, data: { passportNo: formatRewardsId(++n), legacyNo: c.passportNo } });
+      renumbered++;
+    }
+    await db.setting.create({ data: { key: "migration.rewardsIdV2", value: JSON.stringify({ at: new Date().toISOString(), renumbered }) } });
+    if (renumbered) console.log(`Gave ${renumbered} customer(s) a PBM- Rewards ID (old numbers kept for scanning).`);
   }
   // Change request (Oct 2026): "PB Phone Passport" is now "PB Rewards" — also in saved points-history notes. Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.rewardsName" } }))) {

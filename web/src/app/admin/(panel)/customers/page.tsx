@@ -13,7 +13,7 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const digits = q.replace(/\D/g, "");
   const customers = await db.customer.findMany({
-    where: q ? { OR: [{ name: like(q) }, { passportNo: { contains: q.toUpperCase() } }, { email: like(q) }, ...(digits.length >= 4 ? [{ phone: { contains: digits } }] : [])] } : {},
+    where: q ? { OR: [{ name: like(q) }, { passportNo: { contains: q.toUpperCase() } }, { legacyNo: { contains: q.toUpperCase() } }, { email: like(q) }, ...(digits.length >= 4 ? [{ phone: { contains: digits } }] : [])] } : {},
     orderBy: { updatedAt: "desc" },
     take: 200,
     include: { _count: { select: { orders: true, repairs: true } }, referredBy: { select: { id: true, name: true } } },

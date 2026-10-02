@@ -4,6 +4,7 @@ import { addMonths, earnPoints } from "./loyalty";
 import { getSetting } from "./settings";
 import { audit } from "./audit";
 import { PassportError } from "./passport-rules";
+import { findByRewardsId } from "./rewards-id";
 
 /**
  * PB Phone Passport membership rules (Passport requirements, final v2):
@@ -59,7 +60,7 @@ export async function firstTransactionRewards(tx: Tx, customerId: string, trigge
 }
 
 /**
- * Finds the referrer for a code typed on the Passport form: their Passport ID (PBP-123456) or mobile number.
+ * Finds the referrer for a code typed on the Passport form: their Rewards ID (PBM-0001, or an older PBP- number) or mobile number.
  * Returns null for an empty code; throws for an unknown code or a self-referral.
  */
 export async function findReferrer(tx: Tx, code: string | null | undefined, selfPhone: string) {
@@ -68,7 +69,7 @@ export async function findReferrer(tx: Tx, code: string | null | undefined, self
   const phone = normalizePhone(raw);
   const referrer = /^(\+92|0)?3\d{9}$/.test(phone)
     ? await tx.customer.findUnique({ where: { phone }, select: { id: true, phone: true, name: true } })
-    : await tx.customer.findUnique({ where: { passportNo: raw.toUpperCase() }, select: { id: true, phone: true, name: true } });
+    : await findByRewardsId(tx, raw, { id: true, phone: true, name: true });
   if (!referrer) throw new PassportError("We couldn't find that referral code — check the friend's Rewards ID or mobile number");
   if (referrer.phone === selfPhone) throw new PassportError("You can't refer yourself");
   return referrer;

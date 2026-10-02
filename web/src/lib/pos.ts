@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { normalizePhone } from "./format";
 import { db } from "./db";
 import { finalizeOrder, nextOrderNumber } from "./orders";
-import { newPassportNo } from "./auth";
+import { nextRewardsId } from "./rewards-id";
 import { StockError } from "./inventory";
 
 export type PosSaleInput = {
@@ -54,7 +54,7 @@ export async function createPosSale(input: PosSaleInput, staff: { id: string; ro
   const order = await db.$transaction(async (tx) => {
     let customerId: string | null = null;
     if (phone) {
-      const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: input.customerName?.trim() || "Walk-in customer", phone, passportNo: newPassportNo() } }));
+      const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: input.customerName?.trim() || "Walk-in customer", phone, passportNo: await nextRewardsId(tx) } }));
       customerId = c.id;
     }
     const o = await tx.order.create({

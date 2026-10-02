@@ -4,7 +4,8 @@ import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { clearCustomerSession, setCustomerSession, uniquePassportNo } from "@/lib/auth";
+import { clearCustomerSession, setCustomerSession } from "@/lib/auth";
+import { nextRewardsId } from "@/lib/rewards-id";
 import { PassportError, findReferrer, joinPassport, parseBirthday } from "@/lib/passport";
 
 const norm = normalizePhone; // +92 / 92 / 0 forms are the same number — one account per phone
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
     throw e;
   }
   const c = await db.$transaction(async (tx) => {
-    const c = await tx.customer.create({ data: { name: d.name, phone, email: d.email || null, passwordHash: hash, passportNo: await uniquePassportNo(tx), referredById: referrerId, ...birthday } });
+    const c = await tx.customer.create({ data: { name: d.name, phone, email: d.email || null, passwordHash: hash, passportNo: await nextRewardsId(tx), referredById: referrerId, ...birthday } });
     await joinPassport(tx, c.id); // welcome reward waits for their first purchase or repair
     return c;
   });

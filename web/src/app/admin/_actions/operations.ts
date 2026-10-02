@@ -11,7 +11,7 @@ import { restoreOrderStock } from "@/lib/inventory";
 import { changeRepairStatus } from "@/lib/repairs";
 import { earnPoints, repairDiscount, spendPoints, syncBalance } from "@/lib/loyalty";
 import { notify } from "@/lib/notify";
-import { newPassportNo } from "@/lib/auth";
+import { nextRewardsId } from "@/lib/rewards-id";
 import { parseBirthday } from "@/lib/passport";
 import type { FormState } from "./auth";
 import { bool, int, optStr, run, str } from "./util";
@@ -154,7 +154,7 @@ export async function createWalkInRepairAction(_: FormState, f: FormData): Promi
     if (!/^(\+92|0)?3\d{9}$/.test(phone)) throw new Error("Enter a valid mobile number");
     for (const k of ["name", "brand", "model", "category", "description"]) if (!str(f, k)) throw new Error(`${k} is required`);
     const r = await db.$transaction(async (tx) => {
-      const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "name"), phone, passportNo: newPassportNo() } }));
+      const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "name"), phone, passportNo: await nextRewardsId(tx) } }));
       const r = await tx.repairRequest.create({
         data: { ref: await nextRepairRef(tx), customerId: c.id, name: str(f, "name"), phone, brand: str(f, "brand"), model: str(f, "model"), imei: optStr(f, "imei"), category: str(f, "category"), description: str(f, "description"), dropOff: "WALK_IN", status: "RECEIVED", assignedToId: staff.id },
       });

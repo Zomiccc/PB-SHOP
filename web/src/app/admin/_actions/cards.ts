@@ -5,7 +5,7 @@ import { normalizePhone } from "@/lib/format";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
-import { uniquePassportNo } from "@/lib/auth";
+import { nextRewardsId } from "@/lib/rewards-id";
 import { findReferrer, joinPassport, parseBirthday } from "@/lib/passport";
 import type { FormState } from "./auth";
 import { run, str } from "./util";
@@ -37,7 +37,7 @@ export async function generateCardAction(_: FormState, f: FormData): Promise<For
     const birthday = parseBirthday(str(f, "birthMonth"), str(f, "birthDay"), { required: true });
     const referrer = await findReferrer(db, str(f, "referral"), phone);
     const c = await db.$transaction(async (tx) => {
-      const c = await tx.customer.create({ data: { name: `${first} ${last}`, phone, passportNo: await uniquePassportNo(tx), referredById: referrer?.id ?? null, ...birthday } });
+      const c = await tx.customer.create({ data: { name: `${first} ${last}`, phone, passportNo: await nextRewardsId(tx), referredById: referrer?.id ?? null, ...birthday } });
       await joinPassport(tx, c.id, { staffId: staff.id });
       await audit({ staffId: staff.id, action: "PASSPORT_CARD_ISSUED", entityType: "CUSTOMER", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, after: { name: c.name, passportNo: c.passportNo, referredBy: referrer ? referrer.name : null } }, tx);
       return c;

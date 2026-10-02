@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
-import { newPassportNo } from "@/lib/auth";
+import { nextRewardsId } from "@/lib/rewards-id";
 import { suggestCodes } from "@/lib/barcode";
 import { assertVariantGrade } from "@/lib/grade";
 import { assertImeiFree, receiveStock } from "@/lib/inventory";
@@ -59,7 +59,7 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
     const docs = await collectIdDocuments(f);
 
     const sale = await db.$transaction(async (tx) => {
-      const customer = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "customerName"), phone, passportNo: newPassportNo() } }));
+      const customer = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "customerName"), phone, passportNo: await nextRewardsId(tx) } }));
       const count = await tx.installmentSale.count();
       const s = await tx.installmentSale.create({
         data: {

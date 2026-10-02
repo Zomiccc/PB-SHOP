@@ -6,6 +6,8 @@ export const BRAND = {
   phone: process.env.NEXT_PUBLIC_STORE_PHONE ?? "+92 300 0000000",
   whatsapp: process.env.NEXT_PUBLIC_STORE_WHATSAPP ?? "923000000000",
   email: process.env.NEXT_PUBLIC_STORE_EMAIL ?? "hello@pbmobiles.pk",
+  /** Website printed on the back of the PB Rewards card (client reference artwork). */
+  cardWebsite: process.env.NEXT_PUBLIC_CARD_WEBSITE ?? "pbisb.com",
   address: process.env.NEXT_PUBLIC_STORE_ADDRESS ?? "Shop address to be confirmed, Pakistan",
   hours: [
     { days: "Mon – Sat", time: "11:00 am – 9:00 pm" },

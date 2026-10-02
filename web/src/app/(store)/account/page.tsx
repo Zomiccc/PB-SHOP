@@ -101,9 +101,9 @@ export default async function AccountPage(props: PageProps<"/account">) {
             </div>
           </div>
           <div>
-            <FlipPassportCard name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} expires={expires} />
+            <FlipPassportCard name={customer.name} number={customer.passportNo} points={points} expires={expires} />
             <div className="mt-3 flex justify-center print:hidden"><PrintButton label="Print / save my card" /></div>
-            <PassportCardPrint name={customer.name} number={customer.passportNo} points={points} phone={customer.phone} since={customer.createdAt.toLocaleDateString("en-PK", { month: "short", year: "numeric" })} />
+            <PassportCardPrint name={customer.name} number={customer.passportNo} />
           </div>
         </div>
       </section>
