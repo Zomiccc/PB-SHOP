@@ -13,7 +13,7 @@ const GROUPS: Record<string, { label: string; actions?: string[] }> = {
   stock: { label: "Stock", actions: ["STOCK_ADJUSTED", "STOCK_PURCHASED", "ITEM_CREATED", "ZERO_STOCK_OVERRIDE"] },
   prices: { label: "Products & prices", actions: ["PRICE_CHANGED", "PRODUCT_UPDATED", "PRODUCT_CREATED", "VARIANT_CREATED", "VARIANT_UPDATED", "PRODUCT_ACTIVATED", "PRODUCT_DEACTIVATED", "MODEL_3D_APPROVED"] },
   repairs: { label: "Repairs", actions: ["REPAIR_STATUS_CHANGED", "REPAIR_NOTE_ADDED", "REPAIR_UPDATED", "REPAIR_CREATED"] },
-  passport: { label: "Phone Passport", actions: ["LOYALTY_ADJUSTED", "REWARD_REDEEMED", "REWARD_CREATED", "REWARD_UPDATED", "REWARD_ENABLED", "REWARD_DISABLED"] },
+  passport: { label: "PB Rewards", actions: ["LOYALTY_ADJUSTED", "REWARD_REDEEMED", "REWARD_CREATED", "REWARD_UPDATED", "REWARD_ENABLED", "REWARD_DISABLED"] },
   installments: { label: "Installments", actions: ["INSTALLMENT_LISTING_CREATED", "INSTALLMENT_LISTING_UPDATED", "INSTALLMENT_LISTING_DELETED", "INSTALLMENT_LISTING_MOVED", "INSTALLMENT_SALE_CREATED", "INSTALLMENT_SALE_UPDATED"] },
   used: { label: "Used-phone buying", actions: ["USED_PHONE_BOUGHT", "USED_PHONE_ADDED_TO_STOCK"] },
   documents: { label: "ID documents & files", actions: ["SENSITIVE_DOCUMENT_VIEWED", "DOCUMENTS_UPLOADED", "DOCUMENT_DELETED"] },

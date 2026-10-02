@@ -53,7 +53,7 @@ export function ProductForm({ product }: { product?: Product }) {
       </Field>
       <div className="flex flex-wrap gap-5 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" name="featured" defaultChecked={product?.featured} className="h-4 w-4" /> Featured on home page</label>
-        <label className="flex items-center gap-2"><input type="checkbox" name="loyaltyEligible" defaultChecked={product?.loyaltyEligible ?? true} className="h-4 w-4" /> Earns Passport points</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="loyaltyEligible" defaultChecked={product?.loyaltyEligible ?? true} className="h-4 w-4" /> Earns PB Points</label>
       </div>
       <details className="rounded-xl bg-cream p-4">
         <summary className="cursor-pointer text-sm font-semibold">SEO &amp; Sketchfab</summary>

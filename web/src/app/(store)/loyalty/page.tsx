@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = {
-  title: "PB Phone Passport — Points & Rewards",
+  title: "PB Rewards — Earn & Redeem Points",
   description: "Earn 1 point per Rs 100 on repairs and accessories, and 50–200 points per phone by price. Redeem 50 points for a free screen protector, 100 for a free custom 3D skin, 200 for free AirPods.",
 };
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export default async function LoyaltyPage() {
 
   return (
     <>
-      <PageHero dark eyebrow="PB Phone Passport" title="Points that" accent="pay you back." intro="One Passport for every repair and phone you buy with us. Collect points, track them, and swap them for real rewards.">
+      <PageHero dark eyebrow="PB Rewards" title="Points that" accent="pay you back." intro="One PB Rewards account for every repair and phone you buy with us. Collect points, track them, and swap them for real rewards.">
         <div className="mt-12 max-w-md">
           <FlipPassportCard />
         </div>
@@ -60,7 +60,7 @@ export default async function LoyaltyPage() {
         <div className="container-pb">
           <p className="eyebrow text-gold">Redeem</p>
           <h2 className="display mt-3 text-4xl md:text-5xl">What points get you.</h2>
-          <p className="mt-3 max-w-lg text-white/65">Swap your PB Points for these rewards at the counter — staff apply them to your Passport straight away.</p>
+          <p className="mt-3 max-w-lg text-white/65">Swap your PB Points for these rewards at the counter — staff apply them to your PB Rewards account straight away.</p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {rewards.map((r, i) => (
               <Reveal key={r.id} delay={i * 0.05}>
@@ -86,7 +86,7 @@ export default async function LoyaltyPage() {
             <p className="eyebrow text-gold">The rules</p>
             <h2 className="display mt-3 text-4xl md:text-5xl">Clear and simple.</h2>
             <Link href="/account" className="btn btn-gold mt-8">
-              <Icon name="user" className="h-4 w-4" /> See my Passport
+              <Icon name="user" className="h-4 w-4" /> See my PB Rewards
             </Link>
           </div>
           {/* Final PB Points system (v6 final amendment) — same numbers as the points engine. */}
@@ -109,9 +109,9 @@ export default async function LoyaltyPage() {
               <span className="mt-2 block">Installment phones follow the same points structure, based on the eligible phone value.</span>
             </Rule>
             {rules.welcomePoints > 0 && <Rule t="Welcome reward">{rules.welcomePoints} PB Points when your new account completes its first eligible purchase or repair — on top of the standard points for it.</Rule>}
-            {rules.referralPoints > 0 && <Rule t="Referral reward">Share your referral code (your Passport ID). You get {rules.referralPoints} PB Points when a friend who joined with it completes their first eligible purchase or repair. Creating the account alone doesn&apos;t count.</Rule>}
+            {rules.referralPoints > 0 && <Rule t="Referral reward">Share your referral code (your Rewards ID). You get {rules.referralPoints} PB Points when a friend who joined with it completes their first eligible purchase or repair. Creating the account alone doesn&apos;t count.</Rule>}
             <Rule t="Bonus points">Our team can award extra PB Points from time to time — they show in your points history with the reason.</Rule>
-            <Rule t="Points validity">Each PB Point is valid for {rules.expiryMonths} months from the date it is earned. Your Passport shows what&apos;s expiring and when; points that expire soonest are used first.</Rule>
+            <Rule t="Points validity">Each PB Point is valid for {rules.expiryMonths} months from the date it is earned. Your PB Rewards account shows what&apos;s expiring and when; points that expire soonest are used first.</Rule>
             <Rule t="Important rules">
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 <li>Points can be accumulated until redeemed or expired.</li>
@@ -121,7 +121,7 @@ export default async function LoyaltyPage() {
                 <li>Points are calculated on the eligible / net transaction amount after discounts.</li>
               </ul>
             </Rule>
-            <Rule t="Redeeming">Rewards are redeemed in store — staff apply them to your Passport straight away.</Rule>
+            <Rule t="Redeeming">Rewards are redeemed in store — staff apply them to your PB Rewards account straight away.</Rule>
           </dl>
         </div>
       </section>

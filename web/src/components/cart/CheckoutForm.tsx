@@ -135,7 +135,7 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
                 <input name="email" type="email" defaultValue={defaults.email} autoComplete="email" className="field" aria-invalid={!!err("email")} />
               </Field>
             </div>
-            <p className="mt-3 text-xs text-muted">Your phone number links this order to your PB Phone Passport so you earn points automatically.</p>
+            <p className="mt-3 text-xs text-muted">Your phone number links this order to your PB Rewards account so you earn points automatically.</p>
           </Panel>
 
           <Panel n="02" title="Delivery">
@@ -219,7 +219,7 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
             </dl>
             {points > 0 && (
               <p className="mt-3 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-gold">
-                <Icon name="gift" className="h-4 w-4" /> You&apos;ll earn {points} Phone Passport points
+                <Icon name="gift" className="h-4 w-4" /> You&apos;ll earn {points} PB Points
               </p>
             )}
             <label className="mt-5 flex items-start gap-3 text-xs text-white/70">

@@ -10,7 +10,7 @@ export const SETTING_DEFAULTS = {
     rupeesPerPoint: 100, // repairs & accessories: 1 point per Rs 100 spent
     phoneTiers: "10000:50, 30000:100, 50000:150, 80000:200", // phone price from : points (also installment phones)
     expiryMonths: 6, // each earning event expires six months after it was earned
-    welcomePoints: 25, // once, when a customer joins the Passport (Passport brief §4)
+    welcomePoints: 25, // once, when a customer joins PB Rewards (Passport brief §4)
     referralPoints: 25, // to the referrer, once per referred friend's first purchase or repair (Passport brief §3)
     exclusions: "Points can be accumulated until redeemed or expired. Redeemed points cannot be restored. No points are earned on redeemed rewards. Points from refunded or cancelled transactions are reversed. Points are calculated on the eligible / net amount after discounts (not on delivery fees or tablets).",
   },

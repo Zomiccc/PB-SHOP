@@ -192,7 +192,7 @@ export async function migrateLegacyBalances() {
   for (const c of customers) {
     const hasLots = await db.loyaltyTransaction.count({ where: { customerId: c.id, remaining: { not: null } } });
     if (hasLots) continue;
-    await db.$transaction((tx) => earnPoints(tx, { customerId: c.id, points: c.loyaltyPoints, source: "MANUAL", type: "ADJUST", reason: "Balance carried over to the new Phone Passport" }));
+    await db.$transaction((tx) => earnPoints(tx, { customerId: c.id, points: c.loyaltyPoints, source: "MANUAL", type: "ADJUST", reason: "Balance carried over to the new PB Rewards account" }));
     migrated++;
   }
   return migrated;

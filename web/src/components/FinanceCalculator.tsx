@@ -93,21 +93,6 @@ export function FinanceCalculator({ config, phones, initialPrice, initialSlug, p
             <Highlight label={`${unit}ly Payment`} value={pkr(q.perInstallment)} big />
           </div>
 
-          <details className="group border-t border-white/10 px-5 py-4 md:px-7">
-            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
-              Repayment Plan <span className="flex items-center gap-1 text-white/60">View <Icon name="arrow-right" className="h-3.5 w-3.5 transition group-open:rotate-90" /></span>
-            </summary>
-            <dl className="mt-4 space-y-2 text-sm">
-              <Row label="Total price" value={pkr(q.price)} />
-              <Row label="Down payment (due in store)" value={pkr(q.dueToday)} />
-              <Row label="Financed amount" value={pkr(q.financed)} />
-              {q.markup > 0 && <Row label={`Markup (${config.markupPercentPerMonth}% per ${unit.toLowerCase()})`} value={pkr(q.markup)} />}
-              {q.serviceFee > 0 && <Row label="Service fee" value={pkr(q.serviceFee)} />}
-              {q.riskFee > 0 && <Row label="Risk management fee" value={pkr(q.riskFee)} />}
-              <Row label={`${q.terms} × ${pkr(q.perInstallment)}`} value={pkr(q.perInstallment * q.terms)} />
-              <Row label="Total you pay" value={pkr(q.totalCost + q.guaranteeDeposit)} strong />
-            </dl>
-          </details>
 
           {bookable && (
             <div className="border-t border-white/10 px-5 py-4 md:px-7">
@@ -156,15 +141,6 @@ function Highlight({ label, value, big }: { label: string; value: string; big?: 
     <div className={cn("flex items-center justify-between gap-3 px-5 py-4 md:px-7", big ? "bg-gold/15" : "bg-white/[0.04] sm:border-r sm:border-white/10")}>
       <span className={big ? "font-semibold text-gold-soft" : "text-white/80"}>{label}</span>
       <span className={cn("font-bold", big ? "text-2xl text-gold" : "text-lg")} aria-live="polite">{value}</span>
-    </div>
-  );
-}
-
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="flex justify-between gap-4 border-b border-white/5 pb-2">
-      <dt className="text-white/60">{label}</dt>
-      <dd className={strong ? "font-bold text-white" : "text-white/90"}>{value}</dd>
     </div>
   );
 }

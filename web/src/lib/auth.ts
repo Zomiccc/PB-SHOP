@@ -59,7 +59,7 @@ export async function uniquePassportNo(client: { customer: { findUnique: (a: { w
     const no = newPassportNo();
     if (!(await client.customer.findUnique({ where: { passportNo: no } }))) return no;
   }
-  throw new Error("Could not allocate a Passport ID — try again");
+  throw new Error("Could not allocate a Rewards ID — try again");
 }
 
 export function newPassportNo() {

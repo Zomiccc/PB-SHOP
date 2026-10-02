@@ -118,7 +118,7 @@ export default async function HomePage() {
           { href: "/used-phones", label: "Shop Used Phones" },
           { href: "/tablets", label: "Shop Tablets" },
           { href: "/accessories", label: "View Accessories" },
-          { href: "/repair", label: "Create your repair note" },
+          { href: "/repair", label: "Book a repair" },
         ].map((c) => (
           <Link key={c.href} href={c.href} className={`shrink-0 rounded-full border px-4 py-2 text-sm ${c.gold ? "border-gold/50 hover:bg-gold/10" : "border-white/15 hover:border-white/40"}`}>{c.label}</Link>
         ))}
@@ -151,7 +151,7 @@ export default async function HomePage() {
               <span className="text-gradient-gold">PB Rewards</span>
               <CrownIcon />
             </h2>
-            <p className="mt-3 text-lg text-white/85">Your PB Phone Passport earns PB Points when you shop, repair or buy a phone.</p>
+            <p className="mt-3 text-lg text-white/85">Your PB Rewards account earns PB Points when you shop, repair or buy a phone.</p>
             {/* Finalised PB Points system (v6 §10 + final amendment) — same rules as the engine and the /loyalty page. */}
             <ul className="mt-5 space-y-2.5 text-sm">
               {[

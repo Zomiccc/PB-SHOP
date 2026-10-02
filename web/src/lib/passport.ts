@@ -36,7 +36,7 @@ export async function joinPassport(tx: Tx, customerId: string, opts: { staffId?:
   if (!c.passportJoinedAt) data.passportJoinedAt = now;
   if (!c.cardExpiresAt && card.validityMonths > 0) data.cardExpiresAt = addMonths(now, card.validityMonths);
   if (Object.keys(data).length) await tx.customer.update({ where: { id: customerId }, data });
-  return opts.verified ? creditWelcome(tx, customerId, "joined PB Phone Passport", opts.staffId ?? null, now) : null;
+  return opts.verified ? creditWelcome(tx, customerId, "joined PB Rewards", opts.staffId ?? null, now) : null;
 }
 
 /** Credits the welcome reward once to a customer who joined the Passport. */
@@ -69,7 +69,7 @@ export async function findReferrer(tx: Tx, code: string | null | undefined, self
   const referrer = /^(\+92|0)?3\d{9}$/.test(phone)
     ? await tx.customer.findUnique({ where: { phone }, select: { id: true, phone: true, name: true } })
     : await tx.customer.findUnique({ where: { passportNo: raw.toUpperCase() }, select: { id: true, phone: true, name: true } });
-  if (!referrer) throw new PassportError("We couldn't find that referral code — check the friend's Passport ID or mobile number");
+  if (!referrer) throw new PassportError("We couldn't find that referral code — check the friend's Rewards ID or mobile number");
   if (referrer.phone === selfPhone) throw new PassportError("You can't refer yourself");
   return referrer;
 }

@@ -400,6 +400,19 @@ async function upgradeExisting() {
     await db.setting.create({ data: { key: "migration.no12MonthsFix", value: JSON.stringify({ at: new Date().toISOString(), fixed }) } });
     if (fixed) console.log(`Re-priced ${fixed} former 12-month installment listing(s) as 9-month plans.`);
   }
+  // Change request (Oct 2026): "PB Phone Passport" is now "PB Rewards" — also in saved points-history notes. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.rewardsName" } }))) {
+    let renamed = 0;
+    for (const t of await db.loyaltyTransaction.findMany({ where: { reason: { contains: "Passport" } }, select: { id: true, reason: true } })) {
+      const reason = t.reason!.replace(/PB Phone Passport|Phone Passport/g, "PB Rewards").replace(/new PB Rewards\b(?! account)/g, "new PB Rewards account");
+      if (reason !== t.reason) {
+        await db.loyaltyTransaction.update({ where: { id: t.id }, data: { reason } });
+        renamed++;
+      }
+    }
+    await db.setting.create({ data: { key: "migration.rewardsName", value: JSON.stringify({ at: new Date().toISOString(), renamed }) } });
+    if (renamed) console.log(`Renamed "Passport" to "PB Rewards" in ${renamed} points-history note(s).`);
+  }
   // v6 §6: installment plans start at 30% down — 10% and 20% are removed from any saved settings. Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.installments30" } }))) {
     const row = await db.setting.findUnique({ where: { key: "installmentCalc" } });

@@ -74,7 +74,7 @@ export function Header() {
           </div>
           <div className="flex items-center gap-6">
             <span>Secure JazzCash / wallet / bank payments</span>
-            <Link href="/loyalty" className="text-gold hover:text-gold-soft">PB Phone Passport →</Link>
+            <Link href="/loyalty" className="text-gold hover:text-gold-soft">PB Rewards →</Link>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@ export function Header() {
           <div className="flex items-center gap-1.5">
             <Link
               href="/account"
-              aria-label="Account and PB Phone Passport"
+              aria-label="Account and PB Rewards"
               className={cn("hidden h-10 items-center gap-2 rounded-full px-3 text-sm font-medium sm:flex", dark ? "text-white hover:bg-white/10" : "text-ink hover:bg-ink/5")}
             >
               <Icon name="user" className="h-[18px] w-[18px]" />
@@ -174,7 +174,7 @@ export function Header() {
                 ))}
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <Link href="/account" className="btn btn-ghost text-ink"><span>Account</span></Link>
-                  <Link href="/loyalty" className="btn btn-gold">Passport</Link>
+                  <Link href="/loyalty" className="btn btn-gold">PB Rewards</Link>
                 </div>
               </div>
             </motion.nav>

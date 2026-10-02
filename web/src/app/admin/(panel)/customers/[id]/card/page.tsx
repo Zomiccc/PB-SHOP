@@ -9,7 +9,7 @@ import { FlipPassportCard } from "@/components/home/FlipPassportCard";
 import { getSetting } from "@/lib/settings";
 import { formatCardExpiry } from "@/lib/passport-rules";
 
-export const metadata = { title: "Passport card" };
+export const metadata = { title: "Rewards card" };
 
 export default async function CustomerCardPage(props: PageProps<"/admin/customers/[id]/card">) {
   const { id } = await props.params;
@@ -21,7 +21,7 @@ export default async function CustomerCardPage(props: PageProps<"/admin/customer
   const expiry = c.cardExpiresAt ? formatCardExpiry(c.cardExpiresAt) : null;
   return (
     <>
-      <PageTitle title={`Card — ${c.name}`} sub={`Passport ID ${c.passportNo} · ${points} points`}>
+      <PageTitle title={`Card — ${c.name}`} sub={`Rewards ID ${c.passportNo} · ${points} points`}>
         <PrintButton label="Print card / save as PDF" />
         <Link href={`/admin/customers/${c.id}`} className="text-sm text-blue">Customer profile →</Link>
         <Link href="/admin/cards" className="text-sm text-blue">← Card generator</Link>
@@ -34,7 +34,7 @@ export default async function CustomerCardPage(props: PageProps<"/admin/customer
       </p>
       <PassportCardPrint name={c.name} number={c.passportNo} points={points} phone={c.phone} since={since} />
       <p className="mt-6 max-w-xl text-sm text-muted print:hidden">
-        Prints at 85.6 × 54 mm (standard bank-card size): page 1 is the front, page 2 the back with the scannable Passport barcode. For a card printer choose CR80, no margins, and turn on “background graphics”.
+        Prints at 85.6 × 54 mm (standard bank-card size): page 1 is the front, page 2 the back with the scannable Rewards ID barcode. For a card printer choose CR80, no margins, and turn on “background graphics”.
       </p>
     </>
   );

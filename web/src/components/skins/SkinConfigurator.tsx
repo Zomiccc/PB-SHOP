@@ -127,6 +127,23 @@ export function SkinConfigurator({
     <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
       {/* Left: large preview */}
       <div className="min-w-0">
+        {/* Toolbar above the preview, so the view switch and enlarge button never cover the phone. */}
+        <div className="mb-2.5 flex items-center justify-between gap-3">
+          {fullUrl ? (
+            <div role="tablist" aria-label="Preview" className="flex rounded-full bg-white/[0.06] p-0.5 text-[0.7rem] ring-1 ring-white/12">
+              {(["phone", "full"] as const).map((v) => (
+                <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className={cn("rounded-full px-2.5 py-1 font-semibold transition", view === v ? "bg-gold text-[#120d02]" : "text-white/70 hover:text-white")}>
+                  {v === "phone" ? "On phone" : "Full artwork"}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          <button type="button" onClick={() => setZoom(true)} aria-label="Enlarge preview" className="grid h-9 w-9 place-items-center rounded-lg bg-white/[0.06] text-white ring-1 ring-white/12 hover:bg-white/10">
+            <Icon name="expand" className="h-4 w-4" />
+          </button>
+        </div>
         <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-[#161b24] to-[#07090d] ring-1 ring-white/8">
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_45%,rgba(0,119,217,.18),transparent_70%)]" />
           {/* Absolutely sized so the whole phone (or artwork) always fits the box. No 3D tilt — it rasterises the drawing and blurs it. */}
@@ -149,20 +166,8 @@ export function SkinConfigurator({
           >
             {stage}
           </div>
-          {adjustable && <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[0.7rem] text-white/60">Drag the picture to adjust</p>}
-          {fullUrl && (
-            <div role="tablist" aria-label="Preview" className="absolute left-4 top-4 flex rounded-full bg-black/60 p-1 text-xs ring-1 ring-white/15">
-              {(["phone", "full"] as const).map((v) => (
-                <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className={cn("rounded-full px-3 py-1.5 font-semibold transition", view === v ? "bg-gold text-[#120d02]" : "text-white/70 hover:text-white")}>
-                  {v === "phone" ? "On phone" : "Full artwork"}
-                </button>
-              ))}
-            </div>
-          )}
-          <button type="button" onClick={() => setZoom(true)} aria-label="Enlarge preview" className="absolute bottom-4 right-4 grid h-11 w-11 place-items-center rounded-xl bg-black/50 text-white ring-1 ring-white/15 hover:bg-black/70">
-            <Icon name="expand" className="h-5 w-5" />
-          </button>
         </div>
+        {adjustable && <p className="mt-2 text-center text-[0.7rem] text-white/60">Drag the picture to adjust</p>}
         {mode === "DESIGN" && designs.length + (ownDesign ? 1 : 0) > 1 && (
           <div className="mt-4 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]" role="radiogroup" aria-label="Designs">
             {[...(ownDesign ? [ownDesign] : []), ...designs].map((d) => (

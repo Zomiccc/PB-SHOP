@@ -17,7 +17,7 @@ import { redirect } from "next/navigation";
 /** Only same-site paths may be returned to after logging in. */
 const safeNext = (v: unknown) => (typeof v === "string" && /^\/(?!\/)/.test(v) ? v : null);
 
-export const metadata: Metadata = { title: "My Account & PB Phone Passport", robots: { index: false } };
+export const metadata: Metadata = { title: "My Account & PB Rewards", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage(props: PageProps<"/account">) {
@@ -30,7 +30,7 @@ export default async function AccountPage(props: PageProps<"/account">) {
     return (
       <div className="container-pb grid items-center gap-12 py-16 lg:grid-cols-2 lg:py-24">
         <div>
-          <p className="eyebrow text-red">PB Phone Passport</p>
+          <p className="eyebrow text-red">PB Rewards</p>
           <h1 className="display mt-5 text-5xl md:text-7xl">Your phone, looked after.</h1>
           <p className="mt-5 max-w-md text-lg text-muted">Log in to see your points, what&apos;s expiring, your rewards, orders and repair history — all in one place.</p>
           <div className="mt-10 hidden lg:block">
@@ -122,7 +122,7 @@ export default async function AccountPage(props: PageProps<"/account">) {
           )}
           {rules.referralPoints > 0 && (
             <p className="rounded-xl bg-gold/10 p-4 text-sm ring-1 ring-gold/30">
-              <b className="text-gold">Refer a friend:</b> your referral code is <b className="font-mono">{customer.passportNo}</b>. When a friend creates their Passport with it and makes their first purchase or repair, you get {rules.referralPoints} points (and they get their welcome points).
+              <b className="text-gold">Refer a friend:</b> your referral code is <b className="font-mono">{customer.passportNo}</b>. When a friend creates their PB Rewards account with it and makes their first purchase or repair, you get {rules.referralPoints} points (and they get their welcome points).
             </p>
           )}
           {lots.length === 0 ? (
@@ -158,7 +158,7 @@ export default async function AccountPage(props: PageProps<"/account">) {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-muted">Redeem in store — staff will apply the reward to your Passport.</p>
+          <p className="mt-3 text-xs text-muted">Redeem in store — staff will apply the reward to your PB Rewards account.</p>
         </Block>
 
         {/* Orders */}

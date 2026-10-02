@@ -294,7 +294,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
         })()}
 
         <ul className="mt-8 space-y-3 border-t border-ink/10 pt-6 text-sm">
-          {points > 0 && <li className="flex gap-3"><Icon name="gift" className="h-5 w-5 shrink-0 text-gold" /> Earn <b>{points} Phone Passport points</b> with this purchase.</li>}
+          {points > 0 && <li className="flex gap-3"><Icon name="gift" className="h-5 w-5 shrink-0 text-gold" /> Earn <b>{points} PB Points</b> with this purchase.</li>}
           <li className="flex gap-3"><Icon name="card" className="h-5 w-5 shrink-0 text-gold" /> Pay by mobile wallet, bank account or card — secure Pakistani gateway.</li>
           <li className="flex gap-3"><Icon name="truck" className="h-5 w-5 shrink-0 text-gold" /> Home delivery or collect in store.</li>
         </ul>

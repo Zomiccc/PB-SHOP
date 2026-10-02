@@ -146,29 +146,15 @@ export function InstallmentRequestForm({ dates, phones }: { dates: string[]; pho
         {dates.length === 0 ? (
           <p className="text-sm text-muted">No dates open right now — please call us.</p>
         ) : (
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="radiogroup" aria-label="Appointment date">
-            {dates.map((d) => {
-              const day = new Date(`${d}T12:00:00+05:00`);
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  role="radio"
-                  aria-checked={d === date}
-                  onClick={() => {
-                    setDate(d);
-                    setTime("");
-                    setSlots(null);
-                  }}
-                  className={cn("flex w-16 shrink-0 flex-col items-center rounded-xl py-2 text-sm ring-1 transition", d === date ? "bg-gold text-[#120d02] ring-gold" : "bg-card ring-white/10 hover:ring-gold/60")}
-                >
-                  <span className="text-[0.7rem] uppercase">{day.toLocaleDateString("en-PK", { weekday: "short", timeZone: "Asia/Karachi" })}</span>
-                  <b className="text-lg leading-tight">{day.toLocaleDateString("en-PK", { day: "numeric", timeZone: "Asia/Karachi" })}</b>
-                  <span className="text-[0.7rem]">{day.toLocaleDateString("en-PK", { month: "short", timeZone: "Asia/Karachi" })}</span>
-                </button>
-              );
-            })}
-          </div>
+          <DateCalendar
+            dates={dates}
+            value={date}
+            onChange={(d) => {
+              setDate(d);
+              setTime("");
+              setSlots(null);
+            }}
+          />
         )}
       </fieldset>
 
@@ -223,5 +209,77 @@ function F({ label, error, className, children }: { label: string; error?: strin
       {children}
       {error && <span className="mt-1.5 block text-sm text-red">{error}</span>}
     </label>
+  );
+}
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const ymd = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+/**
+ * Month calendar for the appointment date (change request §4): replaces the sideways row of date cards, which
+ * overflowed small screens. Dark with blue accents, gold for the chosen day; days that can't be booked are disabled.
+ * Always 7 equal columns, so it fits any width. Dates are "YYYY-MM-DD" (Pakistan time), compared as plain strings.
+ */
+function DateCalendar({ dates, value, onChange }: { dates: string[]; value: string; onChange: (d: string) => void }) {
+  const open = new Set(dates);
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  const monthKey = (d: string) => d.slice(0, 7);
+  const [shown, setShown] = useState(() => monthKey(value || first));
+  const [y, m] = shown.split("-").map(Number);
+  const month = m - 1;
+  const daysIn = new Date(Date.UTC(y, month + 1, 0)).getUTCDate();
+  const lead = (new Date(Date.UTC(y, month, 1)).getUTCDay() + 6) % 7; // Monday first
+  const step = (n: number) => {
+    const d = new Date(Date.UTC(y, month + n, 1));
+    setShown(ymd(d.getUTCFullYear(), d.getUTCMonth(), 1).slice(0, 7));
+  };
+  const canPrev = shown > monthKey(first);
+  const canNext = shown < monthKey(last);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
+
+  return (
+    <div className="w-full max-w-sm rounded-2xl bg-[#0b111c] p-3 ring-1 ring-blue/30 sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <button type="button" onClick={() => step(-1)} disabled={!canPrev} aria-label="Previous month" className="grid h-9 w-9 place-items-center rounded-lg text-blue-soft ring-1 ring-blue/30 transition hover:bg-blue/15 disabled:pointer-events-none disabled:opacity-30">
+          <Icon name="arrow-left" className="h-4 w-4" />
+        </button>
+        <p className="font-semibold" aria-live="polite">{MONTHS[month]} {y}</p>
+        <button type="button" onClick={() => step(1)} disabled={!canNext} aria-label="Next month" className="grid h-9 w-9 place-items-center rounded-lg text-blue-soft ring-1 ring-blue/30 transition hover:bg-blue/15 disabled:pointer-events-none disabled:opacity-30">
+          <Icon name="arrow-right" className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-blue-soft/80" aria-hidden>
+        {WEEKDAYS.map((w) => <span key={w} className="py-1">{w.slice(0, 2)}</span>)}
+      </div>
+      <div className="mt-1 grid grid-cols-7 gap-1" role="radiogroup" aria-label="Appointment date">
+        {Array.from({ length: lead }, (_, i) => <span key={`x${i}`} />)}
+        {Array.from({ length: daysIn }, (_, i) => {
+          const d = ymd(y, month, i + 1);
+          const ok = open.has(d);
+          const on = d === value;
+          const label = new Date(`${d}T12:00:00+05:00`).toLocaleDateString("en-PK", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Karachi" });
+          return (
+            <button
+              key={d}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={ok ? label : `${label} — not available`}
+              disabled={!ok}
+              onClick={() => onChange(d)}
+              className={cn(
+                "aspect-square min-w-0 rounded-lg text-sm font-semibold transition",
+                on ? "bg-gold text-[#120d02] shadow-[0_6px_18px_-6px_rgb(217_166_46/0.7)]" : ok ? "bg-blue/10 text-white ring-1 ring-blue/25 hover:bg-blue/25 hover:ring-blue-soft" : "cursor-not-allowed text-white/20 line-through",
+                d === today && !on && "ring-2 ring-blue-soft",
+              )}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

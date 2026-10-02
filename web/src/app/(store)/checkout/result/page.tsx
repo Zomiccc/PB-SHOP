@@ -57,7 +57,7 @@ export default async function ResultPage(props: PageProps<"/checkout/result">) {
         )}
         {details}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/account" className="btn btn-primary">View my Passport</Link>
+          <Link href="/account" className="btn btn-primary">View my PB Rewards</Link>
           <Link href="/" className="btn btn-ghost text-ink"><span>Keep shopping</span></Link>
         </div>
       </Shell>

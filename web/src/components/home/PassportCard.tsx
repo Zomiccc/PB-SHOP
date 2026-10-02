@@ -67,7 +67,7 @@ export function PassportCard({ name, number, points, expires, still = false }: {
 
         <div className="relative flex h-full flex-col justify-between p-[5.5%]" style={{ transform: "translateZ(40px)" }}>
           <div className="flex items-start justify-between gap-3">
-            <Image src="/brand/pb-logo-horizontal.webp" alt="" width={1007} height={200} className="h-auto w-[46%] drop-shadow-[0_2px_6px_rgba(0,0,0,.6)]" />
+            <Image src="/brand/pb-logo-2026-horizontal.webp" alt="" width={1014} height={220} className="h-auto w-[46%] drop-shadow-[0_2px_6px_rgba(0,0,0,.6)]" />
             {sample && <span className="rounded-full bg-black/50 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-white/70 ring-1 ring-white/20">Sample</span>}
           </div>
           <div>
@@ -85,7 +85,7 @@ export function PassportCard({ name, number, points, expires, still = false }: {
             </div>
           </div>
           <div className="flex items-end justify-between gap-3 font-mono text-[2.6cqw] uppercase tracking-[0.16em] text-white/70">
-            <span className="truncate">{name ?? "PB Phone Passport"}</span>
+            <span className="truncate">{name ?? "PB Rewards"}</span>
             <span className="shrink-0 text-right">
               {expires && <span className="mb-[1cqw] block text-[2.1cqw] tracking-[0.2em] text-gold/90">Valid thru {expires}</span>}
               {number ?? "PBP-000000"}

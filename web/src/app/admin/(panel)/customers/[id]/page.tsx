@@ -43,8 +43,8 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
 
   return (
     <>
-      <PageTitle title={c.name} sub={`${c.phone}${c.email ? ` · ${c.email}` : ""} · Passport ${c.passportNo}`}>
-        <Link href={`/admin/customers/${c.id}/card`} className="btn btn-gold !py-2.5 !text-sm">Passport card</Link>
+      <PageTitle title={c.name} sub={`${c.phone}${c.email ? ` · ${c.email}` : ""} · Rewards ID ${c.passportNo}`}>
+        <Link href={`/admin/customers/${c.id}/card`} className="btn btn-gold !py-2.5 !text-sm">Rewards card</Link>
         <Link href="/admin/customers" className="text-sm text-blue">← Customers</Link>
       </PageTitle>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -60,7 +60,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
           <p className="mt-2 text-xs text-muted">Extra points for this customer (e.g. goodwill or a promotion). Shows in their points history as a separate manual award with your name and the time; the points expire like any other.</p>
         </Panel>
 
-        <Panel title="Passport details" id="passport">
+        <Panel title="Rewards details" id="passport">
           <ActionForm action={updatePassportAction} className="space-y-3">
             <input type="hidden" name="customerId" value={c.id} />
             <div className="grid gap-3 sm:grid-cols-[1.3fr_0.7fr_1.2fr]">
@@ -79,7 +79,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
             <div className="flex justify-between gap-3"><dt className="text-muted">Card expiry</dt><dd>{c.cardExpiresAt ? `${formatCardExpiry(c.cardExpiresAt)}${c.cardExpiresAt < now ? " · expired" : ""}` : "Not set"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">On the digital card</dt><dd>{card.showExpiryOnDigital ? "Shown" : "Hidden"} <Link href="/admin/settings#passport-card" className="text-xs text-blue">change</Link></dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Referred by</dt><dd>{c.referredBy ? <Link href={`/admin/customers/${c.referredBy.id}`} className="text-blue">{c.referredBy.name} ({c.referredBy.passportNo})</Link> : "—"}{c.referredBy && <span className="block text-right text-xs text-muted">{c.referralRewardedAt ? `referrer rewarded ${dt(c.referralRewardedAt)}` : "rewarded on first purchase / repair"}</span>}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-muted">Welcome reward</dt><dd>{c.loyaltyTx.some((t) => t.source === "WELCOME") ? "Given" : c.passportJoinedAt ? "Pending — on first purchase / repair" : "Not a Passport sign-up"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted">Welcome reward</dt><dd>{c.loyaltyTx.some((t) => t.source === "WELCOME") ? "Given" : c.passportJoinedAt ? "Pending — on first purchase / repair" : "Not a PB Rewards account sign-up"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Referral code</dt><dd className="font-mono">{c.passportNo}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted">Accounts referred</dt><dd>{c._count.referrals}</dd></div>
           </dl>
@@ -186,7 +186,7 @@ export default async function CustomerPage(props: PageProps<"/admin/customers/[i
 
       {me.role === "SUPER_ADMIN" && (
         <Panel title="Delete customer" id="delete" className="mt-6 ring-1 ring-red/30">
-          <p className="text-sm text-muted">For someone who is no longer a customer. Removes this Phone Passport profile, customer notes and website login, so they no longer appear in customer lists. Orders, repairs and installment sales are kept as business records (unlinked), and their points history is kept in the audit log with your name and the time. This can&apos;t be undone.</p>
+          <p className="text-sm text-muted">For someone who is no longer a customer. Removes this PB Rewards profile, customer notes and website login, so they no longer appear in customer lists. Orders, repairs and installment sales are kept as business records (unlinked), and their points history is kept in the audit log with your name and the time. This can&apos;t be undone.</p>
           <ActionForm action={deleteCustomerAction} className="mt-4 flex flex-wrap items-center gap-2" confirm={`Delete ${c.name} permanently?`}>
             <input type="hidden" name="customerId" value={c.id} />
             <input name="confirm" placeholder="Type DELETE" aria-label="Type DELETE to confirm" autoComplete="off" className="field !w-40" />

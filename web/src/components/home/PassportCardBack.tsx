@@ -15,7 +15,7 @@ export function PassportCardBack({ number = "PBP-000000", phone, since, classNam
       <div aria-hidden className="absolute inset-x-0 top-[9%] h-[11%] bg-gradient-to-r from-blue via-red to-gold opacity-80" />
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_80%_at_85%_100%,rgba(0,119,217,.22),transparent_70%)]" />
       <div className="relative flex h-full flex-col justify-between p-[5.5%]">
-        <p className="mt-[16%] font-mono text-[2.8cqw] uppercase tracking-[0.2em] text-gold">PB Phone Passport · show this card at the counter</p>
+        <p className="mt-[16%] font-mono text-[2.8cqw] uppercase tracking-[0.2em] text-gold">PB Rewards · show this card at the counter</p>
         <div className="self-start rounded-[2cqw] bg-white p-[2.5cqw]">
           <svg ref={svg} className="block h-[16cqw] w-auto" aria-label={`Barcode ${number}`} />
         </div>

@@ -5,14 +5,14 @@ import { ActionForm, Submit } from "@/components/admin/ui";
 import { generateCardAction } from "../../_actions/cards";
 import { MONTHS } from "@/lib/passport-rules";
 
-export const metadata = { title: "Passport cards" };
+export const metadata = { title: "Rewards cards" };
 
 /** PB Rewards card generator: first name, last name → unique Passport ID → printable card. */
 export default async function CardsPage() {
   const recent = await db.customer.findMany({ orderBy: { createdAt: "desc" }, take: 25 });
   return (
     <>
-      <PageTitle title="Passport card generator" sub="Issue a PB Rewards card with a unique Passport ID, then print it (bank-card size, front + back) or save it as a PDF." />
+      <PageTitle title="Rewards card generator" sub="Issue a PB Rewards card with a unique Rewards ID, then print it (bank-card size, front + back) or save it as a PDF." />
       <div className="grid gap-6 xl:grid-cols-[1fr_1.3fr]">
         <Panel title="New card">
           <ActionForm action={generateCardAction} className="space-y-3">
@@ -25,12 +25,12 @@ export default async function CardsPage() {
               <Field label="Birth month"><select name="birthMonth" defaultValue="" className="field"><option value="" disabled>Month</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></Field>
               <Field label="Day" hint="No year needed"><input name="birthDay" type="number" min={1} max={31} placeholder="Day" className="field" /></Field>
             </div>
-            <Field label="Referred by (optional)" hint="The friend's Passport ID or mobile. They get the referral reward on this customer's first purchase or repair."><input name="referral" autoComplete="off" placeholder="PBP-123456 or 0300 1234567" className="field" /></Field>
+            <Field label="Referred by (optional)" hint="The friend's Rewards ID or mobile. They get the referral reward on this customer's first purchase or repair."><input name="referral" autoComplete="off" placeholder="PBP-123456 or 0300 1234567" className="field" /></Field>
             <Submit variant="gold">Generate card</Submit>
           </ActionForm>
         </Panel>
-        <Panel title="Recent Passports">
-          <Table head={["Customer", "Passport ID", "Points", "Since", ""]} empty="No customers yet.">
+        <Panel title="Recent Rewards cards">
+          <Table head={["Customer", "Rewards ID", "Points", "Since", ""]} empty="No customers yet.">
             {recent.map((c) => (
               <tr key={c.id}>
                 <Td className="font-semibold">{c.name}<span className="block text-xs font-normal text-muted">{c.phone}</span></Td>

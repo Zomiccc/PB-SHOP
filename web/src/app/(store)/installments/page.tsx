@@ -89,7 +89,7 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
         <section id="book" className="scroll-mt-24 pb-20">
           <div className="container-pb">
             <p className="eyebrow text-gold">Book your visit</p>
-            <h2 className="display mt-3 text-4xl md:text-5xl">Apply &amp; book an appointment.</h2>
+            <h2 className="display mt-3 text-4xl md:text-5xl">Book an appointment.</h2>
             <p className="mt-3 max-w-xl text-muted">Tell us about you and the phone you want, then pick a date and time. Bring your original CNIC — we&apos;ll complete the plan with you in store.</p>
             <div className="mt-8">
               <InstallmentRequestForm dates={dates} phones={phoneNames} />

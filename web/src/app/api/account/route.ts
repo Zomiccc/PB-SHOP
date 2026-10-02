@@ -18,7 +18,7 @@ const Register = z.object({
   // Birthday: month + day only — the year is not asked for (Passport requirements §2).
   birthMonth: z.coerce.number({ message: "Choose your birth month" }).int().min(1, "Choose your birth month").max(12),
   birthDay: z.coerce.number({ message: "Enter the day" }).int().min(1, "Enter the day").max(31, "Enter the day"),
-  referral: z.string().trim().max(40).optional(), // friend's Passport ID or mobile number
+  referral: z.string().trim().max(40).optional(), // friend's Rewards ID or mobile number
   proof: z.string().trim().optional(), // order number or repair ref, required to claim an existing guest profile
 });
 const Login = z.object({ action: z.literal("login"), phone: z.string().trim().min(5), password: z.string().min(1) });
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     const valid = existing.orders.some((o) => o.number === proof) || existing.repairs.some((r) => r.ref === proof);
     if (!valid) {
       return NextResponse.json(
-        { error: "We found a Passport for this number. Enter an order number (PB-…) or repair reference (PBR-…) from a past visit to claim it.", needsProof: true, fields: { proof: ["Required to claim your existing Passport"] } },
+        { error: "We found a PB Rewards account for this number. Enter an order number (PB-…) or repair reference (PBR-…) from a past visit to claim it.", needsProof: true, fields: { proof: ["Required to claim your existing PB Rewards account"] } },
         { status: 409 },
       );
     }

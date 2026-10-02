@@ -51,7 +51,7 @@ export async function markPaidAction(_: FormState, f: FormData): Promise<FormSta
       await audit({ staffId: staff.id, action: "ORDER_MARKED_PAID", entityType: "ORDER", entityId: o.id, recordLabel: `Order ${o.number}`, before: { paymentStatus: o.paymentStatus }, after: { paymentStatus: "PAID", ref: optStr(f, "ref") } }, tx);
     });
     revalidatePath(`/admin/orders/${o.id}`);
-    return "Marked as paid — Phone Passport points applied";
+    return "Marked as paid — PB Points applied";
   });
 }
 
@@ -234,7 +234,7 @@ export async function updatePassportAction(_: FormState, f: FormData): Promise<F
       await audit({ staffId: staff.id, action: "PASSPORT_DETAILS_UPDATED", entityType: "CUSTOMER", entityId: c.id, recordLabel: `${c.name} (${c.passportNo})`, before, after: next }, tx);
     });
     revalidatePath(`/admin/customers/${c.id}`);
-    return "Passport details saved";
+    return "Rewards details saved";
   });
 }
 
@@ -245,7 +245,7 @@ export async function givePointsForOrderAction(_: FormState, f: FormData): Promi
     const pts = int(f, "points");
     if (!pts || pts < 1 || pts > 10000) throw new Error("Enter between 1 and 10,000 points");
     const o = await db.order.findUniqueOrThrow({ where: { id: str(f, "orderId") }, include: { customer: true } });
-    if (!o.customerId || !o.customer) throw new Error("This order isn't linked to a Passport (no customer phone)");
+    if (!o.customerId || !o.customer) throw new Error("This order isn't linked to a PB Rewards account (no customer phone)");
     if (o.paymentStatus !== "PAID") throw new Error("Points can only be given once the order is paid");
     const reason = optStr(f, "reason");
     await db.$transaction(async (tx) => {
@@ -274,7 +274,7 @@ export async function redeemRewardAction(_: FormState, f: FormData): Promise<For
       if (!repairId) throw new Error("Choose the repair this discount is for");
       const r = await db.repairRequest.findUniqueOrThrow({ where: { id: repairId } });
       if (r.customerId && r.customerId !== c.id) throw new Error("That repair belongs to another customer");
-      if (r.rewardDiscount) throw new Error(`Repair ${r.ref} already has a Passport discount`);
+      if (r.rewardDiscount) throw new Error(`Repair ${r.ref} already has a PB Rewards discount`);
       const charge = r.finalPrice ?? r.quote;
       if (charge == null) throw new Error(`Set the quote or final charge on repair ${r.ref} first`);
       discount = repairDiscount(charge, r.partsCost, reward.discountPercent ?? 0);

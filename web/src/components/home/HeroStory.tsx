@@ -65,24 +65,24 @@ function MobileHero({ active, belowCtas }: { active: boolean; belowCtas?: React.
         <div className="container-pb relative z-10 pb-6 pt-8">
           <div className="max-w-[58%]">
             <h1 className="display text-[2.5rem] leading-[0.98]">
-              Phones.
+              Buy.
               <br />
-              Repairs.
+              Fix.
               <br />
-              Sorted<span className="text-gold">.</span>
+              Style<span className="text-gold">.</span>
             </h1>
-            <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">Quality devices and expert repairs, all in one place.</p>
+            <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">From new phones and used phones to repairs &amp; skins, we&apos;ve got you covered.</p>
           </div>
         </div>
       </div>
-      {/* Full-width CTAs under the phone, so the exact "Create your repair note" label never has to wrap. */}
+      {/* Full-width CTAs under the phone: Shop phones first, then Book a repair (change request §7). */}
       <div className="container-pb relative z-10 grid gap-2.5 pb-10">
-        <Link href="/repair" aria-label="Book a repair — create your repair note" className="btn btn-gold !justify-between !px-4">
-          <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> Create your repair note</span>
-          <Icon name="arrow-right" className="h-4 w-4" />
-        </Link>
         <Link href="/new-phones" className="btn !justify-between border border-gold/70 !px-4 text-white hover:bg-gold/10">
           <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> Shop phones</span>
+          <Icon name="arrow-right" className="h-4 w-4" />
+        </Link>
+        <Link href="/repair" className="btn btn-gold !justify-between !px-4">
+          <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> Book a repair</span>
           <Icon name="arrow-right" className="h-4 w-4" />
         </Link>
         {/* Broadcasts: directly beneath Shop Phones, centred (v6 §1). */}
@@ -159,21 +159,21 @@ function DesktopHero({ active }: { active: boolean }) {
           <div className="pointer-events-auto max-w-xl">
             <p className="eyebrow text-gold">PB Mobiles &amp; Repairing Lab</p>
             <h1 className="display mt-4 text-[min(2.6rem,6svh)] sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.4rem,12svh)]">
-              Phones.
+              Buy.
               <br />
-              Repairs.
+              Fix.
               <br />
-              Sorted<span className="text-gold">.</span>
+              Style<span className="text-gold">.</span>
             </h1>
             <p className="mt-6 hidden max-w-md text-base leading-relaxed text-white/70 sm:block md:text-lg">
-              Quality devices and expert repairs, all in one place — new and lab-checked used phones, tablets, accessories and a repair lab you can trust.
+              From new phones and used phones to repairs &amp; skins, we&apos;ve got you covered.
             </p>
             <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
-              <Link href="/repair" aria-label="Book a repair — create your repair note" className="btn btn-gold">
-                <Icon name="wrench" className="h-4 w-4" /> Create your repair note <Icon name="arrow-right" className="h-4 w-4" />
-              </Link>
               <Link href="/new-phones" className="btn border border-gold/70 text-white hover:bg-gold/10">
                 <Icon name="bag" className="h-4 w-4" /> Shop phones <Icon name="arrow-right" className="h-4 w-4" />
+              </Link>
+              <Link href="/repair" className="btn btn-gold">
+                <Icon name="wrench" className="h-4 w-4" /> Book a repair <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
             </div>
             <div className="mt-8 hidden items-center gap-3 text-sm text-white/60 sm:flex">

@@ -109,7 +109,7 @@ export async function updateInstallmentSaleAction(_: FormState, f: FormData): Pr
       await audit({ staffId: staff.id, action: "INSTALLMENT_SALE_UPDATED", entityType: "INSTALLMENT", entityId: s.id, recordLabel: s.ref, before: { status: s.status, imei: s.imei }, after: { status, imei: data.imei, points: points || undefined } }, tx);
     });
     revalidatePath(`/admin/installments/sales/${s.id}`);
-    return points > 0 ? `Saved — ${points} PB Points added to the customer's Passport` : points < 0 ? `Saved — ${-points} PB Points reversed` : "Saved";
+    return points > 0 ? `Saved — ${points} PB Points added to the customer's PB Rewards account` : points < 0 ? `Saved — ${-points} PB Points reversed` : "Saved";
   });
 }
 

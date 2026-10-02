@@ -96,7 +96,7 @@ export function useChatNotifications(audience: "VISITOR" | "STAFF", conversation
     async (title: string, body: string, url: string) => {
       if (!enabled || document.visibilityState === "visible") return;
       const reg = await navigator.serviceWorker.getRegistration();
-      reg?.showNotification(title, { body, tag: `pb-${audience}`, icon: "/brand/pb-logo.webp", data: { url } }).catch(() => {});
+      reg?.showNotification(title, { body, tag: `pb-${audience}`, icon: "/brand/pb-logo-2026.webp", data: { url } }).catch(() => {});
     },
     [enabled, audience],
   );

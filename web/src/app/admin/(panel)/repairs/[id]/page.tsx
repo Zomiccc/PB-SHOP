@@ -126,7 +126,7 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             <p className="text-sm">{r.phone}{r.email ? ` · ${r.email}` : ""}</p>
             {r.imei && <p className="mt-1 font-mono text-xs text-muted">IMEI/serial: {r.imei}</p>}
             <p className="mt-2 text-xs text-muted">{DROP_OFF[r.dropOff as keyof typeof DROP_OFF]}{r.preferredAt ? ` · preferred ${dt(r.preferredAt)}` : ""}</p>
-            {r.customer && <Link href={`/admin/customers/${r.customer.id}`} className="mt-3 inline-block text-sm text-blue">Passport {r.customer.passportNo} · {r.customer.loyaltyPoints} pts →</Link>}
+            {r.customer && <Link href={`/admin/customers/${r.customer.id}`} className="mt-3 inline-block text-sm text-blue">Rewards ID {r.customer.passportNo} · {r.customer.loyaltyPoints} pts →</Link>}
           </Panel>
 
           <Panel title="Quote & assignment">
@@ -136,7 +136,7 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
                 <Field label="Quote (PKR)"><input name="quote" type="number" defaultValue={r.quote ?? ""} className="field" /></Field>
                 <Field label="Final price"><input name="finalPrice" type="number" defaultValue={r.finalPrice ?? ""} className="field" /></Field>
               </div>
-              <Field label="Of which parts (PKR)" hint="Passport repair discounts exclude parts"><input name="partsCost" type="number" min={0} defaultValue={r.partsCost ?? ""} className="field" /></Field>
+              <Field label="Of which parts (PKR)" hint="PB Rewards repair discounts exclude parts"><input name="partsCost" type="number" min={0} defaultValue={r.partsCost ?? ""} className="field" /></Field>
               <Field label="IMEI / serial"><input name="imei" defaultValue={r.imei ?? ""} className="field" /></Field>
               <Field label="Assigned technician">
                 <select name="assignedToId" defaultValue={r.assignedToId ?? ""} className="field">
@@ -149,11 +149,11 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             {r.quote != null && <p className="mt-3 text-xs text-muted">Quote {pkr(r.quote)} is shown to the customer on the tracking page.</p>}
           </Panel>
 
-          <Panel title="Phone Passport reward">
+          <Panel title="PB Rewards">
             {r.rewardDiscount ? (
               <p className="text-sm"><Badge tone="green">Applied</Badge> Rs {r.rewardDiscount.toLocaleString("en-PK")} off labour{charge != null ? ` · customer pays ${pkr(charge - r.rewardDiscount)}` : ""}</p>
             ) : !r.customer ? (
-              <p className="text-sm text-muted">Link this repair to a Passport (customer phone) to use points.</p>
+              <p className="text-sm text-muted">Link this repair to a PB Rewards account (customer phone) to use points.</p>
             ) : repairRewards.length === 0 ? (
               <p className="text-sm text-muted">No repair rewards are switched on.</p>
             ) : (

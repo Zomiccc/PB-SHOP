@@ -189,17 +189,17 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
 
       <div className="space-y-4">
         <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-          <p className="mb-3 font-semibold">Customer (optional — earns Passport points)</p>
+          <p className="mb-3 font-semibold">Customer (optional — earns PB Points)</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile 03xx…" aria-label="Customer mobile" className="field" />
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" aria-label="Customer name" className="field" />
           </div>
           {customer?.found && (
             <p className="mt-2 rounded-lg bg-navy-950 px-3 py-2 text-xs text-white">
-              Passport <b className="text-gold">{customer.passportNo}</b> · {customer.points} pts
+              Rewards ID <b className="text-gold">{customer.passportNo}</b> · {customer.points} pts
             </p>
           )}
-          {customer && !customer.found && <p className="mt-2 text-xs text-muted">New customer — a Passport will be created.</p>}
+          {customer && !customer.found && <p className="mt-2 text-xs text-muted">New customer — a PB Rewards account will be created.</p>}
         </div>
 
         <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
@@ -214,7 +214,7 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
           <label className="mt-3 block"><span className="label">Discount (PKR)</span><input type="number" min={0} value={discount || ""} onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))} className="field" /></label>
           {phone.trim() && (
             <label className="mt-3 block">
-              <span className="label">Passport points to give</span>
+              <span className="label">PB Points to give</span>
               <input type="number" min={0} max={10000} value={points} onChange={(e) => setPoints(e.target.value)} placeholder="Automatic (20 new phone · 15 used phone)" className="field" />
               <span className="mt-1 block text-xs text-white/50">Leave empty for the automatic points, or type the number you want to give (0 = none). Recorded in the audit log.</span>
             </label>

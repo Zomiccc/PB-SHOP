@@ -1,5 +1,12 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Dev Change Request (Oct 2026) — implemented
+- **Hero:** "Buy. Fix. Style." with "From new phones and used phones to repairs & skins, we've got you covered." CTAs are now Shop phones first, then **Book a repair** (renamed from "Create your repair note"), with the same styles.
+- **New logo** (`/brand/pb-logo-2026*.webp`) in the header, footer, rewards card, repair print, notifications and social preview (`og-2026.jpg`). The 3D phone screen shows the logo instead of text, and its back carries the supplied skin artwork (`pb-hero-skin.jpg`) edge to edge, with no unskinned strips.
+- **Custom skins:** the On phone / Full artwork switch and the enlarge button moved to a small toolbar above the preview, so nothing covers the phone. The drag hint now sits below the preview.
+- **Installments:** the heading reads "Book an appointment.", the Repayment Plan details block is removed, and the date row is replaced by a month calendar. The calendar has a dark theme with blue accents and a gold selected day; days that can't be booked are disabled, and it fits a 375 px phone.
+- **"PB Passport" is now "PB Rewards"** in all visible text (store, admin, aria labels, titles, emails/chat replies, card text). It reads Rewards ID, Rewards card(s) and PB Points. Code names, the `passportNo` field and the PBP- number format are unchanged. Old points-history notes are renamed once (`migration.rewardsName`).
+
 ## Developer Requirements v6 (final) — implemented
 
 | § | Requirement | Where / status |

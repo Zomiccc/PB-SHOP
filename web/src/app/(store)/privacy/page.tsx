@@ -22,7 +22,7 @@ export default function PrivacyPage() {
       <h2 id="collect">What we collect</h2>
       <ul>
         <li>Contact details you give us: name, mobile number, email and delivery address.</li>
-        <li>Order, repair and Phone Passport points history linked to your PB Phone Passport.</li>
+        <li>Order, repair and PB Points history linked to your PB Rewards account.</li>
         <li>Repair photos and documents you choose to upload, and messages, files and voice notes sent through chat or the contact form.</li>
         <li>For installment purchases or when you sell us a used phone: a copy of your CNIC (see below).</li>
         <li>Basic technical data (browser, pages visited) to keep the site secure and working.</li>

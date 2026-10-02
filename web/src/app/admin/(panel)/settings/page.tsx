@@ -75,19 +75,19 @@ export default async function SettingsPage() {
           </ActionForm>
         </Panel>
 
-        <Panel title="PB Phone Passport — earning & expiry">
+        <Panel title="PB Rewards — earning & expiry">
           <ActionForm action={saveSettingAction} className="space-y-3">
             <input type="hidden" name="key" value="passport" />
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Repairs & accessories: Rs per 1 point" hint="100 = 1 point per Rs 100 spent"><input name="rupeesPerPoint" type="number" min={1} defaultValue={passport.rupeesPerPoint} className="field" /></Field>
               <Field label="Phone price tiers" hint="From price : points — e.g. 10000:50, 30000:100, 50000:150, 80000:200. Also used for installment phones."><input name="phoneTiers" defaultValue={passport.phoneTiers} className="field font-mono !text-sm" /></Field>
               <Field label="Points expire after (months)" hint="Counted separately for each earning event"><input name="expiryMonths" type="number" min={1} defaultValue={passport.expiryMonths} className="field" /></Field>
-              <Field label="Welcome reward (points)" hint="Once, when a customer joins the Passport"><input name="welcomePoints" type="number" min={0} defaultValue={passport.welcomePoints} className="field" /></Field>
+              <Field label="Welcome reward (points)" hint="Once, when a customer joins PB Rewards"><input name="welcomePoints" type="number" min={0} defaultValue={passport.welcomePoints} className="field" /></Field>
               <Field label="Referral reward (points)" hint="To the referrer, on the friend's first purchase or repair"><input name="referralPoints" type="number" min={0} defaultValue={passport.referralPoints} className="field" /></Field>
             </div>
             <Field label="Exclusions (shown to customers)"><textarea name="exclusions" rows={3} defaultValue={passport.exclusions} className="field" /></Field>
             <p className="text-xs text-muted">Changes apply to points earned from now on; points already earned keep their original expiry date.</p>
-            <Submit>Save Passport rules</Submit>
+            <Submit>Save PB Rewards rules</Submit>
           </ActionForm>
         </Panel>
 
@@ -111,7 +111,7 @@ export default async function SettingsPage() {
           </ActionForm>
         </Panel>
 
-        <Panel title="Phone Passport rewards">
+        <Panel title="PB Rewards — rewards">
           <div className="space-y-3">
             {rewards.map((r) => <RewardForm key={r.id} r={r} />)}
             <details className="rounded-xl border-2 border-dashed border-ink/15">

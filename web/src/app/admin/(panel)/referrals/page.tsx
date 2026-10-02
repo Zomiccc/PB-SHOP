@@ -33,9 +33,9 @@ export default async function ReferralsPage(props: PageProps<"/admin/referrals">
 
   return (
     <>
-      <PageTitle title="Referrals" sub={`Every account's Passport ID is its referral code. The referring account gets ${rules.referralPoints} points when the referred account makes its first purchase or repair.`}>
+      <PageTitle title="Referrals" sub={`Every account's Rewards ID is its referral code. The referring account gets ${rules.referralPoints} points when the referred account makes its first purchase or repair.`}>
         <form className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Name, phone, Passport ID…" className="field !w-56 !rounded-full !py-2" />
+          <input name="q" defaultValue={q} placeholder="Name, phone, Rewards ID…" className="field !w-56 !rounded-full !py-2" />
           <select name="status" defaultValue={status} className="field !w-36 !rounded-full !py-2">
             <option value="">All</option>
             <option value="pending">Pending</option>

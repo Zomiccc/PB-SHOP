@@ -114,13 +114,7 @@ function useScreenTexture(design: PhoneDesign, title: string | undefined, color:
     } else g.fillText("9:41", cx, 340);
 
     g.textAlign = "center";
-    if (pb) {
-      g.font = "italic 900 190px Inter, system-ui, sans-serif";
-      g.fillText("PB", W / 2, H * 0.62);
-      g.font = "700 40px Inter, system-ui, sans-serif";
-      g.fillStyle = "#d9a62e";
-      g.fillText("M O B I L E S", W / 2, H * 0.62 + 80);
-    } else if (title) {
+    if (title && !pb) {
       g.font = "800 46px Inter, system-ui, sans-serif";
       const words = title.split(" ");
       const lines: string[] = [];
@@ -153,6 +147,17 @@ function useScreenTexture(design: PhoneDesign, title: string | undefined, color:
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
+    if (pb) {
+      // The store's logo on the home-page device (client change request §2), drawn once it has loaded.
+      const logo = new Image();
+      logo.onload = () => {
+        const lw = W * 0.82;
+        const lh = lw * (logo.naturalHeight / logo.naturalWidth);
+        g.drawImage(logo, (W - lw) / 2, H * 0.6 - lh / 2, lw, lh);
+        tex.needsUpdate = true;
+      };
+      logo.src = BRAND_LOGO;
+    }
     return tex;
   }, [design, title, color]);
 }
@@ -174,6 +179,23 @@ function useLogoTexture(text: string | undefined) {
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   }, [text]);
+}
+
+/** Home-page PB device branding (client change request §2): logo on the screen, full skin on the back. */
+const BRAND_LOGO = "/brand/pb-logo-2026.webp";
+const BRAND_SKIN = "/brand/pb-hero-skin.jpg";
+
+/** A rounded-rect plane whose UVs span 0–1 across it (so an image covers the whole silhouette). */
+function fullUvPlane(w: number, h: number, r: number) {
+  const g = new THREE.ShapeGeometry(roundedRect(w, h, r), 32);
+  const pos = g.attributes.position;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uv[i * 2] = (pos.getX(i) + w / 2) / w;
+    uv[i * 2 + 1] = (pos.getY(i) + h / 2) / h;
+  }
+  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  return g;
 }
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -209,6 +231,18 @@ export const PhoneModel = forwardRef<THREE.Group, PhoneModelProps>(function Phon
   const { w, h, d, r } = design;
   const screenTex = useScreenTexture(design, title, color);
   const logoTex = useLogoTexture(design.logo === "text" && design.key !== "pb" ? design.logoText : undefined);
+  const branded = design.key === "pb";
+  // Supplied skin artwork for the home-page device: covers the whole back edge to edge.
+  const skin = useMemo(() => {
+    if (!branded || typeof document === "undefined") return null;
+    const map = new THREE.TextureLoader().load(BRAND_SKIN);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = 8;
+    return {
+      geo: fullUvPlane(w - 0.006, h - 0.006, Math.max(0.01, r - 0.003)),
+      mat: new THREE.MeshPhysicalMaterial({ map, metalness: 0.15, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.12 }),
+    };
+  }, [branded, w, h, r]);
 
   const geo = useMemo(() => {
     const display = new THREE.ShapeGeometry(roundedRect(w - 0.05, h - 0.05, Math.max(0.01, r - 0.025)), 24);
@@ -345,6 +379,8 @@ export const PhoneModel = forwardRef<THREE.Group, PhoneModelProps>(function Phon
       {/* Back glass + camera layout from the design (x+ = viewer's right when looking at the back). */}
       <group ref={backG} position={[0, 0, -d / 2 + 0.004]} rotation={[0, Math.PI, 0]}>
         <mesh geometry={geo.back} material={mats.back} />
+        {/* Skin over the full back silhouette (just above the back glass, under the camera island). */}
+        {skin && <mesh geometry={skin.geo} material={skin.mat} position={[0, 0, 0.0105]} />}
         {design.islands.map((isl, i) => (
           <mesh key={i} geometry={geo.islands[i]} material={islandMat(isl.tone)} position={[isl.x, isl.y, 0.012]} />
         ))}

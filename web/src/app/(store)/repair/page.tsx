@@ -82,8 +82,8 @@ export default async function RepairPage(props: PageProps<"/repair">) {
             <ul className="mt-8 space-y-4 text-sm">
               <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Free diagnosis before any paid work</li>
               <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Price approved by you before we repair</li>
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Repair history saved to your PB Phone Passport</li>
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> 10 PB Phone Passport points on every completed repair</li>
+              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Repair history saved to your PB Rewards account</li>
+              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> 10 PB Points on every completed repair</li>
             </ul>
           </div>
           <RepairForm defaults={{ device: str(sp.device), issue: str(sp.issue), name: customer?.name, phone: customer?.phone, email: customer?.email ?? undefined }} />

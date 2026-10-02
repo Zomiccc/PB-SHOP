@@ -137,11 +137,11 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
             <p className="text-sm">{o.customerPhone}{o.customerEmail ? ` · ${o.customerEmail}` : ""}</p>
             {o.shippingAddress && <p className="mt-2 text-sm text-muted">{o.shippingAddress}, {o.city}</p>}
             <p className="mt-2 text-xs text-muted">{o.fulfilment === "PICKUP" ? "Collect in store" : o.fulfilment === "IN_STORE" ? "Sold in store" : "Home delivery"}</p>
-            {o.customer && <Link href={`/admin/customers/${o.customer.id}`} className="mt-3 inline-block text-sm text-blue">Passport {o.customer.passportNo} →</Link>}
+            {o.customer && <Link href={`/admin/customers/${o.customer.id}`} className="mt-3 inline-block text-sm text-blue">Rewards ID {o.customer.passportNo} →</Link>}
             {o.loyaltyTx.length > 0 && <p className="mt-2 text-sm">Points: {o.loyaltyTx.map((t) => (t.points > 0 ? `+${t.points}` : t.points)).join(", ")}</p>}
             {o.customerId && o.paymentStatus === "PAID" && (
               <ActionForm action={givePointsForOrderAction} resetOnSuccess className="mt-4 space-y-2 rounded-xl bg-gold/10 p-3">
-                <p className="text-sm font-semibold">Give Passport points for this purchase</p>
+                <p className="text-sm font-semibold">Give PB Points for this purchase</p>
                 <input type="hidden" name="orderId" value={o.id} />
                 <div className="flex gap-2">
                   <input name="points" type="number" min={1} max={10000} required placeholder="Points" aria-label="Points to give" className="field !w-28" />

@@ -17,7 +17,7 @@ export async function generateMetadata(props: PageProps<"/product/[slug]">): Pro
     title: { absolute: p.metaTitle ?? `${p.name} | PB Mobiles` },
     description: p.metaDescription ?? p.description,
     alternates: { canonical: `/product/${p.slug}` },
-    openGraph: { title: p.name, description: p.description, images: p.images[0] ? [p.images[0]] : ["/brand/og.jpg"] },
+    openGraph: { title: p.name, description: p.description, images: p.images[0] ? [p.images[0]] : ["/brand/og-2026.jpg"] },
   };
 }
 

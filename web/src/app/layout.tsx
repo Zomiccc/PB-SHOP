@@ -16,11 +16,11 @@ export const metadata: Metadata = {
     template: "%s | PB Mobiles",
   },
   description:
-    "Shop new and used phones, genuine accessories and expert phone repairs at PB Mobiles & Repairing Lab. Secure online payment and PB Phone Passport rewards.",
+    "Shop new and used phones, genuine accessories and expert phone repairs at PB Mobiles & Repairing Lab. Secure online payment and PB Rewards points.",
   openGraph: {
     type: "website",
     siteName: "PB Mobiles & Repairing Lab",
-    images: [{ url: "/brand/og.jpg", width: 1200, height: 884, alt: "PB Mobiles & Repairing Lab" }],
+    images: [{ url: "/brand/og-2026.jpg", width: 1200, height: 884, alt: "PB Mobiles & Repairing Lab" }],
   },
   icons: { icon: "/favicon.ico" },
 };

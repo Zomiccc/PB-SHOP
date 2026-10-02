@@ -20,12 +20,12 @@ export default async function CustomersPage(props: PageProps<"/admin/customers">
   });
   return (
     <>
-      <PageTitle title="Customers & loyalty" sub="PB Phone Passport profiles — purchases, repairs and points.">
+      <PageTitle title="Customers & loyalty" sub="PB Rewards profiles — purchases, repairs and points.">
         <form><input name="q" defaultValue={q} placeholder="Name, phone, passport no…" className="field !w-64 !rounded-full !py-2" /></form>
       </PageTitle>
       {sp.deleted && <p className="mb-4 rounded-xl bg-emerald-600/10 px-4 py-3 text-sm text-emerald-400">Customer deleted. Their orders and repairs are kept as business records.</p>}
       <Panel>
-        <Table head={["Customer", "Passport / referral code", "Points", "Orders", "Repairs", "Referred by", "Account", "Since", ""]} empty="No customers found.">
+        <Table head={["Customer", "Rewards ID / referral code", "Points", "Orders", "Repairs", "Referred by", "Account", "Since", ""]} empty="No customers found.">
           {customers.map((c) => (
             <tr key={c.id} className="hover:bg-cream/60">
               <Td><Link href={`/admin/customers/${c.id}`} className="font-semibold hover:text-blue">{c.name}</Link><span className="block text-xs text-muted">{c.phone}</span></Td>

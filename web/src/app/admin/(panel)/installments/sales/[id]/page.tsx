@@ -30,7 +30,7 @@ export default async function InstallmentSalePage(props: PageProps<"/admin/insta
             <p className="font-semibold">{s.customerName}</p>
             <p className="text-sm">{s.customerPhone}{s.address ? ` · ${s.address}` : ""}</p>
             <p className="mt-1 font-mono text-sm">CNIC {s.cnicNumber}</p>
-            {s.customer && <Link href={`/admin/customers/${s.customer.id}`} className="mt-2 inline-block text-sm text-blue">Passport {s.customer.passportNo} →</Link>}
+            {s.customer && <Link href={`/admin/customers/${s.customer.id}`} className="mt-2 inline-block text-sm text-blue">Rewards ID {s.customer.passportNo} →</Link>}
           </Panel>
           <Panel title="Plan">
             <dl className="grid grid-cols-2 gap-3 text-sm">

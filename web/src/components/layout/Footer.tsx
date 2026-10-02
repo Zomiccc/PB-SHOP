@@ -26,7 +26,7 @@ const COLUMNS = [
     links: [
       { href: "/loyalty", label: "PB Rewards" },
       { href: "/loyalty#rules", label: "How it works" },
-      { href: "/account", label: "My Passport" },
+      { href: "/account", label: "My PB Rewards" },
     ],
   },
   {

@@ -45,7 +45,7 @@ export default async function RepairPrintPage(props: PageProps<"/admin/repairs/[
       <article className="print-area mx-auto w-full max-w-[210mm] bg-white p-8 text-[11pt] leading-snug text-black shadow-lg print:max-w-none print:p-0 print:shadow-none">
         <header className="flex items-start justify-between gap-6 border-b-2 border-black pb-4">
           <div className="flex items-center gap-4">
-            <img src="/brand/pb-logo.webp" alt="PB Mobiles & Repairing Lab" className="h-16 w-auto" />
+            <img src="/brand/pb-logo-2026.webp" alt="PB Mobiles & Repairing Lab" className="h-16 w-auto" />
             <div className="text-[9pt]">
               <p className="font-bold">{BRAND.full}</p>
               <p>{BRAND.address}</p>
@@ -88,7 +88,7 @@ export default async function RepairPrintPage(props: PageProps<"/admin/repairs/[
             <Row k="Quote" v={r.quote != null ? pkr(r.quote) : "—"} />
             <Row k="Final charge" v={r.finalPrice != null ? pkr(r.finalPrice) : "—"} strong={!r.rewardDiscount} />
             {r.partsCost != null && <Row k="Of which parts" v={pkr(r.partsCost)} />}
-            {!!r.rewardDiscount && <Row k="Passport discount" v={`− ${pkr(r.rewardDiscount)}`} />}
+            {!!r.rewardDiscount && <Row k="PB Rewards discount" v={`− ${pkr(r.rewardDiscount)}`} />}
             {!!r.rewardDiscount && (r.finalPrice ?? r.quote) != null && <Row k="Amount due" v={pkr((r.finalPrice ?? r.quote)! - r.rewardDiscount)} strong />}
           </Block>
           <Block title="Staff">

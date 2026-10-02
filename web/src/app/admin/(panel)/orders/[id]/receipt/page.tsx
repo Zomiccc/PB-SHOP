@@ -35,7 +35,7 @@ export default async function ReceiptPage(props: PageProps<"/admin/orders/[id]/r
         {o.discount > 0 && <p className="flex justify-between"><span>Discount</span><span>-{pkr(o.discount)}</span></p>}
         <p className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{pkr(o.total)}</span></p>
         <p>Paid by: {o.payments[0]?.method ?? "-"} ({o.paymentStatus})</p>
-        {o.customer && <p>Passport: {o.customer.passportNo}</p>}
+        {o.customer && <p>Rewards ID: {o.customer.passportNo}</p>}
         <p className="my-2 border-t border-dashed border-black" />
         <p className="text-center">Thank you for shopping with us!</p>
         <p className="text-center text-[10px]">Returns &amp; warranty: see pbmobiles.pk/returns</p>

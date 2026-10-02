@@ -12,7 +12,7 @@ const SECTIONS = [
   { id: "repairs", title: "Repairs" },
   { id: "returns", title: "Returns & refunds" },
   { id: "warranty", title: "Warranties" },
-  { id: "loyalty", title: "PB Phone Passport" },
+  { id: "loyalty", title: "PB Rewards" },
   { id: "responsibilities", title: "Customer responsibilities" },
   { id: "liability", title: "Liability" },
   { id: "contact", title: "Contact" },
@@ -66,7 +66,7 @@ export default function TermsPage() {
         <li>Warranties do not cover accidental damage, liquid damage, misuse, or repairs by third parties after our service.</li>
       </ul>
 
-      <h2 id="loyalty">8. PB Phone Passport</h2>
+      <h2 id="loyalty">8. PB Rewards</h2>
       <ul>
         <li>Points are earned on eligible purchases and repairs, have no cash value, and expire as stated on the Loyalty page.</li>
         <li>Points: 1 per Rs 100 spent on repairs and accessories; phones by price — Rs 10,000–29,999: 50, Rs 30,000–49,999: 100, Rs 50,000–79,999: 150, Rs 80,000+: 200 (installment phones on the same tiers). New members get 25 welcome points with their first purchase or repair, and 25 referral points for each friend who joins with their referral code and makes a first purchase or repair. Each award expires six months after it is earned; expired points cannot be redeemed.</li>
