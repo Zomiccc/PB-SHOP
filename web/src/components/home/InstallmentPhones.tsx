@@ -5,7 +5,7 @@ import { AVAILABILITY, STORE_VISIT_NOTICE, monthlyPayment, type Availability } f
 import { ProductArt } from "../product/ProductArt";
 import { Icon } from "../ui/Icon";
 import { Reveal } from "../ui/Reveal";
-import { INSTALLMENT_BRANDS } from "@/lib/brands";
+import type { Brand } from "@/lib/brands";
 import { BrandMark } from "../InstallmentPicker";
 
 const TONE: Record<string, string> = {
@@ -18,7 +18,7 @@ const TONE: Record<string, string> = {
  * Separate "Phones on installments" section (master brief §3). Deliberately has NO buy / apply /
  * checkout button: installment sales are completed in store with the customer's CNIC.
  */
-export function InstallmentPhones({ listings, heading = true, showCalculatorLink = true }: { listings: InstallmentListing[]; heading?: boolean; showCalculatorLink?: boolean }) {
+export function InstallmentPhones({ listings, brands = [], heading = true, showCalculatorLink = true }: { listings: InstallmentListing[]; brands?: Brand[]; heading?: boolean; showCalculatorLink?: boolean }) {
   if (!listings.length) return null;
   return (
     <section id="installments" className="relative overflow-hidden py-14 md:py-20">
@@ -39,11 +39,11 @@ export function InstallmentPhones({ listings, heading = true, showCalculatorLink
             <Link href="/privacy#id-documents" className="text-gold underline underline-offset-2">How we protect your ID</Link>
           </p>
         </div>
-        {showCalculatorLink && (
+        {showCalculatorLink && brands.length > 0 && (
           <div className="mt-6">
             <p className="text-sm font-semibold">Shop installments by brand</p>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-              {INSTALLMENT_BRANDS.map((b) => (
+              {brands.map((b) => (
                 <Link key={b.slug} href={`/installments?brand=${b.slug}#step-model`} className="w-24 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 transition hover:ring-gold/60" aria-label={`${b.name} phones on installments`}>
                   <BrandMark b={b} />
                 </Link>

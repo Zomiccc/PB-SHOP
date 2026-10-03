@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -302,7 +303,14 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
           <p className="mb-5 text-sm text-muted" aria-live="polite">
             {filtered.length} {filtered.length === 1 ? "result" : "results"}
           </p>
-          {filtered.length === 0 ? (
+          {items.length === 0 ? (
+            <div className="card grid place-items-center gap-3 px-6 py-20 text-center">
+              <Icon name="bag" className="h-8 w-8 text-muted" />
+              <p className="font-semibold">New stock is on its way.</p>
+              <p className="max-w-sm text-sm text-muted">Nothing is listed here right now — ask us on chat or WhatsApp what&apos;s in store today.</p>
+              <Link href="/contact" className="btn btn-primary mt-2">Contact the store</Link>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="card grid place-items-center gap-3 px-6 py-20 text-center">
               <Icon name="search" className="h-8 w-8 text-muted" />
               <p className="font-semibold">Nothing matches those filters.</p>

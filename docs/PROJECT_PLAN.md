@@ -1,5 +1,12 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Demo data removed (3 Oct 2026) — implemented
+- On the next deploy (`migration.removeDemoV1`), the demo catalogue is removed: all 40 sample new and used phones, tablets, accessories and spare parts, plus the 5 sample skin designs. Items are matched exactly on what the seed created, so anything staff added stays. A demo item that was sold is hidden rather than deleted, so order history stays intact.
+- Deploys no longer treat "no products" as an empty database (that would have wiped and reseeded everything). An existing database is now recognised by its staff accounts, and demo tablets, parts and designs are never re-added. Fresh local databases get the demo catalogue only with `SEED_DEMO=1`.
+- The installment brand tiles show only brands that have plans (Infinix, TECNO, itel, nubia, OPPO).
+- Empty shop pages say "New stock is on its way" with a contact button, and empty homepage rows are hidden. The homepage rows show featured items first, then the rest.
+- Kept: staff accounts, rewards, skin types and prices, skin phone-model templates (sizes for the skin preview), installment plans and settings.
+
 ## Installment running models (3 Oct 2026) — implemented
 - Installments are now offered only on the financing partner's (Palm app) running models. All 47 models from the client's itel, nubia, OPPO and Infinix lists are loaded (`web/prisma/running-models.ts`) with retail price, RAM / storage, model number and colours. They're priced with the calculator: 30% down, 9 months at 6% per month. The TECNO Spark 40 Pro plan (partner-app figures) stays.
 - The fake sample plans (Samsung Galaxy A55, iPhone 15, Infinix Note 40) and every iPhone plan are removed once on deploy (`migration.runningModelsV1`). A plan that has a sale is switched off rather than deleted.
@@ -191,7 +198,7 @@ AI tools struggle with shiny, plain phones, which is why the textured model is t
 1. `node scripts/use-postgres.mjs`, set `DATABASE_URL`, `npx prisma db push`
 2. Fill production env vars (see `web/.env.example`), set a strong `AUTH_SECRET`
 3. Set `PAYMENT_PROVIDER=JAZZCASH`, run a live Rs 10 test, confirm the callback URL with JazzCash
-4. Import real inventory, print barcode labels, remove demo products
+4. Import real inventory and print barcode labels (demo products are already removed)
 5. Create real staff accounts (Admin → Staff), deactivate the demo ones
 6. Schedule `npm run backup` nightly; point an uptime monitor at `/api/health`
 7. Legal pages approved → remove "Draft" banners

@@ -155,6 +155,9 @@ const PARTS: P[] = [
   { name: "Galaxy S23 Ultra back glass", brand: "Samsung", partType: "BACK_GLASS", compatibleModel: "Galaxy S23 Ultra", description: "Rear glass panel with adhesive.", variants: [{ price: 6500, cost: 3600, stock: 1, partNumber: "SM-S918-BG" }] },
 ].map((p) => ({ ...p, type: "PART" as const, condition: "NEW" as const }));
 
+/** Everything in the demo catalogue (removed from live databases; only seeded locally with SEED_DEMO=1). */
+const DEMO_PRODUCTS: P[] = [...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES, ...PARTS];
+
 // Phone Passport rewards exactly as the master brief (§4) specifies. The owner can edit them in Settings.
 // Final PB Points redemption table (v6 final amendment §6).
 const REWARDS = [
@@ -280,7 +283,7 @@ async function seedSkinTypes() {
   for (const [i, t] of SKIN_TYPES.entries()) await db.skinType.create({ data: { ...t, sortOrder: i } });
 }
 
-async function seedSkins() {
+async function seedSkins({ designs = false }: { designs?: boolean } = {}) {
   await seedSkinTypes();
   const modelIds: string[] = [];
   for (const [i, b] of SKIN_BRANDS.entries()) {
@@ -290,11 +293,11 @@ async function seedSkins() {
       modelIds.push(m.id);
     }
   }
-  for (const [i, d] of SKIN_DESIGNS.entries()) {
+  for (const [i, d] of (designs ? SKIN_DESIGNS : []).entries()) {
     // "All phone models" — so every model added later shows these designs too.
     await db.skin.create({ data: { name: d.name, description: d.description, imageUrl: `/skins/${d.file}`, price: 0, allModels: true, sortOrder: i } });
   }
-  return { models: modelIds.length, designs: SKIN_DESIGNS.length };
+  return { models: modelIds.length, designs: designs ? SKIN_DESIGNS.length : 0 };
 }
 
 /** A listing as a 9-month plan priced with the site's calculator (saved settings over defaults). */
@@ -326,8 +329,9 @@ async function installRunningModels() {
 }
 
 async function main() {
-  // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
-  if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
+  // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real activity. A database counts as in use
+  // once it has staff accounts (not products: the demo catalogue was removed and the shop may have none yet).
+  if (process.env.SEED_ONLY_IF_EMPTY === "1" && ((await db.staff.count()) > 0 || (await db.product.count()) > 0)) {
     await upgradeExisting();
     return;
   }
@@ -358,13 +362,13 @@ async function main() {
   await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
   await installRunningModels();
 
-  await createProducts([...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES, ...PARTS], 1, "20");
-
-  const skins = await seedSkins();
+  // Demo catalogue and sample skin designs only for local development (SEED_DEMO=1) — never on the live shop.
+  if (process.env.SEED_DEMO === "1") await createProducts(DEMO_PRODUCTS, 1, "20");
+  const skins = await seedSkins({ designs: process.env.SEED_DEMO === "1" });
 
   const count = await db.product.count();
   console.log(`Seeded ${count} products (incl. spare parts), 7 staff accounts, ${REWARDS.length} Passport rewards, ${await db.installmentListing.count()} installment plans.`);
-  console.log(`Custom Skins: ${skins.models} phone models, ${skins.designs} sample designs.`);
+  console.log(`Custom Skins: ${skins.models} phone models, ${skins.designs} sample designs.${process.env.SEED_DEMO === "1" ? " (with demo catalogue)" : ""}`);
   console.log(`Staff logins: owner@pbmobiles.pk, employee1-6@pbmobiles.pk — temporary password: ${tempPassword}`);
 }
 
@@ -373,17 +377,36 @@ async function main() {
  * database is brought up to the latest brief once (idempotent — safe on every build).
  */
 async function upgradeExisting() {
-  const nextSeq = async () => {
-    const skus = await db.variant.findMany({ select: { sku: true } });
-    return Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
-  };
-  if ((await db.product.count({ where: { type: "TABLET" } })) === 0) {
-    await createProducts(TABLETS, await nextSeq(), "22");
-    console.log(`Added ${TABLETS.length} demo tablets.`);
-  }
-  if ((await db.product.count({ where: { type: "PART" } })) === 0) {
-    await createProducts(PARTS, await nextSeq(), "23");
-    console.log(`Added ${PARTS.length} demo spare parts.`);
+  // Client request (3 Oct 2026): remove all demo data — the sample catalogue (phones, used phones, tablets,
+  // accessories, spare parts) and the sample skin designs. Matched exactly on what this seed created, so
+  // anything staff added is untouched. A demo item that was sold is hidden instead (order history stays).
+  if (!(await db.setting.findUnique({ where: { key: "migration.removeDemoV1" } }))) {
+    let removed = 0;
+    let hidden = 0;
+    for (const p of DEMO_PRODUCTS) {
+      const found = await db.product.findMany({ where: { name: p.name, brand: p.brand, type: p.type, condition: p.condition ?? "NEW" }, include: { variants: { select: { id: true } } } });
+      for (const prod of found) {
+        const ids = prod.variants.map((v) => v.id);
+        const used = (await db.orderItem.count({ where: { variantId: { in: ids } } })) + (await db.usedPhonePurchase.count({ where: { variantId: { in: ids } } }));
+        if (used) {
+          await db.product.update({ where: { id: prod.id }, data: { active: false, featured: false } });
+          hidden++;
+          continue;
+        }
+        await db.$transaction([
+          db.installmentListing.updateMany({ where: { productId: prod.id }, data: { productId: null } }),
+          db.review.deleteMany({ where: { productId: prod.id } }),
+          db.model3DJob.deleteMany({ where: { productId: prod.id } }),
+          db.stockMovement.deleteMany({ where: { variantId: { in: ids } } }),
+          db.variant.deleteMany({ where: { productId: prod.id } }),
+          db.product.delete({ where: { id: prod.id } }),
+        ]);
+        removed++;
+      }
+    }
+    const designs = await db.skin.deleteMany({ where: { OR: SKIN_DESIGNS.map((d) => ({ name: d.name, imageUrl: `/skins/${d.file}` })) } });
+    await db.setting.create({ data: { key: "migration.removeDemoV1", value: JSON.stringify({ at: new Date().toISOString(), removed, hidden, designs: designs.count }) } });
+    console.log(`Removed demo data: ${removed} product(s) deleted, ${hidden} sold one(s) hidden, ${designs.count} sample skin design(s).`);
   }
   // v6 final PB Points table: 50 screen protector / 100 custom 3D skin / 200 AirPods. Older rewards are switched
   // off, not deleted (past redemptions keep their history). Runs once.
@@ -493,9 +516,9 @@ async function upgradeExisting() {
     await db.setting.create({ data: { key: "migration.pointsV4", value: JSON.stringify({ at: new Date().toISOString() }) } });
     console.log("Applied the v4 PB Points criteria to product eligibility.");
   }
-  if ((await db.skinBrand.count()) === 0) {
+  if ((await db.skinBrand.count()) === 0 && !(await db.setting.findUnique({ where: { key: "migration.removeDemoV1" } }))) {
     const skins = await seedSkins();
-    console.log(`Added Custom Skins demo data: ${skins.models} phone models, ${skins.designs} sample designs.`);
+    console.log(`Added Custom Skins phone models: ${skins.models}.`);
   }
   if ((await db.skinType.count()) === 0) {
     await seedSkinTypes();

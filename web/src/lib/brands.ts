@@ -21,6 +21,17 @@ export const INSTALLMENT_BRANDS: Brand[] = [
 /** Installments aren't offered on iPhone / Apple (client request) — the partner app doesn't finance them. */
 export const isApplePhone = (text?: string | null) => /\b(iphone|apple)\b/i.test(text ?? "");
 
+/**
+ * Brand tiles to show: only brands that have at least one installment plan (client request — no empty tiles),
+ * in the client's order, plus any other brand an admin has listed.
+ */
+export function brandsWithListings(listings: { brand: string | null }[]): Brand[] {
+  const used = new Set(listings.map((l) => l.brand).filter((b): b is string => !!b));
+  const known = INSTALLMENT_BRANDS.filter((b) => used.has(b.slug));
+  const extra = [...used].filter((slug) => !INSTALLMENT_BRANDS.some((b) => b.slug === slug)).map((slug) => ({ slug, name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), bg: "#1a1d24", fg: "#ffffff" }));
+  return [...known, ...extra];
+}
+
 export const brandBySlug = (slug?: string | null) => INSTALLMENT_BRANDS.find((b) => b.slug === slug);
 
 /** Brand slug for a stored brand name, or one detected in a model name ("Infinix Hot 50" → "infinix"). */

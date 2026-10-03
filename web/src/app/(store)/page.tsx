@@ -10,6 +10,7 @@ import { approvedReviews, reviewStats } from "@/lib/reviews";
 import { getSetting } from "@/lib/settings";
 import { pkr } from "@/lib/format";
 import { activeListings } from "@/lib/installments";
+import { brandsWithListings } from "@/lib/brands";
 import { InstallmentPhones } from "@/components/home/InstallmentPhones";
 import { parseTiers } from "@/lib/points-rules";
 import { activeBroadcasts } from "@/lib/broadcasts";
@@ -32,11 +33,13 @@ export default async function HomePage() {
     activeBroadcasts().catch(() => []),
     db.reward.findMany({ where: { active: true }, orderBy: [{ pointsCost: "asc" }, { sortOrder: "asc" }], select: { id: true, name: true, pointsCost: true } }),
   ]);
-  const featuredPhones = phones.filter((p) => p.featured && p.condition === "NEW").slice(0, 6);
+  // Featured first, then the newest — so real stock shows even before anything is marked featured.
+  const newPhones = phones.filter((p) => p.condition === "NEW");
+  const featuredPhones = [...newPhones.filter((p) => p.featured), ...newPhones.filter((p) => !p.featured)].slice(0, 6);
   // One card per used SKU, each with its single grade (master brief §12).
   const usedPhones = toCatalogItems(phones.filter((p) => p.condition === "USED")).filter((c) => c.totalStock > 0).sort((a, b) => Number(b.featured) - Number(a.featured)).slice(0, 6);
   const featuredTablets = tablets.filter((p) => p.featured).concat(tablets.filter((p) => !p.featured)).slice(0, 3);
-  const featuredAcc = accessories.filter((p) => p.featured).slice(0, 4);
+  const featuredAcc = [...accessories.filter((p) => p.featured), ...accessories.filter((p) => !p.featured)].slice(0, 4);
   const tiers = parseTiers(passport.phoneTiers);
   const tierRange = tiers.length ? `${tiers[0].points}–${tiers[tiers.length - 1].points}` : "Bonus";
 
@@ -96,11 +99,13 @@ export default async function HomePage() {
       </section>
 
       {/* Featured phones */}
-      <Row title="Featured Phones" href="/new-phones">
-        {featuredPhones.map((p) => (
-          <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={<ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
-        ))}
-      </Row>
+      {featuredPhones.length > 0 && (
+        <Row title="Featured Phones" href="/new-phones">
+          {featuredPhones.map((p) => (
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={<ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+          ))}
+        </Row>
+      )}
 
       {/* Used phones */}
       {usedPhones.length > 0 && (
@@ -124,7 +129,7 @@ export default async function HomePage() {
         ))}
       </div>
 
-      <InstallmentPhones listings={brandMix(installments, 6)} />
+      <InstallmentPhones listings={brandMix(installments, 6)} brands={brandsWithListings(installments)} />
 
       {/* Tablets */}
       {featuredTablets.length > 0 && (
@@ -136,11 +141,13 @@ export default async function HomePage() {
       )}
 
       {/* Accessories */}
-      <Row title="Accessories" href="/accessories">
-        {featuredAcc.map((p) => (
-          <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={<ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
-        ))}
-      </Row>
+      {featuredAcc.length > 0 && (
+        <Row title="Accessories" href="/accessories">
+          {featuredAcc.map((p) => (
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={<ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
+          ))}
+        </Row>
+      )}
 
       {/* PB Rewards (loyalty / Phone Passport) */}
       <section className="relative overflow-hidden py-16 md:py-24">
