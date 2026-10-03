@@ -9,7 +9,7 @@ import { notifyVisitorsBroadcast } from "@/lib/push";
 import { AVAILABILITY, planProblem } from "@/lib/installments";
 import { termList } from "@/lib/finance";
 import { getSetting } from "@/lib/settings";
-import { brandSlugFor } from "@/lib/brands";
+import { brandSlugFor, isApplePhone } from "@/lib/brands";
 import type { FormState } from "./auth";
 import { bool, diff, int, optStr, run, str } from "./util";
 
@@ -96,10 +96,13 @@ export async function deleteBroadcastAction(_: FormState, f: FormData): Promise<
 function listingData(f: FormData) {
   const model = str(f, "model");
   if (model.length < 2) throw new Error("Enter the phone model");
+  if (isApplePhone(`${optStr(f, "brand") ?? ""} ${model}`)) throw new Error("Installments aren't offered on iPhone");
   const interest = Number(str(f, "interestPercent") || "0");
   const data = {
     brand: optStr(f, "brand") ?? brandSlugFor(null, model),
     model,
+    modelNo: optStr(f, "modelNo"),
+    colors: optStr(f, "colors"),
     productId: optStr(f, "productId"),
     imageUrl: optStr(f, "imageUrl"),
     regularPrice: int(f, "regularPrice") ?? 0,

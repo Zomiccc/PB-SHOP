@@ -1,3 +1,4 @@
+import { isApplePhone } from "@/lib/brands";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
@@ -12,7 +13,7 @@ const Body = z.object({
   phone: z.string({ message: "Enter your mobile number" }).trim().refine(isPkMobile, "Enter a valid Pakistani mobile number, e.g. 0300 1234567"),
   email: z.union([z.literal(""), z.string().trim().email("Enter a valid email")]).optional(),
   city: z.string().trim().max(60).optional(),
-  phoneModel: z.string().trim().min(2, "Which phone would you like?").max(120),
+  phoneModel: z.string().trim().min(2, "Which phone would you like?").max(120).refine((m) => !isApplePhone(m), "We don't offer installments on iPhone — choose another phone"),
   listingId: z.string().max(40).optional(),
   price: z.number().int().positive().max(5_000_000).optional(),
   downPercent: z.number().int().min(0).max(100).optional(),

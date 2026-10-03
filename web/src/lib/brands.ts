@@ -16,8 +16,10 @@ export const INSTALLMENT_BRANDS: Brand[] = [
   { slug: "vivo", name: "vivo", bg: "#415fff", fg: "#ffffff", lower: true },
   { slug: "samsung", name: "SAMSUNG", bg: "#1428a0", fg: "#ffffff" },
   { slug: "xiaomi", name: "Xiaomi", bg: "#ff6900", fg: "#ffffff" },
-  { slug: "apple", name: "Apple", bg: "#f2f2f2", fg: "#111111" },
 ];
+
+/** Installments aren't offered on iPhone / Apple (client request) — the partner app doesn't finance them. */
+export const isApplePhone = (text?: string | null) => /\b(iphone|apple)\b/i.test(text ?? "");
 
 export const brandBySlug = (slug?: string | null) => INSTALLMENT_BRANDS.find((b) => b.slug === slug);
 

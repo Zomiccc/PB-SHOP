@@ -532,7 +532,9 @@ model Review {
 model InstallmentListing {
   id               String   @id @default(cuid())
   brand            String? // brand slug for the installment picker, e.g. "infinix", "tecno" (src/lib/brands.ts)
-  model            String // e.g. "Samsung Galaxy A55 8/256GB"
+  model            String // e.g. "Infinix NOTE 60 · 8GB / 256GB"
+  modelNo          String? // manufacturer model number, e.g. "X6879"
+  colors           String? // available colours, comma-separated
   productId        String? // optional link to the catalogue product page
   imageUrl         String?
   regularPrice     Int

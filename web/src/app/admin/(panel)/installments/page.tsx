@@ -144,7 +144,7 @@ function ListingForm({ l }: { l?: InstallmentListing }) {
         <Field label="Installment total (Rs)"><input name="installmentTotal" type="number" min={1} defaultValue={l?.installmentTotal} required className="field" /></Field>
         <Field label="Interest / markup %"><input name="interestPercent" type="number" step="0.01" min={0} defaultValue={l?.interestPercent ?? 0} className="field" /></Field>
         <Field label="Down payment (Rs)"><input name="downPayment" type="number" min={0} defaultValue={l?.downPayment} required className="field" /></Field>
-        <Field label="Duration (months)"><input name="durationMonths" type="number" min={1} max={60} defaultValue={l?.durationMonths ?? 12} required className="field" /></Field>
+        <Field label="Duration (months)"><input name="durationMonths" type="number" min={1} max={60} defaultValue={l?.durationMonths ?? 9} required className="field" /></Field>
         <Field label="Availability">
           <select name="availability" defaultValue={l?.availability ?? "AVAILABLE"} className="field">
             {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -152,7 +152,11 @@ function ListingForm({ l }: { l?: InstallmentListing }) {
         </Field>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Plan label (optional)"><input name="planLabel" defaultValue={l?.planLabel ?? ""} placeholder="12 monthly payments" className="field" /></Field>
+        <Field label="Model number (optional)"><input name="modelNo" defaultValue={l?.modelNo ?? ""} placeholder="X6879" className="field" /></Field>
+        <Field label="Colours (optional)" hint="Comma-separated"><input name="colors" defaultValue={l?.colors ?? ""} placeholder="Mist Titanium, Midnight Black" className="field" /></Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Plan label (optional)"><input name="planLabel" defaultValue={l?.planLabel ?? ""} placeholder="9 monthly payments" className="field" /></Field>
         <Field label="Image URL (optional)" hint="https://… or /path"><input name="imageUrl" defaultValue={l?.imageUrl ?? ""} className="field" /></Field>
       </div>
       <div className="flex items-center justify-between">

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { FinanceCalculator } from "@/components/FinanceCalculator";
 import { InstallmentPicker } from "@/components/InstallmentPicker";
-import { INSTALLMENT_BRANDS } from "@/lib/brands";
+import { INSTALLMENT_BRANDS, isApplePhone } from "@/lib/brands";
 import { Icon } from "@/components/ui/Icon";
 import { IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { listProducts } from "@/lib/catalog";
@@ -26,18 +26,18 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
   const sp = await props.searchParams;
   const [config, listings, phones, appts] = await Promise.all([getSetting("installmentCalc"), activeListings(), listProducts({ type: "PHONE" }), getSetting("installmentAppointments")]);
   const dates = appts.enabled ? bookableDates(appts) : [];
-  const phoneNames = [...new Set([...listings.map((l) => l.model), ...phones.filter((p) => p.totalStock > 0 && p.condition === "NEW").map((p) => p.name)])];
+  const phoneNames = [...new Set([...listings.map((l) => l.model), ...phones.filter((p) => p.totalStock > 0 && p.condition === "NEW" && !isApplePhone(`${p.brand} ${p.name}`)).map((p) => p.name)])];
 
   // Any-price calculator: in-stock shop phones (the brand picker covers the installment phones).
   const shopOptions = phones
-    .filter((p) => p.totalStock > 0)
+    .filter((p) => p.totalStock > 0 && !isApplePhone(`${p.brand} ${p.name}`)) // no installments on iPhone
     .map((p) => ({ slug: p.slug, name: `${p.name}${p.condition === "USED" ? " (Used)" : ""}`, price: p.fromPrice }))
     .sort((a, b) => b.price - a.price);
   const plan = typeof sp.plan === "string" ? sp.plan : undefined;
   const brand = typeof sp.brand === "string" ? sp.brand : undefined;
   // Brands in the client's order, plus any other brand an admin has listed.
   const extra = [...new Set(listings.map((l) => l.brand).filter((b): b is string => !!b && !INSTALLMENT_BRANDS.some((x) => x.slug === b)))].map((slug) => ({ slug, name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), bg: "#1a1d24", fg: "#ffffff" }));
-  const pickerListings = listings.map((l) => ({ id: l.id, brand: l.brand, model: l.model, imageUrl: l.imageUrl, regularPrice: l.regularPrice, installmentTotal: l.installmentTotal, downPayment: l.downPayment, durationMonths: l.durationMonths, interestPercent: l.interestPercent, planLabel: l.planLabel, availability: l.availability }));
+  const pickerListings = listings.map((l) => ({ id: l.id, brand: l.brand, model: l.model, modelNo: l.modelNo, colors: l.colors, imageUrl: l.imageUrl, regularPrice: l.regularPrice, installmentTotal: l.installmentTotal, downPayment: l.downPayment, durationMonths: l.durationMonths, interestPercent: l.interestPercent, planLabel: l.planLabel, availability: l.availability }));
   const price = typeof sp.price === "string" && Number(sp.price) > 0 ? Math.round(Number(sp.price)) : undefined;
 
   return (

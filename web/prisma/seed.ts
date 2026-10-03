@@ -12,6 +12,8 @@ import { normalizePhone, slugify } from "../src/lib/format";
 import { quote, type FinancingConfig } from "../src/lib/finance";
 import { SETTING_DEFAULTS } from "../src/lib/settings";
 import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
+import { RUNNING_MODELS } from "./running-models";
+import { INSTALLMENT_BRANDS } from "../src/lib/brands";
 
 const db = new PrismaClient();
 
@@ -165,10 +167,9 @@ const REWARDS = [
 const INSTALLMENT_LISTINGS = [
   // Figures from the financing partner app for the Tecno Spark 40 Pro (30% down, 9 × Rs 8,863).
   { brand: "tecno", model: "TECNO Spark 40 Pro · 8GB / 256GB", regularPrice: 73999, installmentTotal: 101967, interestPercent: 6, downPayment: 22200, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "AVAILABLE", sortOrder: 5 },
-  { brand: "samsung", model: "Samsung Galaxy A55 5G · 8GB / 256GB", regularPrice: 129999, installmentTotal: 178599, interestPercent: 6, downPayment: 39999, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "AVAILABLE", sortOrder: 10 },
-  { brand: "apple", model: "iPhone 15 · 128GB", regularPrice: 259999, installmentTotal: 357199, interestPercent: 6, downPayment: 79999, durationMonths: 9, planLabel: "9 monthly payments · 6% per month", availability: "LIMITED", sortOrder: 20 },
-  { brand: "infinix", model: "Infinix Note 40 · 8GB / 256GB", regularPrice: 59999, installmentTotal: 67999, interestPercent: 13.3, downPayment: 17999, durationMonths: 6, planLabel: "6 monthly payments", availability: "AVAILABLE", sortOrder: 30 },
 ];
+/** The sample plans shipped before the client's real list — removed from every database (with any iPhone plan). */
+const SAMPLE_LISTING_MODELS = ["Samsung Galaxy A55 5G · 8GB / 256GB", "iPhone 15 · 128GB", "Infinix Note 40 · 8GB / 256GB"];
 
 async function createProducts(list: P[], firstSeq: number, barcodePrefix: string) {
   let skuSeq = firstSeq;
@@ -304,6 +305,26 @@ async function nineMonthPlan(l: { regularPrice: number; downPayment: number }) {
   return { durationMonths: 9, installmentTotal: q.downPayment + q.perInstallment * 9, downPayment: q.downPayment, interestPercent: cfg.markupPercentPerMonth, planLabel: `9 monthly payments · ${cfg.markupPercentPerMonth}% per month` };
 }
 
+/**
+ * Installs the client's running models (prisma/running-models.ts) as installment plans: 9 months on the
+ * calculator's formula (minimum down payment). A listing with the same model name is updated, never duplicated.
+ */
+async function installRunningModels() {
+  const brandRank = (slug: string) => Math.max(0, INSTALLMENT_BRANDS.findIndex((b) => b.slug === slug));
+  let added = 0;
+  for (const [i, m] of RUNNING_MODELS.entries()) {
+    const model = `${m.name} · ${m.ram} / ${m.storage}`;
+    const data = { brand: m.brand, model, modelNo: m.modelNo, colors: m.colors, regularPrice: m.price, availability: "AVAILABLE", active: true, sortOrder: 100 + brandRank(m.brand) * 100 + i, ...(await nineMonthPlan({ regularPrice: m.price, downPayment: 0 })) };
+    const existing = await db.installmentListing.findFirst({ where: { model } });
+    if (existing) await db.installmentListing.update({ where: { id: existing.id }, data });
+    else {
+      await db.installmentListing.create({ data });
+      added++;
+    }
+  }
+  return added;
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real/demo activity.
   if (process.env.SEED_ONLY_IF_EMPTY === "1" && (await db.product.count()) > 0) {
@@ -335,13 +356,14 @@ async function main() {
 
   await db.reward.createMany({ data: REWARDS });
   await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
+  await installRunningModels();
 
   await createProducts([...NEW_PHONES.map((x) => ({ ...x, condition: "NEW" as const })), ...USED_PHONES, ...TABLETS, ...ACCESSORIES, ...PARTS], 1, "20");
 
   const skins = await seedSkins();
 
   const count = await db.product.count();
-  console.log(`Seeded ${count} products (incl. spare parts), 7 staff accounts, ${REWARDS.length} Passport rewards, ${INSTALLMENT_LISTINGS.length} sample installment plans.`);
+  console.log(`Seeded ${count} products (incl. spare parts), 7 staff accounts, ${REWARDS.length} Passport rewards, ${await db.installmentListing.count()} installment plans.`);
   console.log(`Custom Skins: ${skins.models} phone models, ${skins.designs} sample designs.`);
   console.log(`Staff logins: owner@pbmobiles.pk, employee1-6@pbmobiles.pk — temporary password: ${tempPassword}`);
 }
@@ -401,6 +423,18 @@ async function upgradeExisting() {
     await db.setting.create({ data: { key: "migration.no12MonthsFix", value: JSON.stringify({ at: new Date().toISOString(), fixed }) } });
     if (fixed) console.log(`Re-priced ${fixed} former 12-month installment listing(s) as 9-month plans.`);
   }
+  // Client request (3 Oct 2026): installments only on the partner app's running models (itel, nubia, OPPO, Infinix
+  // lists). The fake sample plans and every iPhone plan go — deleted, or switched off if a sale points at one.
+  if (!(await db.setting.findUnique({ where: { key: "migration.runningModelsV1" } }))) {
+    const fake = await db.installmentListing.findMany({ where: { OR: [{ model: { in: SAMPLE_LISTING_MODELS } }, { brand: "apple" }, { model: { contains: "iPhone" } }, { model: { contains: "iphone" } }] }, include: { _count: { select: { sales: true } } } });
+    for (const l of fake) {
+      if (l._count.sales) await db.installmentListing.update({ where: { id: l.id }, data: { active: false } });
+      else await db.installmentListing.delete({ where: { id: l.id } });
+    }
+    const added = await installRunningModels();
+    await db.setting.create({ data: { key: "migration.runningModelsV1", value: JSON.stringify({ at: new Date().toISOString(), removed: fake.length, added }) } });
+    console.log(`Installments: removed ${fake.length} sample / iPhone plan(s), added ${added} running model(s).`);
+  }
   // Change request V2 §5: customer IDs become PBM-0001, PBM-0002… in joining order. The old random number is
   // kept in legacyNo so cards already printed still scan. Runs once (and only touches non-PBM numbers).
   if (!(await db.setting.findUnique({ where: { key: "migration.rewardsIdV2" } }))) {
@@ -442,7 +476,7 @@ async function upgradeExisting() {
   }
   if ((await db.installmentListing.count()) === 0) {
     await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
-    console.log("Added sample installment plans.");
+    console.log("Added the TECNO installment plan.");
   }
   // Brand picker: give existing listings a brand, and add the Tecno example from the partner app once.
   for (const l of await db.installmentListing.findMany({ where: { brand: null } })) {

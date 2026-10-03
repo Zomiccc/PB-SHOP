@@ -1,5 +1,11 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Installment running models (3 Oct 2026) — implemented
+- Installments are now offered only on the financing partner's (Palm app) running models. All 47 models from the client's itel, nubia, OPPO and Infinix lists are loaded (`web/prisma/running-models.ts`) with retail price, RAM / storage, model number and colours. They're priced with the calculator: 30% down, 9 months at 6% per month. The TECNO Spark 40 Pro plan (partner-app figures) stays.
+- The fake sample plans (Samsung Galaxy A55, iPhone 15, Infinix Note 40) and every iPhone plan are removed once on deploy (`migration.runningModelsV1`). A plan that has a sale is switched off rather than deleted.
+- No installments on iPhone: Apple is gone from the brand picker. Admin can't add an iPhone plan, and the appointment form and any-price calculator refuse iPhones.
+- The homepage shows a short mix of 6 plans across brands; the full list is on /installments. Admin listings have optional model number and colours fields.
+
 ## Dev Change Request V2 (Oct 2026) — implemented
 - **Hero:** "Buy Fix Style" with no full stops, nudged slightly left so the big letters line up with the paragraph.
 - **Animated phone screen:** the date, time and coloured dock icons are removed. The PB Mobiles logo is centred both ways, with its aspect ratio kept.

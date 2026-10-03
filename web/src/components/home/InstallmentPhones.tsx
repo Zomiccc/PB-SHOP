@@ -69,7 +69,8 @@ export function InstallmentPhones({ listings, heading = true, showCalculatorLink
                     <div className="min-w-0">
                       <span className={`inline-block rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold ${TONE[l.availability] ?? TONE.AVAILABLE}`}>{AVAILABILITY[l.availability as Availability] ?? l.availability}</span>
                       <p className="mt-1.5 font-semibold leading-snug">{l.model}</p>
-                      <p className="text-xs text-muted">Cash price {pkr(l.regularPrice)}</p>
+                      <p className="text-xs text-muted">Cash price {pkr(l.regularPrice)}{l.modelNo ? ` · ${l.modelNo}` : ""}</p>
+                      {l.colors && <p className="mt-0.5 text-[0.7rem] leading-snug text-white/55">Colours: {l.colors}</p>}
                     </div>
                   </div>
                   <div className="mt-auto grid grid-cols-2 gap-px bg-white/8 text-sm">

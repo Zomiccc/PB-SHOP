@@ -59,7 +59,7 @@ export default async function HomePage() {
             { href: "/used-phones", title: "Used phones", sub: "Lab-checked, one clear grade.", art: <ProductArt kind="PHONE" colorHex="#5b6b7d" brand="Samsung" name="Galaxy S23" />, glow: "rgba(217,166,46,.4)" },
             { href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <ProductArt kind="TABLET" colorHex="#8fa7c4" brand="Apple" name="iPad Air" />, glow: "rgba(0,119,217,.4)" },
             { href: "/accessories", title: "Accessories", sub: "Cases, chargers & essentials.", art: <ProductArt kind="ACCESSORY" accessoryType="EARBUDS" colorHex="#e8e8e8" />, glow: "rgba(217,166,46,.4)" },
-            { href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <ProductArt kind="PHONE" colorHex="#b8955a" brand="Samsung" name="Galaxy A55" />, glow: "rgba(215,25,32,.35)" },
+            { href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <ProductArt kind="PHONE" colorHex="#b8955a" brand="Infinix" name="NOTE 60" />, glow: "rgba(215,25,32,.35)" },
             // Custom Skins (v6 §3): opens the brand → model → preview page.
             { href: "/custom-skins", title: "Custom Skins", sub: "Try designs on your exact phone — or upload your own.", art: <SkinTileArt />, glow: "rgba(217,166,46,.45)", wide: true },
           ].map((c, i) => (
@@ -124,7 +124,7 @@ export default async function HomePage() {
         ))}
       </div>
 
-      <InstallmentPhones listings={installments} />
+      <InstallmentPhones listings={brandMix(installments, 6)} />
 
       {/* Tablets */}
       {featuredTablets.length > 0 && (
@@ -370,4 +370,13 @@ function SkinTileArt() {
       <SkinPreview template={template} imageUrl="/skins/gold-marble.svg" look="MATTE" className="hidden h-[88%] w-auto rotate-6 sm:block xl:hidden" label="Custom skin preview" />
     </div>
   );
+}
+
+/** Up to `n` plans for the homepage, taking one from each brand in turn (the full list is on /installments). */
+function brandMix<T extends { brand: string | null }>(list: T[], n: number) {
+  const groups = new Map<string, T[]>();
+  for (const l of list) groups.set(l.brand ?? "", [...(groups.get(l.brand ?? "") ?? []), l]);
+  const out: T[] = [];
+  for (let i = 0; out.length < n && [...groups.values()].some((g) => g.length > i); i++) for (const g of groups.values()) if (g[i] && out.length < n) out.push(g[i]);
+  return out;
 }

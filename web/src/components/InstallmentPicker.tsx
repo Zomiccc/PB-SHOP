@@ -12,6 +12,8 @@ export type PickerListing = {
   id: string;
   brand: string | null;
   model: string;
+  modelNo?: string | null;
+  colors?: string | null;
   imageUrl: string | null;
   regularPrice: number;
   installmentTotal: number;
@@ -122,7 +124,8 @@ export function InstallmentPicker({ brands, listings, config, initialBrand, init
                   <span className="min-w-0 flex-1">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${AVAIL[l.availability]?.tone ?? AVAIL.AVAILABLE.tone}`}>{AVAIL[l.availability]?.label ?? l.availability}</span>
                     <span className="mt-1 block font-semibold leading-snug">{l.model}</span>
-                    <span className="block text-xs text-muted">Cash price {pkr(l.regularPrice)}</span>
+                    <span className="block text-xs text-muted">Cash price {pkr(l.regularPrice)}{l.modelNo ? ` · ${l.modelNo}` : ""}</span>
+                    {l.colors && <span className="mt-0.5 block text-[0.7rem] leading-snug text-white/55">Colours: {l.colors}</span>}
                     <span className="mt-1 block text-sm"><b className="text-gold">{pkr(monthly(l))}</b><span className="text-white/60">/month · {l.durationMonths} months</span></span>
                   </span>
                   <Icon name="arrow-right" className="h-4 w-4 shrink-0 text-white/50" />
