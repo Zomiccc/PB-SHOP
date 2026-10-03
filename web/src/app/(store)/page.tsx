@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { HeroStory } from "@/components/home/HeroStory";
 import { FlipPassportCard } from "@/components/home/FlipPassportCard";
@@ -15,7 +16,6 @@ import { InstallmentPhones } from "@/components/home/InstallmentPhones";
 import { parseTiers } from "@/lib/points-rules";
 import { activeBroadcasts } from "@/lib/broadcasts";
 import { BroadcastShowcase } from "@/components/home/BroadcastShowcase";
-import { SkinPreview } from "@/components/skins/SkinPreview";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -368,14 +368,17 @@ function RepairArt() {
   );
 }
 
-/** Custom Skins tile art: a phone back wearing one of the sample designs, fitted like on the skins page. */
+/** Custom Skins tile art: the client's photo of a customised phone skin, edges faded into the tile. */
 function SkinTileArt() {
-  const template = { widthMm: 71.5, heightMm: 149.6, cornerMm: 11, cameraX: 5, cameraY: 5, cameraW: 36, cameraH: 36, cameraCornerMm: 9.5, lenses: 3, bodyHex: "#2a2d33" };
   return (
-    <div className="flex h-full items-center justify-center gap-[6%]">
-      <SkinPreview template={template} imageUrl="/skins/pb-racing.svg" look="GLOSS" className="h-full w-auto -rotate-6" label="Custom skin preview" />
-      <SkinPreview template={template} imageUrl="/skins/gold-marble.svg" look="MATTE" className="hidden h-[88%] w-auto rotate-6 sm:block xl:hidden" label="Custom skin preview" />
-    </div>
+    <Image
+      src="/brand/custom-skin-tile.webp"
+      alt="Phone with a custom photo skin"
+      width={720}
+      height={900}
+      sizes="(min-width: 1280px) 20vw, 50vw"
+      className="mx-auto h-full w-auto object-contain [mask-image:radial-gradient(75%_70%_at_50%_50%,#000_60%,transparent_100%)]"
+    />
   );
 }
 
