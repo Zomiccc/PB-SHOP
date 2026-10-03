@@ -15,6 +15,7 @@ export default async function AccessoriesPage() {
   return (
     <>
       <PageHero
+        k="page.accessories"
         eyebrow="Accessories"
         title="Complete"
         accent="the setup."

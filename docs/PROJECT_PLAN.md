@@ -1,5 +1,17 @@
 # PB Mobiles & Repairing Lab — Build Status, Requirements & Open Questions
 
+## Website editor + admin password (3 Oct 2026) — implemented
+- **Admin → Edit website** (owner only): opens any page in edit mode. Every text spot has a gold dotted outline; click it and type, and Enter saves a draft. Pictures and videos have **Replace** (upload a picture/video, or paste a YouTube link). **Add a section here** boxes add a picture, video, text, or picture + text + button. They sit under every page heading, between homepage sections, and above the footer on every page.
+- Nothing is visible to visitors until **Publish**, from the bar at the bottom of the site or the admin page. **Discard** / **Undo** throw drafts away, and **Back to original** restores the built-in text.
+- Editable areas: header strip, menu, footer, store phone/email/WhatsApp/address/hours, the whole homepage (hero, scroll chapters, tiles and pictures, rows, installments section, rewards, how repairs work, reviews, final call to action), every page heading, and the About, Contact, Repair, Installments, PB Rewards and Custom Skins pages. Plain paragraphs on Terms, Privacy and Returns are editable too, as is the 404 page.
+- How it works:
+  - Storage: `SiteContent` table (`published` / `draft` JSON).
+  - Rendering: `src/components/site/Editable.tsx` (`T`, `EditableMedia`, `Zone`, `EditableHeadline`, `StoreLink`).
+  - Server side: the API under `/api/admin/site-content` and `src/lib/site-content.ts`.
+  - Values are validated in `src/lib/site-content-types.ts`: only our own uploads or https URLs for media, only safe button links, and YouTube embeds via youtube-nocookie (allowed in the CSP).
+  - Publish is audited and refreshes every page.
+- **Admin → Admin password** (owner): set the sign-in email and password. While payments are in sandbox the admin used to be in demo mode, where anyone could open `/admin` and become the owner. Saving the password switches demo mode off for good (`adminSecurity` setting). After that, `/admin` and the demo-login link always require a password. Employees get passwords from Staff accounts → Reset password.
+
 ## Demo data removed (3 Oct 2026) — implemented
 - On the next deploy (`migration.removeDemoV1`), the demo catalogue is removed: all 40 sample new and used phones, tablets, accessories and spare parts, plus the 5 sample skin designs. Items are matched exactly on what the seed created, so anything staff added stays. A demo item that was sold is hidden rather than deleted, so order history stays intact.
 - Deploys no longer treat "no products" as an empty database (that would have wiped and reseeded everything). An existing database is now recognised by its staff accounts, and demo tablets, parts and designs are never re-added. Fresh local databases get the demo catalogue only with `SEED_DEMO=1`.

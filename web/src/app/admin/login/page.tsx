@@ -24,7 +24,7 @@ export default async function LoginPage() {
       <div className="grid place-items-center p-6">
         <ActionForm action={loginAction} className="w-full max-w-sm space-y-4">
           <h2 className="display text-3xl">Staff sign in</h2>
-          {isDemoMode() && (
+          {(await isDemoMode()) && (
             <div className="rounded-2xl bg-gold/15 p-4 text-sm ring-1 ring-gold/40">
               <p className="font-semibold">Demo mode — no password needed</p>
               <div className="mt-3 grid grid-cols-2 gap-2">

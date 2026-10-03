@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { describeTiers } from "@/lib/points-rules";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
+import { T } from "@/components/site/Editable";
 import { FlipPassportCard } from "@/components/home/FlipPassportCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
@@ -30,7 +31,7 @@ export default async function LoyaltyPage() {
 
   return (
     <>
-      <PageHero dark eyebrow="PB Rewards" title="Points that" accent="pay you back." intro="One PB Rewards account for every repair and phone you buy with us. Collect points, track them, and swap them for real rewards.">
+      <PageHero k="page.rewards" dark eyebrow="PB Rewards" title="Points that" accent="pay you back." intro="One PB Rewards account for every repair and phone you buy with us. Collect points, track them, and swap them for real rewards.">
         <div className="mt-12 max-w-md">
           <FlipPassportCard />
         </div>
@@ -39,8 +40,8 @@ export default async function LoyaltyPage() {
       {/* Earn */}
       <section className="py-16 md:py-24">
         <div className="container-pb">
-          <p className="eyebrow text-gold">Earn</p>
-          <h2 className="display mt-3 text-4xl md:text-5xl">How you collect points.</h2>
+          <p className="eyebrow text-gold"><T k="page.rewards.earn" d="Earn" /></p>
+          <h2 className="display mt-3 text-4xl md:text-5xl"><T k="page.rewards.earn.title" d="How you collect points." /></h2>
           <div className="mt-8 grid gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
             {earn.map((e, i) => (
               <Reveal key={e.t} delay={i * 0.06} className="relative overflow-hidden rounded-[1.5rem] bg-card p-6 ring-1 ring-white/8">
@@ -58,9 +59,9 @@ export default async function LoyaltyPage() {
       {/* Rewards */}
       <section className="bg-navy-950 py-16 text-white md:py-24">
         <div className="container-pb">
-          <p className="eyebrow text-gold">Redeem</p>
-          <h2 className="display mt-3 text-4xl md:text-5xl">What points get you.</h2>
-          <p className="mt-3 max-w-lg text-white/65">Swap your PB Points for these rewards at the counter — staff apply them to your PB Rewards account straight away.</p>
+          <p className="eyebrow text-gold"><T k="page.rewards.redeem" d="Redeem" /></p>
+          <h2 className="display mt-3 text-4xl md:text-5xl"><T k="page.rewards.redeem.title" d="What points get you." /></h2>
+          <p className="mt-3 max-w-lg text-white/65"><T k="page.rewards.redeem.text" d="Swap your PB Points for these rewards at the counter — staff apply them to your PB Rewards account straight away." multiline /></p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {rewards.map((r, i) => (
               <Reveal key={r.id} delay={i * 0.05}>
@@ -83,10 +84,10 @@ export default async function LoyaltyPage() {
       <section id="rules" className="py-16 md:py-24">
         <div className="container-pb grid gap-10 lg:grid-cols-[1fr_1.2fr]">
           <div>
-            <p className="eyebrow text-gold">The rules</p>
-            <h2 className="display mt-3 text-4xl md:text-5xl">Clear and simple.</h2>
+            <p className="eyebrow text-gold"><T k="page.rewards.rules" d="The rules" /></p>
+            <h2 className="display mt-3 text-4xl md:text-5xl"><T k="page.rewards.rules.title" d="Clear and simple." /></h2>
             <Link href="/account" className="btn btn-gold mt-8">
-              <Icon name="user" className="h-4 w-4" /> See my PB Rewards
+              <Icon name="user" className="h-4 w-4" /> <T k="page.rewards.rules.cta" d="See my PB Rewards" />
             </Link>
           </div>
           {/* Final PB Points system (v6 final amendment) — same numbers as the points engine. */}
@@ -110,18 +111,16 @@ export default async function LoyaltyPage() {
             </Rule>
             {rules.welcomePoints > 0 && <Rule t="Welcome reward">{rules.welcomePoints} PB Points when your new account completes its first eligible purchase or repair — on top of the standard points for it.</Rule>}
             {rules.referralPoints > 0 && <Rule t="Referral reward">Share your referral code (your Rewards ID). You get {rules.referralPoints} PB Points when a friend who joined with it completes their first eligible purchase or repair. Creating the account alone doesn&apos;t count.</Rule>}
-            <Rule t="Bonus points">Our team can award extra PB Points from time to time — they show in your points history with the reason.</Rule>
+            <Rule t="Bonus points"><T k="page.rewards.rule.bonus" d="Our team can award extra PB Points from time to time — they show in your points history with the reason." multiline /></Rule>
             <Rule t="Points validity">Each PB Point is valid for {rules.expiryMonths} months from the date it is earned. Your PB Rewards account shows what&apos;s expiring and when; points that expire soonest are used first.</Rule>
             <Rule t="Important rules">
               <ul className="mt-1 list-disc space-y-1 pl-5">
-                <li>Points can be accumulated until redeemed or expired.</li>
-                <li>Redeemed points cannot be restored.</li>
-                <li>No points are earned on redeemed rewards.</li>
-                <li>Points from refunded or cancelled transactions are reversed.</li>
-                <li>Points are calculated on the eligible / net transaction amount after discounts.</li>
+                {["Points can be accumulated until redeemed or expired.", "Redeemed points cannot be restored.", "No points are earned on redeemed rewards.", "Points from refunded or cancelled transactions are reversed.", "Points are calculated on the eligible / net transaction amount after discounts."].map((t, i) => (
+                  <li key={t}><T k={`page.rewards.rule.important${i + 1}`} d={t} /></li>
+                ))}
               </ul>
             </Rule>
-            <Rule t="Redeeming">Rewards are redeemed in store — staff apply them to your PB Rewards account straight away.</Rule>
+            <Rule t="Redeeming"><T k="page.rewards.rule.redeeming" d="Rewards are redeemed in store — staff apply them to your PB Rewards account straight away." multiline /></Rule>
           </dl>
         </div>
       </section>

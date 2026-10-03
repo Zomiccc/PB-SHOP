@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
+import { T } from "@/components/site/Editable";
 import { BrandModelPicker } from "@/components/skins/BrandModelPicker";
 import { OwnDesignUpload } from "@/components/skins/OwnDesignUpload";
 import { Icon } from "@/components/ui/Icon";
@@ -19,7 +20,7 @@ export default async function CustomSkinsPage() {
 
   return (
     <>
-      <PageHero eyebrow="Custom Skins" title="Your phone," accent="your style." intro="Find your phone and try our designs on your exact model — or upload your own picture to see it on any phone. Precision-cut and fitted in store." />
+      <PageHero k="page.customSkins" eyebrow="Custom Skins" title="Your phone," accent="your style." intro="Find your phone and try our designs on your exact model — or upload your own picture to see it on any phone. Precision-cut and fitted in store." />
       <section className="pb-16">
         <div className="container-pb">
           {cfg.enabled && brands.length ? (
@@ -29,7 +30,7 @@ export default async function CustomSkinsPage() {
               <BrandModelPicker brands={brands} />
             </>
           ) : (
-            <p className="card mx-auto max-w-2xl p-8 text-center text-muted">Custom skins are coming soon. Ask us in store or on chat.</p>
+            <p className="card mx-auto max-w-2xl p-8 text-center text-muted"><T k="page.customSkins.empty" d="Custom skins are coming soon. Ask us in store or on chat." /></p>
           )}
           <ol className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-3">
             {[
@@ -40,13 +41,13 @@ export default async function CustomSkinsPage() {
               <li key={s.t} className="rounded-2xl bg-card p-5 ring-1 ring-white/8">
                 <span className="font-mono text-xs text-gold">0{i + 1}</span>
                 <Icon name={s.icon} className="mt-3 h-5 w-5 text-gold" />
-                <p className="mt-2 font-semibold">{s.t}</p>
-                <p className="mt-1 text-sm text-muted">{s.d}</p>
+                <p className="mt-2 font-semibold"><T k={`page.customSkins.step${i + 1}`} d={s.t} /></p>
+                <p className="mt-1 text-sm text-muted"><T k={`page.customSkins.step${i + 1}.text`} d={s.d} multiline /></p>
               </li>
             ))}
           </ol>
           <p className="mt-8 text-center text-sm text-muted">
-            Phone not listed? <Link href="/contact?subject=Custom%20skin%20request" className="text-gold hover:underline">Tell us your model</Link>.
+            <T k="page.customSkins.notListed" d="Phone not listed?" /> <Link href="/contact?subject=Custom%20skin%20request" className="text-gold hover:underline"><T k="page.customSkins.notListed.link" d="Tell us your model" /></Link>.
           </p>
         </div>
       </section>

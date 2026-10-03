@@ -47,7 +47,9 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
       items: [
         { href: "/admin/audit", label: "Audit log", icon: "clock", superOnly: true },
         { href: "/admin/staff", label: "Staff accounts", icon: "user", superOnly: true },
+        { href: "/admin/website", label: "Edit website", icon: "sparkle", superOnly: true },
         { href: "/admin/settings", label: "Settings & rules", icon: "gift", superOnly: true },
+        { href: "/admin/security", label: "Admin password", icon: "id-card", superOnly: true },
       ],
     },
   ];

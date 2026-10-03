@@ -15,6 +15,7 @@ export default async function NewPhonesPage() {
   return (
     <>
       <PageHero
+        k="page.newPhones"
         eyebrow="New phones"
         title="The latest,"
         accent="in stock."

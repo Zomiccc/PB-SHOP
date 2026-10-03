@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { authSecret } from "./lib/secret";
-import { isDemoMode } from "./lib/demo";
 
 /**
  * Gatekeeper for the staff area. Pages still re-check the session against the database
@@ -18,12 +17,6 @@ export async function proxy(request: NextRequest) {
       const { payload } = await jwtVerify(token, new TextEncoder().encode(authSecret()));
       ok = payload.kind === "staff";
     } catch {}
-  }
-  if (!ok && isDemoMode()) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/api/admin/demo-login";
-    url.search = `?next=${encodeURIComponent(pathname)}`;
-    return NextResponse.redirect(url);
   }
   if (!ok) {
     const url = request.nextUrl.clone();

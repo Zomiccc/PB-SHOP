@@ -6,7 +6,7 @@ import { startStaffSession } from "@/lib/staff";
 /** Demo mode only: signs the visitor in as the owner (default) or an employee, no password. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  if (!isDemoMode()) return NextResponse.redirect(new URL("/admin/login", url), 303);
+  if (!(await isDemoMode())) return NextResponse.redirect(new URL("/admin/login", url), 303);
   const role = url.searchParams.get("role") === "employee" ? "ADMIN" : "SUPER_ADMIN";
   const staff = await db.staff.findFirst({ where: { role, active: true }, orderBy: { email: "asc" } });
   if (!staff) return NextResponse.redirect(new URL("/admin/login", url), 303);

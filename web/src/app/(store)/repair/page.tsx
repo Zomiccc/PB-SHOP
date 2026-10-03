@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
+import { T } from "@/components/site/Editable";
 import { RepairForm } from "@/components/repair/RepairForm";
 import { Reveal } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
@@ -29,6 +30,7 @@ export default async function RepairPage(props: PageProps<"/repair">) {
   return (
     <>
       <PageHero
+        k="page.repair"
         dark
         eyebrow="PB Repairing Lab"
         title="Something not"
@@ -36,8 +38,8 @@ export default async function RepairPage(props: PageProps<"/repair">) {
         intro="Tell us what's happening and create a clear repair note before you come in. We diagnose first and confirm the price before any work begins."
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <a href="#form" className="btn btn-red">Start my repair</a>
-          <Link href="/repair/track" className="btn btn-ghost-light">Track a repair</Link>
+          <a href="#form" className="btn btn-red"><T k="page.repair.cta1" d="Start my repair" /></a>
+          <Link href="/repair/track" className="btn btn-ghost-light"><T k="page.repair.cta2" d="Track a repair" /></Link>
         </div>
       </PageHero>
 
@@ -47,8 +49,8 @@ export default async function RepairPage(props: PageProps<"/repair">) {
           {SERVICES.map((s, i) => (
             <Reveal key={s.t} delay={i * 0.05} className="bg-navy-950 p-6 md:p-8">
               <Icon name={s.icon} className="h-7 w-7 text-gold" />
-              <p className="mt-5 font-semibold md:text-lg">{s.t}</p>
-              <p className="mt-1 text-sm text-white/55">{s.d}</p>
+              <p className="mt-5 font-semibold md:text-lg"><T k={`page.repair.service${i + 1}`} d={s.t} /></p>
+              <p className="mt-1 text-sm text-white/55"><T k={`page.repair.service${i + 1}.text`} d={s.d} multiline /></p>
             </Reveal>
           ))}
         </div>
@@ -57,8 +59,8 @@ export default async function RepairPage(props: PageProps<"/repair">) {
       {/* Workflow */}
       <section className="py-20 md:py-28">
         <div className="container-pb">
-          <p className="eyebrow text-red">How it works</p>
-          <h2 className="display mt-4 text-4xl md:text-6xl">From drop-off to done.</h2>
+          <p className="eyebrow text-red"><T k="page.repair.how" d="How it works" /></p>
+          <h2 className="display mt-4 text-4xl md:text-6xl"><T k="page.repair.how.title" d="From drop-off to done." /></h2>
           <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
             {REPAIR_STATUSES.map((s, i) => (
               <Reveal key={s.key} delay={i * 0.05}>
@@ -76,14 +78,13 @@ export default async function RepairPage(props: PageProps<"/repair">) {
       <section id="form" className="scroll-mt-28 pb-24 md:pb-32">
         <div className="container-pb grid gap-12 lg:grid-cols-[1fr_1.6fr]">
           <div>
-            <p className="eyebrow text-red">Book a repair</p>
-            <h2 className="display mt-4 text-4xl md:text-5xl">Create your repair note.</h2>
-            <p className="mt-4 text-muted">You&apos;ll get a repair reference instantly. Bring your phone in, book a slot, or request pickup.</p>
+            <p className="eyebrow text-red"><T k="page.repair.form.eyebrow" d="Book a repair" /></p>
+            <h2 className="display mt-4 text-4xl md:text-5xl"><T k="page.repair.form.title" d="Create your repair note." /></h2>
+            <p className="mt-4 text-muted"><T k="page.repair.form.text" d="You'll get a repair reference instantly. Bring your phone in, book a slot, or request pickup." multiline /></p>
             <ul className="mt-8 space-y-4 text-sm">
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Free diagnosis before any paid work</li>
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Price approved by you before we repair</li>
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> Repair history saved to your PB Rewards account</li>
-              <li className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> 10 PB Points on every completed repair</li>
+              {["Free diagnosis before any paid work", "Price approved by you before we repair", "Repair history saved to your PB Rewards account", "10 PB Points on every completed repair"].map((t, i) => (
+                <li key={t} className="flex gap-3"><Icon name="check" className="h-5 w-5 shrink-0 text-emerald-600" /> <T k={`page.repair.form.point${i + 1}`} d={t} /></li>
+              ))}
             </ul>
           </div>
           <RepairForm defaults={{ device: str(sp.device), issue: str(sp.issue), name: customer?.name, phone: customer?.phone, email: customer?.email ?? undefined }} />

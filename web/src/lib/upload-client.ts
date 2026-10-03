@@ -2,7 +2,7 @@
  * Browser side of the chunked media upload (see src/lib/media-upload.ts): sends the file in ~3 MB pieces
  * with a progress callback, then returns its public URL and kind.
  */
-export async function uploadMedia(file: File, folder: "broadcasts", onProgress?: (fraction: number) => void) {
+export async function uploadMedia(file: File, folder: "broadcasts" | "site", onProgress?: (fraction: number) => void) {
   const json = async (res: Response) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error ?? "Upload failed");

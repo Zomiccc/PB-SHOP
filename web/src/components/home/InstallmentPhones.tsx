@@ -7,6 +7,7 @@ import { Icon } from "../ui/Icon";
 import { Reveal } from "../ui/Reveal";
 import type { Brand } from "@/lib/brands";
 import { BrandMark } from "../InstallmentPicker";
+import { T } from "../site/Editable";
 
 const TONE: Record<string, string> = {
   AVAILABLE: "bg-emerald-500/15 text-emerald-300",
@@ -27,21 +28,22 @@ export function InstallmentPhones({ listings, brands = [], heading = true, showC
         {heading && (
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="eyebrow text-gold">Installments</p>
-              <h2 className="display mt-3 text-3xl md:text-5xl">Phones on easy installments</h2>
+              <p className="eyebrow text-gold"><T k="installments.eyebrow" d="Installments" /></p>
+              <h2 className="display mt-3 text-3xl md:text-5xl"><T k="installments.title" d="Phones on easy installments" /></h2>
             </div>
           </div>
         )}
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-gold/10 p-4 text-sm ring-1 ring-gold/35">
           <Icon name="id-card" className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
           <p>
-            <b className="text-gold-soft">Store visit required.</b> {STORE_VISIT_NOTICE.replace("Installment purchases are completed in store only. ", "")} Your ID is used only to verify your purchase and is kept private.{" "}
+            <b className="text-gold-soft"><T k="installments.notice.title" d="Store visit required." /></b>{" "}
+            <T k="installments.notice" d={`${STORE_VISIT_NOTICE.replace("Installment purchases are completed in store only. ", "")} Your ID is used only to verify your purchase and is kept private.`} />{" "}
             <Link href="/privacy#id-documents" className="text-gold underline underline-offset-2">How we protect your ID</Link>
           </p>
         </div>
         {showCalculatorLink && brands.length > 0 && (
           <div className="mt-6">
-            <p className="text-sm font-semibold">Shop installments by brand</p>
+            <p className="text-sm font-semibold"><T k="installments.byBrand" d="Shop installments by brand" /></p>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
               {brands.map((b) => (
                 <Link key={b.slug} href={`/installments?brand=${b.slug}#step-model`} className="w-24 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 transition hover:ring-gold/60" aria-label={`${b.name} phones on installments`}>
@@ -82,7 +84,7 @@ export function InstallmentPhones({ listings, brands = [], heading = true, showC
                     <Fact k="Duration" v={`${l.durationMonths} months`} />
                   </div>
                   <Link href={`/installments?plan=${l.id}#calculator`} className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3 text-sm font-semibold text-gold transition hover:bg-gold/10">
-                    <Icon name="card" className="h-4 w-4" /> Calculate my plan
+                    <Icon name="card" className="h-4 w-4" /> <T k="installments.calcPlan" d="Calculate my plan" />
                   </Link>
                 </li>
               </Reveal>
@@ -90,14 +92,14 @@ export function InstallmentPhones({ listings, brands = [], heading = true, showC
           })}
         </ul>
         <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-          <span>Prices and plans may change; the store confirms the final plan after checking your CNIC.</span>
+          <span><T k="installments.disclaimer" d="Prices and plans may change; the store confirms the final plan after checking your CNIC." /></span>
           {showCalculatorLink && (
             <Link href="/installments" className="inline-flex items-center gap-1 font-semibold text-gold hover:text-gold-soft">
-              <Icon name="card" className="h-4 w-4" /> Open the installment calculator
+              <Icon name="card" className="h-4 w-4" /> <T k="installments.openCalc" d="Open the installment calculator" />
             </Link>
           )}
           <Link href="/contact" className="inline-flex items-center gap-1 text-gold hover:text-gold-soft">
-            <Icon name="pin" className="h-4 w-4" /> Find the store
+            <Icon name="pin" className="h-4 w-4" /> <T k="installments.findStore" d="Find the store" />
           </Link>
         </p>
       </div>

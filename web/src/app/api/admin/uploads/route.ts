@@ -3,7 +3,7 @@ import { z } from "zod";
 import { AuthError, requireStaff } from "@/lib/staff";
 import { MediaUploadError, startUpload } from "@/lib/media-upload";
 
-const Start = z.object({ fileName: z.string().max(200), mimeType: z.string().max(100), size: z.number().int(), folder: z.enum(["broadcasts"]) });
+const Start = z.object({ fileName: z.string().max(200), mimeType: z.string().max(100), size: z.number().int(), folder: z.enum(["broadcasts", "site"]) });
 
 /** Staff only: starts a chunked media upload (v6 §2 broadcast pictures / videos). */
 export async function POST(req: Request) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/constants";
 import { Logo } from "./Logo";
+import { StoreLink, T } from "../site/Editable";
 
 const COLUMNS = [
   {
@@ -45,25 +46,23 @@ export function Footer() {
       <div className="container-pb grid gap-10 py-14 md:grid-cols-12">
         <div className="md:col-span-4">
           <Logo variant="stacked" />
-          <p className="mt-4 font-semibold">Phones. Repairs. Sorted.</p>
+          <p className="mt-4 font-semibold"><T k="footer.tagline" d="Phones. Repairs. Sorted." /></p>
           <address className="mt-4 space-y-1 text-sm not-italic text-white/60">
-            <p>{BRAND.address}</p>
+            <p><T k="store.address" d={BRAND.address} multiline /></p>
             <p>
-              <a href={`tel:${BRAND.phone.replace(/\s/g, "")}`} className="hover:text-white">{BRAND.phone}</a> ·{" "}
-              <a href={`mailto:${BRAND.email}`} className="hover:text-white">{BRAND.email}</a>
+              <StoreLink type="tel" k="store.phone" d={BRAND.phone} className="hover:text-white"><T k="store.phone" d={BRAND.phone} /></StoreLink> ·{" "}
+              <StoreLink type="mailto" k="store.email" d={BRAND.email} className="hover:text-white"><T k="store.email" d={BRAND.email} /></StoreLink>
             </p>
-            {BRAND.hours.map((h) => (
-              <p key={h.days}>{h.days}: {h.time}</p>
-            ))}
+            <p><T k="store.hours" d={BRAND.hours.map((h) => `${h.days} · ${h.time}`).join("\n")} multiline /></p>
           </address>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 md:col-span-8">
-          {COLUMNS.map((c) => (
+          {COLUMNS.map((c, ci) => (
             <div key={c.title}>
-              <h3 className="text-sm font-semibold text-gold">{c.title}</h3>
+              <h3 className="text-sm font-semibold text-gold"><T k={`footer.col${ci + 1}`} d={c.title} /></h3>
               <ul className="mt-3 space-y-2 text-sm text-white/70">
-                {c.links.map((l) => (
-                  <li key={l.label}><Link href={l.href} className="hover:text-white">{l.label}</Link></li>
+                {c.links.map((l, li) => (
+                  <li key={l.label}><Link href={l.href} className="hover:text-white"><T k={`footer.col${ci + 1}.link${li + 1}`} d={l.label} /></Link></li>
                 ))}
               </ul>
             </div>
@@ -72,11 +71,11 @@ export function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="container-pb flex flex-col gap-4 py-6 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} {BRAND.full}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} <T k="footer.copyright" d={`${BRAND.full}. All rights reserved.`} /></p>
           <nav aria-label="Legal" className="flex flex-wrap gap-5">
-            <Link href="/terms" className="hover:text-white">Terms &amp; Conditions</Link>
-            <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
-            <Link href="/returns" className="hover:text-white">Returns &amp; Warranty</Link>
+            <Link href="/terms" className="hover:text-white"><T k="footer.terms" d="Terms & Conditions" /></Link>
+            <Link href="/privacy" className="hover:text-white"><T k="footer.privacy" d="Privacy Policy" /></Link>
+            <Link href="/returns" className="hover:text-white"><T k="footer.returns" d="Returns & Warranty" /></Link>
           </nav>
           <div className="flex gap-2">
             {BRAND.socials.map((s) => (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
+import { T } from "@/components/site/Editable";
 import { FinanceCalculator } from "@/components/FinanceCalculator";
 import { InstallmentPicker } from "@/components/InstallmentPicker";
 import { brandsWithListings, isApplePhone } from "@/lib/brands";
@@ -40,7 +41,7 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
 
   return (
     <>
-      <PageHero eyebrow="Installments" title="Your phone now," accent="pay over time." intro="See which phones are available on installments, then work out your down payment and monthly payment. Purchases are completed in store with your original CNIC." />
+      <PageHero k="page.installments" eyebrow="Installments" title="Your phone now," accent="pay over time." intro="See which phones are available on installments, then work out your down payment and monthly payment. Purchases are completed in store with your original CNIC." />
 
       <nav aria-label="On this page" className="container-pb -mt-4 mb-8 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {[
@@ -59,7 +60,7 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
           {config.enabled ? (
             <InstallmentPicker brands={brandsWithListings(listings)} listings={pickerListings} config={config} initialBrand={brand} initialPlan={plan} />
           ) : (
-            <p className="card p-8 text-center text-muted">Installment plans are coming soon. Ask us in store or on chat.</p>
+            <p className="card p-8 text-center text-muted"><T k="page.installments.empty" d="Installment plans are coming soon. Ask us in store or on chat." /></p>
           )}
         </div>
       </section>
@@ -70,8 +71,8 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
             <details className="group rounded-[var(--radius-card)] bg-card ring-1 ring-white/10" open={!!price}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5">
                 <span>
-                  <span className="block font-semibold">Calculate any other phone or price</span>
-                  <span className="text-sm text-muted">Any phone in our shop, or type a price.</span>
+                  <span className="block font-semibold"><T k="page.installments.any" d="Calculate any other phone or price" /></span>
+                  <span className="text-sm text-muted"><T k="page.installments.any.text" d="Any phone in our shop, or type a price." /></span>
                 </span>
                 <Icon name="arrow-right" className="h-4 w-4 transition group-open:rotate-90" />
               </summary>
@@ -86,9 +87,9 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
       {config.enabled && appts.enabled && (
         <section id="book" className="scroll-mt-24 pb-20">
           <div className="container-pb">
-            <p className="eyebrow text-gold">Book your visit</p>
-            <h2 className="display mt-3 text-4xl md:text-5xl">Book an appointment.</h2>
-            <p className="mt-3 max-w-xl text-muted">Tell us about you and the phone you want, then pick a date and time. Bring your original CNIC — we&apos;ll complete the plan with you in store.</p>
+            <p className="eyebrow text-gold"><T k="page.installments.book.eyebrow" d="Book your visit" /></p>
+            <h2 className="display mt-3 text-4xl md:text-5xl"><T k="page.installments.book.title" d="Book an appointment." /></h2>
+            <p className="mt-3 max-w-xl text-muted"><T k="page.installments.book.text" d="Tell us about you and the phone you want, then pick a date and time. Bring your original CNIC — we'll complete the plan with you in store." multiline /></p>
             <div className="mt-8">
               <InstallmentRequestForm dates={dates} phones={phoneNames} />
             </div>
@@ -98,8 +99,8 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
 
       <section id="how" className="scroll-mt-24 bg-navy-950 py-20 text-white">
         <div className="container-pb">
-          <p className="eyebrow text-gold">How it works</p>
-          <h2 className="display mt-4 text-4xl md:text-5xl">Four simple steps.</h2>
+          <p className="eyebrow text-gold"><T k="page.installments.how" d="How it works" /></p>
+          <h2 className="display mt-4 text-4xl md:text-5xl"><T k="page.installments.how.title" d="Four simple steps." /></h2>
           <ol className="mt-10 grid gap-4 md:grid-cols-4">
             {[
               { icon: "phone", t: "Choose your phone", d: "Pick from the installment phones above — try it in store." },
@@ -110,8 +111,8 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
               <li key={s.t} className="rounded-2xl bg-white/[0.04] p-6 ring-1 ring-white/10">
                 <span className="font-mono text-xs text-gold">0{i + 1}</span>
                 <Icon name={s.icon} className="mt-4 h-6 w-6 text-gold" />
-                <p className="mt-3 font-semibold">{s.t}</p>
-                <p className="mt-1 text-sm text-white/55">{s.d}</p>
+                <p className="mt-3 font-semibold"><T k={`page.installments.step${i + 1}`} d={s.t} /></p>
+                <p className="mt-1 text-sm text-white/55"><T k={`page.installments.step${i + 1}.text`} d={s.d} multiline /></p>
               </li>
             ))}
           </ol>
@@ -119,8 +120,8 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
             <IdPrivacyNotice />
           </div>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/contact" className="btn btn-gold"><Icon name="pin" className="h-4 w-4" /> Find the store</Link>
-            <Link href="/contact?subject=Installment%20enquiry" className="btn btn-ghost-light">Ask about installments</Link>
+            <Link href="/contact" className="btn btn-gold"><Icon name="pin" className="h-4 w-4" /> <T k="page.installments.cta1" d="Find the store" /></Link>
+            <Link href="/contact?subject=Installment%20enquiry" className="btn btn-ghost-light"><T k="page.installments.cta2" d="Ask about installments" /></Link>
           </div>
         </div>
       </section>

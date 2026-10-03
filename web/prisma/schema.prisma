@@ -797,3 +797,15 @@ model InstallmentRequest {
   @@index([appointmentAt])
   @@index([status, appointmentAt])
 }
+
+/// Website editor (client request): text, pictures, videos and extra sections the owner edits on the live site.
+/// `key` names the spot (e.g. "home.hero.title"). `draft` holds unpublished changes; Publish copies it to
+/// `published`. Values are JSON (a string for text, an object for media, an array of blocks for a section zone).
+model SiteContent {
+  key         String   @id
+  kind        String // TEXT | MEDIA | ZONE
+  published   String? // JSON — what visitors see (null = the built-in default)
+  draft       String? // JSON — unpublished change; {"$reset":true} = back to the built-in default
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}

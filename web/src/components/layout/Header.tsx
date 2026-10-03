@@ -9,6 +9,10 @@ import { cartCount, useCart } from "@/store/cart";
 import { cn } from "@/lib/format";
 import { Logo } from "./Logo";
 import { Icon } from "../ui/Icon";
+import { T } from "../site/Editable";
+
+/** Content key for a menu item, e.g. "/new-phones" → "nav.new-phones". */
+const navKey = (href: string) => `nav.${href.replace(/^\//, "") || "home"}`;
 
 /** Pages whose first screen is dark navy — header starts in its light-on-dark state. */
 const DARK_TOP = ["/", "/loyalty", "/repair"];
@@ -66,15 +70,15 @@ export function Header() {
         <div className="container-pb flex h-9 items-center justify-between font-mono text-[0.65rem] uppercase tracking-[0.2em]">
           <div className="flex items-center gap-6">
             <Link href="/new-phones" className="hover:text-white">
-              <span className="text-gold">★</span> Phones
+              <span className="text-gold">★</span> <T k="strip.phones" d="Phones" />
             </Link>
-            <Link href="/repair" className="hover:text-white">Repairs</Link>
-            <Link href="/accessories" className="hover:text-white">Accessories</Link>
-            <Link href="/installments" className="text-gold hover:text-gold-soft">Installments</Link>
+            <Link href="/repair" className="hover:text-white"><T k="strip.repairs" d="Repairs" /></Link>
+            <Link href="/accessories" className="hover:text-white"><T k="strip.accessories" d="Accessories" /></Link>
+            <Link href="/installments" className="text-gold hover:text-gold-soft"><T k="strip.installments" d="Installments" /></Link>
           </div>
           <div className="flex items-center gap-6">
-            <span>Secure JazzCash / wallet / bank payments</span>
-            <Link href="/loyalty" className="text-gold hover:text-gold-soft">PB Rewards →</Link>
+            <span><T k="strip.payments" d="Secure JazzCash / wallet / bank payments" /></span>
+            <Link href="/loyalty" className="text-gold hover:text-gold-soft"><T k="strip.rewards" d="PB Rewards →" /></Link>
           </div>
         </div>
       </div>
@@ -104,7 +108,7 @@ export function Header() {
                     active && (dark ? "text-white" : "text-ink"),
                   )}
                 >
-                  {item.label}
+                  <T k={navKey(item.href)} d={item.label} />
                   {active && (
                     <motion.span layoutId="nav-dot" className="absolute inset-x-2.5 -bottom-0.5 h-[2px] rounded-full bg-red" />
                   )}
@@ -167,14 +171,14 @@ export function Header() {
                 {NAV.map((item, i) => (
                   <motion.div key={item.href} initial={{ x: -16, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.04 * i }}>
                     <Link href={item.href} className="display flex items-center justify-between border-b border-ink/10 py-4 text-3xl">
-                      {item.label}
+                      <T k={navKey(item.href)} d={item.label} />
                       <Icon name="arrow-up-right" className="h-5 w-5 text-red" />
                     </Link>
                   </motion.div>
                 ))}
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <Link href="/account" className="btn btn-ghost text-ink"><span>Account</span></Link>
-                  <Link href="/loyalty" className="btn btn-gold">PB Rewards</Link>
+                  <Link href="/account" className="btn btn-ghost text-ink"><span><T k="menu.account" d="Account" /></span></Link>
+                  <Link href="/loyalty" className="btn btn-gold"><T k="menu.rewards" d="PB Rewards" /></Link>
                 </div>
               </div>
             </motion.nav>

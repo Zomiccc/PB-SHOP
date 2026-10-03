@@ -40,7 +40,7 @@ export async function getStaff(): Promise<StaffUser | null> {
   if (!session || session.kind !== "staff") return null;
   const s = await db.staff.findUnique({ where: { id: session.sub } });
   if (!s || !s.active) return null;
-  return { id: s.id, name: s.name, email: s.email, role: s.role as StaffRole, mustChangePassword: s.mustChangePassword && !isDemoMode() };
+  return { id: s.id, name: s.name, email: s.email, role: s.role as StaffRole, mustChangePassword: s.mustChangePassword && !(await isDemoMode()) };
 }
 
 /** For admin pages: redirects to login, or to the password page if a reset is pending. */

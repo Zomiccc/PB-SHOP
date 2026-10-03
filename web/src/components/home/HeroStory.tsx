@@ -7,6 +7,7 @@ import { gsap } from "gsap";
 import { useReducedMotion } from "motion/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Icon } from "../ui/Icon";
+import { T } from "../site/Editable";
 
 const HeroCanvas = dynamic(() => import("../three/HeroCanvas"), { ssr: false });
 
@@ -65,24 +66,22 @@ function MobileHero({ active, belowCtas }: { active: boolean; belowCtas?: React.
         <div className="container-pb relative z-10 pb-6 pt-8">
           <div className="max-w-[58%]">
             <h1 className="display -ml-[0.06em] text-[2.5rem] leading-[0.98]">
-              Buy
-              <br />
-              Fix
-              <br />
-              Style
+              <T k="home.hero.title" d={"Buy\nFix\nStyle"} multiline />
             </h1>
-            <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">From new phones and used phones to repairs &amp; skins, we&apos;ve got you covered.</p>
+            <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">
+              <T k="home.hero.text" d="From new phones and used phones to repairs & skins, we've got you covered." multiline />
+            </p>
           </div>
         </div>
       </div>
       {/* Full-width CTAs under the phone: Shop phones first, then Book a repair (change request §7). */}
       <div className="container-pb relative z-10 grid gap-2.5 pb-10">
         <Link href="/new-phones" className="btn !justify-between border border-gold/70 !px-4 text-white hover:bg-gold/10">
-          <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> Shop phones</span>
+          <span className="flex items-center gap-2"><Icon name="bag" className="h-4 w-4" /> <T k="home.hero.cta1" d="Shop phones" /></span>
           <Icon name="arrow-right" className="h-4 w-4" />
         </Link>
         <Link href="/repair" className="btn btn-gold !justify-between !px-4">
-          <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> Book a repair</span>
+          <span className="flex items-center gap-2"><Icon name="wrench" className="h-4 w-4" /> <T k="home.hero.cta2" d="Book a repair" /></span>
           <Icon name="arrow-right" className="h-4 w-4" />
         </Link>
         {/* Broadcasts: directly beneath Shop Phones, centred (v6 §1). */}
@@ -157,23 +156,19 @@ function DesktopHero({ active }: { active: boolean }) {
         {/* Chapter 1 — hero */}
         <div data-ch="1" className="container-pb pointer-events-none absolute inset-0 flex items-end pb-24 pt-[var(--header-h)] md:items-center md:pb-0">
           <div className="pointer-events-auto max-w-xl">
-            <p className="eyebrow text-gold">PB Mobiles &amp; Repairing Lab</p>
+            <p className="eyebrow text-gold"><T k="home.hero.eyebrow" d="PB Mobiles & Repairing Lab" /></p>
             <h1 className="display -ml-[0.06em] mt-4 text-[min(2.6rem,6svh)] sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.4rem,12svh)]">
-              Buy
-              <br />
-              Fix
-              <br />
-              Style
+              <T k="home.hero.title" d={"Buy\nFix\nStyle"} multiline />
             </h1>
             <p className="mt-6 hidden max-w-md text-base leading-relaxed text-white/70 sm:block md:text-lg">
-              From new phones and used phones to repairs &amp; skins, we&apos;ve got you covered.
+              <T k="home.hero.text" d="From new phones and used phones to repairs & skins, we've got you covered." multiline />
             </p>
             <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
               <Link href="/new-phones" className="btn border border-gold/70 text-white hover:bg-gold/10">
-                <Icon name="bag" className="h-4 w-4" /> Shop phones <Icon name="arrow-right" className="h-4 w-4" />
+                <Icon name="bag" className="h-4 w-4" /> <T k="home.hero.cta1" d="Shop phones" /> <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
               <Link href="/repair" className="btn btn-gold">
-                <Icon name="wrench" className="h-4 w-4" /> Book a repair <Icon name="arrow-right" className="h-4 w-4" />
+                <Icon name="wrench" className="h-4 w-4" /> <T k="home.hero.cta2" d="Book a repair" /> <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
             </div>
             <div className="mt-8 hidden items-center gap-3 text-sm text-white/60 sm:flex">
@@ -181,7 +176,7 @@ function DesktopHero({ active }: { active: boolean }) {
                 <Icon name="sparkle" className="h-4 w-4" />
               </span>
               <span>
-                <b className="font-semibold text-white">Repair. Refresh. Repeat.</b> One place for your everyday tech.
+                <b className="font-semibold text-white"><T k="home.hero.tagline" d="Repair. Refresh. Repeat." /></b> <T k="home.hero.tagline2" d="One place for your everyday tech." />
               </span>
             </div>
           </div>
@@ -190,18 +185,18 @@ function DesktopHero({ active }: { active: boolean }) {
         {/* Chapter 2 — new & used */}
         <div data-ch="2" className="invisible container-pb pointer-events-none absolute inset-0 flex items-end justify-end pb-24 md:items-center md:pb-0">
           <div className="pointer-events-auto max-w-lg md:text-right">
-            <p className="eyebrow text-gold md:flex-row-reverse">01 / Phone shop</p>
+            <p className="eyebrow text-gold md:flex-row-reverse"><T k="home.ch2.eyebrow" d="01 / Phone shop" /></p>
             <h2 className="display mt-4 text-4xl sm:mt-5 sm:text-5xl md:text-7xl">
-              New or pre-loved.
+              <T k="home.ch2.title" d="New or pre-loved." />
               <br />
-              <span className="text-blue-soft">Always checked.</span>
+              <span className="text-blue-soft"><T k="home.ch2.accent" d="Always checked." /></span>
             </h2>
             <p className="mt-5 hidden text-white/70 sm:block md:text-lg">
-              Brand-new devices with official warranty, and used phones graded A+ to C with battery health, notes and a PB Lab warranty on every one.
+              <T k="home.ch2.text" d="Brand-new devices with official warranty, and used phones graded A+ to C with battery health, notes and a PB Lab warranty on every one." multiline />
             </p>
             <div className="mt-7 flex flex-wrap gap-3 md:justify-end">
-              <Link href="/new-phones" className="btn btn-gold">Shop new phones</Link>
-              <Link href="/used-phones" className="btn btn-ghost-light">Shop used phones</Link>
+              <Link href="/new-phones" className="btn btn-gold"><T k="home.ch2.cta1" d="Shop new phones" /></Link>
+              <Link href="/used-phones" className="btn btn-ghost-light"><T k="home.ch2.cta2" d="Shop used phones" /></Link>
             </div>
           </div>
         </div>
@@ -209,23 +204,23 @@ function DesktopHero({ active }: { active: boolean }) {
         {/* Chapter 3 — exploded repair view */}
         <div data-ch="3" className="invisible pointer-events-none absolute inset-0">
           <div className="container-pb absolute inset-x-0 top-[calc(var(--header-h)+1rem)] text-center md:top-[calc(var(--header-h)+2rem)]">
-            <p className="eyebrow justify-center text-gold">02 / Repairing lab</p>
+            <p className="eyebrow justify-center text-gold"><T k="home.ch3.eyebrow" d="02 / Repairing lab" /></p>
             <h2 className="display mt-3 text-4xl md:text-6xl">
-              Every layer. <span className="text-red">Handled.</span>
+              <T k="home.ch3.title" d="Every layer." /> <span className="text-red"><T k="home.ch3.accent" d="Handled." /></span>
             </h2>
           </div>
-          {LAYERS.map((l) => (
+          {LAYERS.map((l, i) => (
             <div key={l.label} data-layer className={`absolute ${l.pos} max-w-[9.5rem] md:max-w-none`}>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-gold shadow-[0_0_16px_4px_rgba(217,166,46,.55)]" />
-                <span className="text-sm font-semibold md:text-base">{l.label}</span>
+                <span className="text-sm font-semibold md:text-base"><T k={`home.ch3.layer${i + 1}`} d={l.label} /></span>
               </div>
-              <p className="ml-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-white/50 md:text-[0.68rem]">{l.detail}</p>
+              <p className="ml-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-white/50 md:text-[0.68rem]"><T k={`home.ch3.layer${i + 1}.detail`} d={l.detail} /></p>
             </div>
           ))}
           <div className="pointer-events-auto absolute inset-x-0 bottom-20 flex justify-center md:bottom-14">
             <Link href="/repair" className="btn btn-red">
-              Book a repair <Icon name="wrench" className="h-4 w-4" />
+              <T k="home.ch3.cta" d="Book a repair" /> <Icon name="wrench" className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -233,11 +228,9 @@ function DesktopHero({ active }: { active: boolean }) {
         {/* Chapter 4 — CTA grid */}
         <div data-ch="4" className="invisible container-pb pointer-events-none absolute inset-0 flex items-end pb-16 md:items-center md:pb-0">
           <div className="pointer-events-auto w-full max-w-xl">
-            <p className="eyebrow text-gold">03 / Everything in one place</p>
+            <p className="eyebrow text-gold"><T k="home.ch4.eyebrow" d="03 / Everything in one place" /></p>
             <h2 className="display mt-4 text-4xl sm:text-5xl md:text-7xl">
-              Everything your
-              <br />
-              phone <span className="text-gradient-gold">needs.</span>
+              <T k="home.ch4.title" d={"Everything your\nphone"} multiline /> <span className="text-gradient-gold"><T k="home.ch4.accent" d="needs." /></span>
             </h2>
             <div className="mt-8 grid grid-cols-2 gap-2.5 sm:gap-3">
               {[
@@ -245,11 +238,11 @@ function DesktopHero({ active }: { active: boolean }) {
                 { href: "/used-phones", label: "Shop Used Phones", icon: "shield", tone: "hover:border-gold hover:bg-gold/10" },
                 { href: "/repair", label: "Book a Repair", icon: "wrench", tone: "hover:border-red hover:bg-red/10" },
                 { href: "/accessories", label: "View Accessories", icon: "bolt", tone: "hover:border-white hover:bg-white/10" },
-              ].map((c) => (
+              ].map((c, i) => (
                 <Link key={c.href} href={c.href} className={`group flex items-center justify-between gap-2 rounded-2xl border border-white/15 bg-white/[0.03] p-4 backdrop-blur transition-colors sm:p-5 ${c.tone}`}>
                   <span className="flex items-center gap-3 text-sm font-semibold sm:text-base">
                     <Icon name={c.icon} className="h-5 w-5 text-gold" />
-                    {c.label}
+                    <T k={`home.ch4.link${i + 1}`} d={c.label} />
                   </span>
                   <Icon name="arrow-up-right" className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </Link>
@@ -262,7 +255,7 @@ function DesktopHero({ active }: { active: boolean }) {
         {!reduced && (
           <>
             <div data-hint className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-white/50 md:flex">
-              <span className="font-mono text-[0.6rem] uppercase tracking-[0.3em]">Scroll to explore</span>
+              <span className="font-mono text-[0.6rem] uppercase tracking-[0.3em]"><T k="home.scrollHint" d="Scroll to explore" /></span>
               <span className="h-10 w-px overflow-hidden bg-white/15">
                 <span className="block h-1/2 w-full animate-[float_1.6s_ease-in-out_infinite] bg-gold" />
               </span>

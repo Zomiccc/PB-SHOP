@@ -16,6 +16,7 @@ export default async function UsedPhonesPage() {
   return (
     <>
       <PageHero
+        k="page.usedPhones"
         eyebrow="Used phones"
         title="Pre-loved."
         accent="Lab-checked."

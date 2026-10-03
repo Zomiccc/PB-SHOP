@@ -15,6 +15,7 @@ export default async function TabletsPage() {
   return (
     <>
       <PageHero
+        k="page.tablets"
         eyebrow="Tablets"
         title="Bigger screen,"
         accent="same care."
