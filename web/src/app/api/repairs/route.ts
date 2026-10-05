@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     return r;
   });
 
-  await notify({ to: { phone, email: data.email || null }, subject: `Repair ${repair.ref}`, text: `PB Mobiles: your repair note is created. Repair reference ${repair.ref} for your ${data.brand} ${data.model}. Track it at pbmobiles.pk/repair/track` });
+  await notify({ to: { phone, email: data.email || null }, subject: `Repair ${repair.ref}`, text: `PB Mobiles: your repair note is created. Repair reference ${repair.ref} for your ${data.brand} ${data.model}. Track it at pbmobiles.com/repair/track` });
   await notifyStaff(`New repair ${repair.ref}`, `${data.name} (${phone}) — ${data.brand} ${data.model}: ${data.category}
 ${data.description}`);
   return NextResponse.json({ ref: repair.ref }, { status: 201 });

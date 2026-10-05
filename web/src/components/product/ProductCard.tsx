@@ -57,7 +57,12 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
               style={{ background: item.finishHex ?? "#0077d9", opacity: 0.35 }}
             />
             <motion.div style={{ x: artX }} className="absolute inset-4 transition-transform duration-700 ease-[cubic-bezier(.2,.8,.2,1)] group-hover:scale-[1.06]">
-              <ProductArt kind={item.type} accessoryType={item.accessoryType} colorHex={item.finishHex} brand={item.brand} name={item.name} />
+              {item.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,.45)]" />
+              ) : (
+                <ProductArt kind={item.type} accessoryType={item.accessoryType} colorHex={item.finishHex} brand={item.brand} name={item.name} />
+              )}
             </motion.div>
             <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
               <span className={cn("rounded-full px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em]", dark ? "bg-white/10 text-white/80" : "bg-black/60 text-white/85 backdrop-blur")}>

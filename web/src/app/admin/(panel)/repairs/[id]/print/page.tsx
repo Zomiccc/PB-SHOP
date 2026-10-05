@@ -142,7 +142,7 @@ export default async function RepairPrintPage(props: PageProps<"/admin/repairs/[
           <div><div className="h-10 border-b border-black" /><p className="mt-1">Customer signature</p></div>
           <div><div className="h-10 border-b border-black" /><p className="mt-1">Technician signature</p></div>
         </footer>
-        <p className="mt-6 text-center text-[8pt]">Please keep this document. Bring your repair reference ({r.ref}) and ID when collecting. Terms: pbmobiles.pk/terms</p>
+        <p className="mt-6 text-center text-[8pt]">Please keep this document. Bring your repair reference ({r.ref}) and ID when collecting. Terms: pbmobiles.com/terms</p>
       </article>
     </div>
   );

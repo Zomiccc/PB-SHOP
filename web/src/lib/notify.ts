@@ -49,7 +49,7 @@ async function email(to: string, subject: string, text: string) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM ?? "PB Mobiles <no-reply@pbmobiles.pk>", to, subject, text }),
+    body: JSON.stringify({ from: process.env.EMAIL_FROM ?? "PB Mobiles <no-reply@pbmobiles.com>", to, subject, text }),
   });
   return res.ok;
 }

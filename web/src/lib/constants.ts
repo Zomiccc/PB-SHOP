@@ -1,14 +1,14 @@
 // Allowed values for string "enum" columns (see prisma/schema.prisma header).
 
 /** An env value, unless it's empty or one of the old example placeholders (then the real default is used). */
-const env = (v: string | undefined) => (v && !/0000000|to be confirmed/i.test(v) ? v : undefined);
+const env = (v: string | undefined) => (v && !/0000000|to be confirmed|pbmobiles\.pk/i.test(v) ? v : undefined);
 
 export const BRAND = {
   name: "PB Mobiles",
   full: "PB Mobiles & Repairing Lab",
   phone: env(process.env.NEXT_PUBLIC_STORE_PHONE) ?? "0334 6888696",
   whatsapp: env(process.env.NEXT_PUBLIC_STORE_WHATSAPP) ?? "923346888696",
-  email: process.env.NEXT_PUBLIC_STORE_EMAIL ?? "hello@pbmobiles.pk",
+  email: env(process.env.NEXT_PUBLIC_STORE_EMAIL) ?? "info@pbmobiles.com",
   /** Website printed on the back of the PB Rewards card (client reference artwork). */
   cardWebsite: process.env.NEXT_PUBLIC_CARD_WEBSITE ?? "pbisb.com",
   address: env(process.env.NEXT_PUBLIC_STORE_ADDRESS) ?? "PB Mobiles, Shop #30, Ghouri Mobile Mall, Ghouri Town, Islamabad",
@@ -43,6 +43,9 @@ export const ACCESSORY_TYPES = {
   SCREEN_PROTECTOR: "Screen protectors",
   POWER_BANK: "Power banks",
   EARBUDS: "Earbuds",
+  HANDSFREE: "Handsfree & neckbands",
+  SMARTWATCH: "Smart watches",
+  SPEAKER: "Speakers",
   OTHER: "Other",
 } as const;
 export type AccessoryType = keyof typeof ACCESSORY_TYPES;

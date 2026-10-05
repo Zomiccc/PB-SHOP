@@ -38,7 +38,7 @@ export default async function ReceiptPage(props: PageProps<"/admin/orders/[id]/r
         {o.customer && <p>Rewards ID: {o.customer.passportNo}</p>}
         <p className="my-2 border-t border-dashed border-black" />
         <p className="text-center">Thank you for shopping with us!</p>
-        <p className="text-center text-[10px]">Returns &amp; warranty: see pbmobiles.pk/returns</p>
+        <p className="text-center text-[10px]">Returns &amp; warranty: see pbmobiles.com/returns</p>
         <div className="mt-4 text-center print:hidden"><PrintButton /></div>
       </div>
     </div>

@@ -148,7 +148,7 @@ export default async function HomePage() {
       {featuredAcc.length > 0 && (
         <Row k="home.row.accessories" title="Accessories" href="/accessories">
           {featuredAcc.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={<ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={p.images[0] ? <Image src={p.images[0]} alt="" fill sizes="(min-width: 768px) 16vw, 42vw" className="object-contain" /> : <ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
           ))}
         </Row>
       )}

@@ -13,6 +13,7 @@ import { quote, type FinancingConfig } from "../src/lib/finance";
 import { SETTING_DEFAULTS } from "../src/lib/settings";
 import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
 import { RUNNING_MODELS } from "./running-models";
+import { RONIN_PRODUCTS } from "./ronin-products";
 import { INSTALLMENT_BRANDS } from "../src/lib/brands";
 
 const db = new PrismaClient();
@@ -415,6 +416,59 @@ async function addRunningModelProducts() {
   return added;
 }
 
+/**
+ * Ronin accessories from the client's product sheet (prisma/ronin-products.ts) with their photos. One SKU each;
+ * stock wasn't in the sheet, so each starts at 3 — staff set the real count. Skips ones already added.
+ */
+async function addRoninProducts() {
+  const skus = await db.variant.findMany({ select: { sku: true } });
+  let seq = Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
+  let added = 0;
+  for (const r of RONIN_PRODUCTS) {
+    if (await db.product.findFirst({ where: { name: r.name, brand: "Ronin", type: "ACCESSORY" } })) continue;
+    let s = slug(r.name);
+    if (await db.product.findUnique({ where: { slug: s } })) s = `${s}-${r.model.toLowerCase().replace(/[^a-z0-9]+/g, "")}`;
+    const product = await db.product.create({
+      data: {
+        slug: s,
+        name: r.name,
+        brand: "Ronin",
+        type: "ACCESSORY",
+        condition: "NEW",
+        accessoryType: r.accessoryType,
+        loyaltyEligible: true,
+        description: r.description,
+        specs: JSON.stringify({ ...(r.tagline ? { Highlights: r.tagline } : {}), Model: r.model, ...(r.color ? { Colour: r.color } : {}), Warranty: r.warranty ?? "Ask in store" }),
+        images: JSON.stringify(r.images),
+        finishHex: r.colorHex,
+        metaTitle: `${r.name} | PB Mobiles`,
+        metaDescription: r.description.slice(0, 155),
+      },
+    });
+    const variant = await db.variant.create({
+      data: {
+        productId: product.id,
+        sku: `PB-${String(seq).padStart(4, "0")}`,
+        barcode: `25${String(100000000 + seq).slice(-10)}`,
+        color: r.color,
+        colorHex: r.colorHex,
+        partNumber: r.model,
+        price: r.price,
+        salePrice: r.salePrice && r.salePrice < r.price ? r.salePrice : null,
+        stockQty: 3,
+        lowStockThreshold: 1,
+        grade: assertVariantGrade("NEW", undefined),
+        warrantyInfo: r.warranty ?? "7-day replacement for manufacturing faults",
+        returnInfo: "Unopened items returnable within 7 days",
+      },
+    });
+    await db.stockMovement.create({ data: { variantId: variant.id, type: "PURCHASE", qtyChange: 3, qtyAfter: 3, reference: "OPENING", reason: "Opening stock — set the real count in Inventory" } });
+    seq++;
+    added++;
+  }
+  return added;
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real activity. A database counts as in use
   // once it has staff accounts (not products: the demo catalogue was removed and the shop may have none yet).
@@ -449,6 +503,7 @@ async function main() {
   await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
   await installRunningModels();
   await addRunningModelProducts();
+  await addRoninProducts();
 
   // Demo catalogue and sample skin designs only for local development (SEED_DEMO=1) — never on the live shop.
   if (process.env.SEED_DEMO === "1") await createProducts(DEMO_PRODUCTS, 1, "20");
@@ -545,6 +600,12 @@ async function upgradeExisting() {
     const added = await installRunningModels();
     await db.setting.create({ data: { key: "migration.runningModelsV1", value: JSON.stringify({ at: new Date().toISOString(), removed: fake.length, added }) } });
     console.log(`Installments: removed ${fake.length} sample / iPhone plan(s), added ${added} running model(s).`);
+  }
+  // Client request (6 Oct 2026): Ronin accessories ready to sell — add them to the inventory with photos. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.roninProductsV1" } }))) {
+    const added = await addRoninProducts();
+    await db.setting.create({ data: { key: "migration.roninProductsV1", value: JSON.stringify({ at: new Date().toISOString(), added }) } });
+    console.log(`Inventory: added ${added} Ronin accessor${added === 1 ? "y" : "ies"}.`);
   }
   // Client request (5 Oct 2026): the running models are in stock in the shop — add them to the inventory. Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.runningModelProductsV1" } }))) {

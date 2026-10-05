@@ -134,6 +134,8 @@ export type CatalogItem = Pick<ProductDTO, "slug" | "name" | "brand" | "type" | 
   grade: string | null;
   bestBattery: number | null;
   onSale: boolean;
+  /** First product photo, when the product has real photos (otherwise the card draws the device). */
+  image: string | null;
   createdOrder: number;
 };
 
@@ -155,6 +157,7 @@ export function toCatalogItems(products: ProductDTO[]): CatalogItem[] {
       accessoryType: p.accessoryType,
       finishHex: p.finishHex,
       featured: p.featured,
+      image: p.images[0] ?? null,
     };
     if (p.condition === "USED") {
       for (const v of p.variants) {

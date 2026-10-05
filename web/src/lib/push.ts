@@ -14,7 +14,7 @@ type Payload = { title: string; body: string; url: string; tag?: string };
 async function send(subs: { id: string; endpoint: string; p256dh: string; auth: string }[], payload: Payload) {
   if (!subs.length || !pushConfigured()) return 0;
   const webpush = (await import("web-push")).default;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:hello@pbmobiles.pk", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:info@pbmobiles.com", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
   let sent = 0;
   await Promise.all(
     subs.map(async (s) => {
