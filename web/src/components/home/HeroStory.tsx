@@ -66,7 +66,7 @@ function MobileHero({ active, belowCtas }: { active: boolean; belowCtas?: React.
         <div className="container-pb relative z-10 pb-6 pt-8">
           <div className="max-w-[58%]">
             {/* Headline starts about two spaces in from the paragraph below it (client request). */}
-            <h1 className="display pl-2 text-[2.5rem] leading-[0.98]">
+            <h1 className="display pl-3 text-[2.25rem] leading-[0.98]">
               <T k="home.hero.title" d={"Buy\nFix\nStyle"} multiline />
             </h1>
             <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">
@@ -159,7 +159,7 @@ function DesktopHero({ active }: { active: boolean }) {
           <div className="pointer-events-auto max-w-xl">
             <p className="eyebrow text-gold"><T k="home.hero.eyebrow" d="PB Mobiles & Repairing Lab" /></p>
             {/* Headline starts about two spaces in from the paragraph below it (client request). */}
-            <h1 className="display mt-4 pl-2 text-[min(2.6rem,6svh)] sm:pl-2.5 sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.4rem,12svh)]">
+            <h1 className="display mt-4 pl-3 text-[min(2.35rem,5.5svh)] sm:pl-3.5 sm:mt-5 sm:text-[min(4.1rem,9svh)] lg:text-[min(5.8rem,11svh)]">
               <T k="home.hero.title" d={"Buy\nFix\nStyle"} multiline />
             </h1>
             <p className="mt-6 hidden max-w-md text-base leading-relaxed text-white/70 sm:block md:text-lg">
