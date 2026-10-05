@@ -24,8 +24,9 @@ export const SETTING_DEFAULTS = {
   // takes `perSlot` bookings; `closedDates` = "YYYY-MM-DD, …" (Eid etc.). Shop hours: Mon–Sat 11–9, Sun 2–8.
   installmentAppointments: {
     enabled: true,
-    slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00",
-    sundaySlots: "14:00, 15:00, 16:00, 17:00, 18:00, 19:00",
+    // Shop open 10 am – 11 pm every day; last appointments at 9 pm and 10 pm (client request).
+    slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00, 21:00, 22:00",
+    sundaySlots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00, 21:00, 22:00",
     perSlot: 2,
     daysAhead: 14,
     leadHours: 2,

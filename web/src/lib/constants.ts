@@ -1,23 +1,25 @@
 // Allowed values for string "enum" columns (see prisma/schema.prisma header).
 
+/** An env value, unless it's empty or one of the old example placeholders (then the real default is used). */
+const env = (v: string | undefined) => (v && !/0000000|to be confirmed/i.test(v) ? v : undefined);
+
 export const BRAND = {
   name: "PB Mobiles",
   full: "PB Mobiles & Repairing Lab",
-  phone: process.env.NEXT_PUBLIC_STORE_PHONE ?? "+92 300 0000000",
-  whatsapp: process.env.NEXT_PUBLIC_STORE_WHATSAPP ?? "923000000000",
+  phone: env(process.env.NEXT_PUBLIC_STORE_PHONE) ?? "0334 6888696",
+  whatsapp: env(process.env.NEXT_PUBLIC_STORE_WHATSAPP) ?? "923346888696",
   email: process.env.NEXT_PUBLIC_STORE_EMAIL ?? "hello@pbmobiles.pk",
   /** Website printed on the back of the PB Rewards card (client reference artwork). */
   cardWebsite: process.env.NEXT_PUBLIC_CARD_WEBSITE ?? "pbisb.com",
-  address: process.env.NEXT_PUBLIC_STORE_ADDRESS ?? "Shop address to be confirmed, Pakistan",
+  address: env(process.env.NEXT_PUBLIC_STORE_ADDRESS) ?? "PB Mobiles, Shop #30, Ghouri Mobile Mall, Ghouri Town, Islamabad",
   hours: [
-    { days: "Mon – Sat", time: "11:00 am – 9:00 pm" },
-    { days: "Sunday", time: "2:00 pm – 8:00 pm" },
+    { days: "Every day", time: "10:00 am – 11:00 pm" },
   ],
   socials: [
     { label: "Instagram", href: "#" },
     { label: "Facebook", href: "#" },
     { label: "TikTok", href: "#" },
-    { label: "WhatsApp", href: "#" },
+    { label: "WhatsApp", href: "https://wa.me/923346888696" },
   ],
 };
 

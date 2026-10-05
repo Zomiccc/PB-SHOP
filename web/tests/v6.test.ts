@@ -49,8 +49,9 @@ describe("Installment appointments (§7)", () => {
     expect(timeLabel("11:30")).toBe("11:30 am");
   });
   it("uses Sunday hours and closed dates", () => {
-    expect(slotTimes("2026-10-04", rules)[0]).toBe("14:00"); // Sunday
+    expect(slotTimes("2026-10-04", { ...rules, sundaySlots: "14:00, 15:00" })[0]).toBe("14:00"); // Sunday uses its own list
     expect(slotTimes("2026-10-05", rules)[0]).toBe("11:00"); // Monday
+    expect(slotTimes("2026-10-05", rules).slice(-2)).toEqual(["21:00", "22:00"]); // 9 pm and 10 pm (shop open till 11 pm)
     expect(slotTimes("2026-10-05", { ...rules, closedDates: "2026-10-05" })).toEqual([]);
   });
   it("offers dates from today, and hides past / too-soon / full slots", () => {

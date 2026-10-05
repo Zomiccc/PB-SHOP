@@ -328,6 +328,93 @@ async function installRunningModels() {
   return added;
 }
 
+/** Rough swatch colour for a phone colour name ("Midnight Black" → near-black), for the shop's colour dots. */
+function swatch(name: string) {
+  const n = name.toLowerCase();
+  const map: [RegExp, string][] = [
+    [/black|abyss|shadow|torino|night|midnight|space|rock|bass|natural|sapphire black|starlit|bromo|cyber black|nebula/, "#1c1f26"],
+    [/white|glacier|frost|pearl|ice|feather|pop white|aurora white|gilded/, "#eceef1"],
+    [/silver|titanium|grey|gray|meteor|moonstone|polaris|stellar silver|silk glow/, "#b9bec7"],
+    [/gold|champagne|sahara|shimmer|aurellia|twilight gold/, "#d4b46a"],
+    [/rose|pink|blush|melody|coral|peach/, "#e7a7b4"],
+    [/red|blaze|ruby|neon red|rosewood|lava/, "#c8323a"],
+    [/orange|solar|thermo|sunlike|sunset/, "#e8823a"],
+    [/purple|violet|lavender|plum|vibe|fairy|enchanted|stardust|soul eye|crystal violet|dream/, "#8a6fc4"],
+    [/green|mint|lime|forest|jungle|meadow|mirage|jelly|tundra|aqua green|silk green|lumina/, "#4f9a72"],
+    [/cyan|aqua|teal|misty aqua|sky/, "#4fb3c4"],
+    [/blue|ocean|marine|navy|wave|dive|sapphire|cloudline|iris|eclipse|blaze blue|dawn/, "#3b6fd1"],
+    [/brown|mocha|cappuccino|stone|sandstone|dusk/, "#8a6a4f"],
+    [/yellow|sonic/, "#e2c84a"],
+  ];
+  return map.find(([re]) => re.test(n))?.[1] ?? "#3a3f4a";
+}
+
+const BRAND_NAMES: Record<string, string> = { infinix: "Infinix", itel: "itel", nubia: "nubia", oppo: "OPPO" };
+
+/**
+ * The shop's in-stock phones (the client's running-model lists — the same phones offered on installments) as
+ * shop products: one product per model, one SKU per RAM / storage and colour, retail price from the lists.
+ * The quantity per colour isn't in the lists, so each starts at 3 — staff set the real count in Inventory.
+ * Purchase price is left empty (unknown). Skips models already in the catalogue. Returns how many were added.
+ */
+async function addRunningModelProducts() {
+  const skus = await db.variant.findMany({ select: { sku: true } });
+  let seq = Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
+  const groups = new Map<string, typeof RUNNING_MODELS>();
+  for (const m of RUNNING_MODELS) groups.set(m.name, [...(groups.get(m.name) ?? []), m]);
+  let added = 0;
+  for (const [name, models] of groups) {
+    const brand = BRAND_NAMES[models[0].brand] ?? models[0].brand;
+    if (await db.product.findFirst({ where: { name, brand, type: "PHONE", condition: "NEW" } })) continue;
+    let s = slug(name);
+    if (await db.product.findUnique({ where: { slug: s } })) s = `${s}-new`;
+    const memory = models.map((m) => `${m.ram} / ${m.storage}`);
+    const colours = [...new Set(models.flatMap((m) => m.colors.split(/,\s*/)))];
+    const description = `Brand-new ${name} — ${memory.join(" or ")} — in ${colours.length} colour${colours.length === 1 ? "" : "s"}. Also available on easy installments.`;
+    const product = await db.product.create({
+      data: {
+        slug: s,
+        name,
+        brand,
+        type: "PHONE",
+        condition: "NEW",
+        loyaltyEligible: true,
+        description,
+        specs: JSON.stringify({ "Model number": [...new Set(models.map((m) => m.modelNo))].join(" / "), RAM: [...new Set(models.map((m) => m.ram))].join(" / "), Storage: [...new Set(models.map((m) => m.storage))].join(" / "), Colours: colours.join(", ") }),
+        finishHex: swatch(colours[0] ?? ""),
+        metaTitle: `${name} | PB Mobiles`,
+        metaDescription: description,
+      },
+    });
+    for (const m of models) {
+      for (const color of m.colors.split(/,\s*/)) {
+        const sku = `PB-${String(seq).padStart(4, "0")}`;
+        const variant = await db.variant.create({
+          data: {
+            productId: product.id,
+            sku,
+            barcode: `24${String(100000000 + seq).slice(-10)}`, // internal barcode; replace with the box EAN if wanted
+            storage: m.storage,
+            ram: m.ram,
+            color,
+            colorHex: swatch(color),
+            price: m.price,
+            stockQty: 3,
+            lowStockThreshold: 1,
+            grade: assertVariantGrade("NEW", undefined),
+            warrantyInfo: "Official brand warranty where applicable",
+            returnInfo: "Unopened items returnable within 7 days",
+          },
+        });
+        await db.stockMovement.create({ data: { variantId: variant.id, type: "PURCHASE", qtyChange: 3, qtyAfter: 3, reference: "OPENING", reason: "Opening stock — set the real count in Inventory" } });
+        seq++;
+      }
+    }
+    added++;
+  }
+  return added;
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real activity. A database counts as in use
   // once it has staff accounts (not products: the demo catalogue was removed and the shop may have none yet).
@@ -361,6 +448,7 @@ async function main() {
   await db.reward.createMany({ data: REWARDS });
   await db.installmentListing.createMany({ data: INSTALLMENT_LISTINGS });
   await installRunningModels();
+  await addRunningModelProducts();
 
   // Demo catalogue and sample skin designs only for local development (SEED_DEMO=1) — never on the live shop.
   if (process.env.SEED_DEMO === "1") await createProducts(DEMO_PRODUCTS, 1, "20");
@@ -457,6 +545,28 @@ async function upgradeExisting() {
     const added = await installRunningModels();
     await db.setting.create({ data: { key: "migration.runningModelsV1", value: JSON.stringify({ at: new Date().toISOString(), removed: fake.length, added }) } });
     console.log(`Installments: removed ${fake.length} sample / iPhone plan(s), added ${added} running model(s).`);
+  }
+  // Client request (5 Oct 2026): the running models are in stock in the shop — add them to the inventory. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.runningModelProductsV1" } }))) {
+    const added = await addRunningModelProducts();
+    await db.setting.create({ data: { key: "migration.runningModelProductsV1", value: JSON.stringify({ at: new Date().toISOString(), added }) } });
+    console.log(`Inventory: added ${added} in-stock phone model(s).`);
+  }
+  // Client request (5 Oct 2026): the shop is open 10 am – 11 pm every day, so 9 pm and 10 pm appointments are
+  // added to any saved appointment times (weekdays and Sunday). Runs once; staff can still edit the times.
+  if (!(await db.setting.findUnique({ where: { key: "migration.appointments10pm" } }))) {
+    const row = await db.setting.findUnique({ where: { key: "installmentAppointments" } });
+    if (row) {
+      const cfg = JSON.parse(row.value) as { slots?: string; sundaySlots?: string };
+      const add = (list: string | undefined, extra: string[]) => {
+        const times = String(list ?? "").split(/[,\s]+/).filter(Boolean);
+        return [...new Set([...times, ...extra])].sort().join(", ");
+      };
+      const next = { ...cfg, slots: add(cfg.slots, ["21:00", "22:00"]), sundaySlots: add(cfg.sundaySlots, ["20:00", "21:00", "22:00"]) };
+      await db.setting.update({ where: { key: "installmentAppointments" }, data: { value: JSON.stringify(next) } });
+    }
+    await db.setting.create({ data: { key: "migration.appointments10pm", value: JSON.stringify({ at: new Date().toISOString() }) } });
+    console.log("Appointments: 9 pm and 10 pm times added.");
   }
   // Change request V2 §5: customer IDs become PBM-0001, PBM-0002… in joining order. The old random number is
   // kept in legacyNo so cards already printed still scan. Runs once (and only touches non-PBM numbers).

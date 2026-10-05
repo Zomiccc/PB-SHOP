@@ -17,7 +17,8 @@ import { parseTiers } from "@/lib/points-rules";
 import { activeBroadcasts } from "@/lib/broadcasts";
 import { BroadcastShowcase } from "@/components/home/BroadcastShowcase";
 import { db } from "@/lib/db";
-import { EditableHeadline, EditableMedia, T, Zone } from "@/components/site/Editable";
+import { EditableHeadline, EditableMedia, StoreLink, T, Zone } from "@/components/site/Editable";
+import { BRAND } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -277,6 +278,32 @@ export default async function HomePage() {
               </div>
             )}
             <ReviewForm />
+          </div>
+        </div>
+      </section>
+
+      {/* Visit the shop — address, opening hours and contact details (client request) */}
+      <section className="pb-14 md:pb-20">
+        <div className="container-pb">
+          <div className="grid gap-6 rounded-[1.75rem] bg-card p-6 ring-1 ring-gold/30 md:grid-cols-[1.3fr_1fr] md:p-10">
+            <div>
+              <p className="eyebrow text-gold"><T k="home.visit.eyebrow" d="Visit the shop" /></p>
+              <h2 className="display mt-3 text-3xl md:text-5xl"><T k="home.visit.title" d="Come and see us." /></h2>
+              <p className="mt-4 flex items-start gap-3 text-white/85"><Icon name="pin" className="mt-1 h-5 w-5 shrink-0 text-gold" /> <T k="store.address" d={BRAND.address} multiline /></p>
+              <p className="mt-3 flex items-start gap-3 text-white/85"><Icon name="clock" className="mt-1 h-5 w-5 shrink-0 text-gold" /> <span><T k="store.hours" d={BRAND.hours.map((h) => `${h.days} · ${h.time}`).join("\n")} multiline /></span></p>
+              <p className="mt-3 flex items-start gap-3 text-white/85"><Icon name="call" className="mt-1 h-5 w-5 shrink-0 text-gold" /> <T k="store.phone" d={BRAND.phone} /></p>
+            </div>
+            <div className="grid content-center gap-3">
+              <StoreLink type="tel" k="store.phone" d={BRAND.phone} className="btn btn-gold !justify-between">
+                <span className="flex items-center gap-2"><Icon name="call" className="h-4 w-4" /> <T k="home.visit.call" d="Call the shop" /></span> <Icon name="arrow-right" className="h-4 w-4" />
+              </StoreLink>
+              <StoreLink type="wa" k="store.whatsapp" d={BRAND.whatsapp} className="btn !justify-between border border-emerald-500/60 text-white hover:bg-emerald-500/10">
+                <span className="flex items-center gap-2"><Icon name="chat" className="h-4 w-4" /> <T k="home.visit.whatsapp" d="WhatsApp us" /></span> <Icon name="arrow-right" className="h-4 w-4" />
+              </StoreLink>
+              <Link href="/contact" className="btn !justify-between border border-white/20 text-white hover:border-white/50">
+                <span className="flex items-center gap-2"><Icon name="pin" className="h-4 w-4" /> <T k="home.visit.directions" d="Map & directions" /></span> <Icon name="arrow-right" className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>

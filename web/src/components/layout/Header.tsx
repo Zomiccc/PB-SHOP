@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { NAV } from "@/lib/constants";
+import { BRAND, NAV } from "@/lib/constants";
 import { cartCount, useCart } from "@/store/cart";
 import { cn } from "@/lib/format";
 import { Logo } from "./Logo";
 import { Icon } from "../ui/Icon";
-import { T } from "../site/Editable";
+import { StoreLink, T } from "../site/Editable";
 
 /** Content key for a menu item, e.g. "/new-phones" → "nav.new-phones". */
 const navKey = (href: string) => `nav.${href.replace(/^\//, "") || "home"}`;
@@ -77,7 +77,9 @@ export function Header() {
             <Link href="/installments" className="text-gold hover:text-gold-soft"><T k="strip.installments" d="Installments" /></Link>
           </div>
           <div className="flex items-center gap-6">
-            <span><T k="strip.payments" d="Secure JazzCash / wallet / bank payments" /></span>
+            <span className="hidden whitespace-nowrap xl:inline"><T k="strip.hours" d={`Open ${BRAND.hours.map((h) => h.time).join(" / ")}`} /></span>
+            <StoreLink type="tel" k="store.phone" d={BRAND.phone} className="hidden whitespace-nowrap hover:text-white md:inline"><T k="store.phone" d={BRAND.phone} /></StoreLink>
+            <span className="hidden whitespace-nowrap 2xl:inline"><T k="strip.payments" d="Secure JazzCash / wallet / bank payments" /></span>
             <Link href="/loyalty" className="text-gold hover:text-gold-soft"><T k="strip.rewards" d="PB Rewards →" /></Link>
           </div>
         </div>

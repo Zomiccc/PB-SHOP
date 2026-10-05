@@ -65,7 +65,8 @@ function MobileHero({ active, belowCtas }: { active: boolean; belowCtas?: React.
         <div className="absolute -right-[8%] top-0 h-full w-[62%]">{active && <HeroCanvas progress={progress} box autoTurn={!reduced} />}</div>
         <div className="container-pb relative z-10 pb-6 pt-8">
           <div className="max-w-[58%]">
-            <h1 className="display -ml-[0.06em] text-[2.5rem] leading-[0.98]">
+            {/* Headline centred over the paragraph below it (client request). */}
+            <h1 className="display text-center text-[2.5rem] leading-[0.98]">
               <T k="home.hero.title" d={"Buy\nFix\nStyle"} multiline />
             </h1>
             <p className="mt-4 text-[0.95rem] leading-relaxed text-white/75">
@@ -157,7 +158,8 @@ function DesktopHero({ active }: { active: boolean }) {
         <div data-ch="1" className="container-pb pointer-events-none absolute inset-0 flex items-end pb-24 pt-[var(--header-h)] md:items-center md:pb-0">
           <div className="pointer-events-auto max-w-xl">
             <p className="eyebrow text-gold"><T k="home.hero.eyebrow" d="PB Mobiles & Repairing Lab" /></p>
-            <h1 className="display -ml-[0.06em] mt-4 text-[min(2.6rem,6svh)] sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.4rem,12svh)]">
+            {/* Headline centred over the paragraph below it (client request): same width as the paragraph. */}
+            <h1 className="display mt-4 text-[min(2.6rem,6svh)] sm:max-w-md sm:text-center sm:mt-5 sm:text-[min(4.5rem,10svh)] lg:text-[min(6.4rem,12svh)]">
               <T k="home.hero.title" d={"Buy\nFix\nStyle"} multiline />
             </h1>
             <p className="mt-6 hidden max-w-md text-base leading-relaxed text-white/70 sm:block md:text-lg">
