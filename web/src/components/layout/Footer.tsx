@@ -70,14 +70,14 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10">
-        <div className="container-pb flex flex-col gap-4 py-6 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
+        <div className="container-pb flex flex-col gap-4 pb-24 pt-6 text-xs text-white/45 md:flex-row md:items-center md:justify-between md:pb-6">
           <p>© {new Date().getFullYear()} <T k="footer.copyright" d={`${BRAND.full}. All rights reserved.`} /></p>
           <nav aria-label="Legal" className="flex flex-wrap gap-5">
             <Link href="/terms" className="hover:text-white"><T k="footer.terms" d="Terms & Conditions" /></Link>
             <Link href="/privacy" className="hover:text-white"><T k="footer.privacy" d="Privacy Policy" /></Link>
             <Link href="/returns" className="hover:text-white"><T k="footer.returns" d="Returns & Warranty" /></Link>
           </nav>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {BRAND.socials.map((s) => (
               <a key={s.label} href={s.href} aria-label={s.label} className="rounded-full border border-white/15 px-3 py-1.5 text-white/70 transition hover:border-gold hover:text-gold">
                 {s.label}

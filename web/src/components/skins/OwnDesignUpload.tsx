@@ -18,14 +18,15 @@ export function OwnDesignUpload({ onChange, compact = false }: { onChange?: () =
 
   return (
     <div className={cn("rounded-2xl ring-1 ring-gold/30", compact ? "bg-gold/5 p-3" : "bg-gold/10 p-4")}>
-      <div className="flex items-center gap-3">
+      {/* Wraps on narrow screens: the buttons move under the text instead of squeezing it to one word per line. */}
+      <div className="flex flex-wrap items-center gap-3">
         {own ? (
           // eslint-disable-next-line @next/next/no-img-element -- local preview of the customer's own picture (data URL)
           <img src={own.dataUrl} alt="" className="h-14 w-10 shrink-0 rounded-md object-cover ring-1 ring-white/20" />
         ) : (
           <span className="grid h-14 w-10 shrink-0 place-items-center rounded-md border border-dashed border-gold/50 text-gold"><Icon name="upload" className="h-4 w-4" /></span>
         )}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[11rem] flex-1">
           <p className="text-sm font-semibold">{own ? "Your design is ready to preview" : "Have your own design?"}</p>
           <p className="text-xs text-muted">{own ? `${own.name} · only sent to us if you order it` : "Upload a picture from your gallery and see it on any phone."}</p>
         </div>

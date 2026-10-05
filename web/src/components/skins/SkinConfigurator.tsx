@@ -302,17 +302,18 @@ const clampPan = (v: number) => Math.round(Math.min(1, Math.max(-1, v)) * 100) /
 /** "Adjust your picture": move it up / down and left / right, and zoom — it always covers the whole skin. */
 function FitControls({ fit, onChange }: { fit: ImageFit; onChange: (f: ImageFit) => void }) {
   const row = (label: string, value: number, min: number, max: number, set: (v: number) => void, ends: [string, string]) => (
-    <label className="grid grid-cols-[88px_1fr] items-center gap-3 text-xs">
+    // Phones: the label sits above its slider so the row never runs past the screen edge.
+    <label className="grid min-w-0 gap-1.5 text-xs sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center sm:gap-3">
       <span className="font-medium text-white/80">{label}</span>
-      <span className="flex items-center gap-2">
-        <span className="w-9 text-right text-white/45">{ends[0]}</span>
-        <input type="range" min={min} max={max} step={0.01} value={value} onChange={(e) => set(Number(e.target.value))} className="h-1.5 flex-1 cursor-pointer accent-[var(--color-gold)]" aria-label={label} />
-        <span className="w-9 text-white/45">{ends[1]}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="shrink-0 text-white/45">{ends[0]}</span>
+        <input type="range" min={min} max={max} step={0.01} value={value} onChange={(e) => set(Number(e.target.value))} className="h-1.5 min-w-0 flex-1 cursor-pointer accent-[var(--color-gold)]" aria-label={label} />
+        <span className="shrink-0 text-white/45">{ends[1]}</span>
       </span>
     </label>
   );
   return (
-    <div className="space-y-2.5 rounded-2xl bg-black/30 p-3.5 ring-1 ring-white/10">
+    <div className="min-w-0 space-y-2.5 rounded-2xl bg-black/30 p-3.5 ring-1 ring-white/10">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">Adjust your picture</p>
         <button type="button" onClick={() => onChange(DEFAULT_FIT)} className="text-xs text-gold hover:underline">Reset</button>
