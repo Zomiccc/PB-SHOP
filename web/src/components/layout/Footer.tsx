@@ -2,6 +2,8 @@ import Link from "next/link";
 import { BRAND } from "@/lib/constants";
 import { Logo } from "./Logo";
 import { StoreLink, T } from "../site/Editable";
+import { Icon } from "../ui/Icon";
+import { SocialIcon } from "../ui/SocialIcon";
 
 const COLUMNS = [
   {
@@ -47,13 +49,24 @@ export function Footer() {
         <div className="md:col-span-4">
           <Logo variant="stacked" />
           <p className="mt-4 font-semibold"><T k="footer.tagline" d="Phones. Repairs. Sorted." /></p>
-          <address className="mt-4 space-y-1 text-sm not-italic text-white/60">
-            <p><T k="store.address" d={BRAND.address} multiline /></p>
-            <p>
-              <StoreLink type="tel" k="store.phone" d={BRAND.phone} className="hover:text-white"><T k="store.phone" d={BRAND.phone} /></StoreLink> ·{" "}
-              <StoreLink type="mailto" k="store.email" d={BRAND.email} className="hover:text-white"><T k="store.email" d={BRAND.email} /></StoreLink>
+          {/* One detail per line, each with its icon (client request). */}
+          <address className="mt-5 space-y-3 text-sm not-italic text-white/70">
+            <p className="flex items-start gap-3">
+              <Icon name="pin" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <span><T k="store.address" d={BRAND.address} multiline /></span>
             </p>
-            <p><T k="store.hours" d={BRAND.hours.map((h) => `${h.days} · ${h.time}`).join("\n")} multiline /></p>
+            <p className="flex items-center gap-3">
+              <Icon name="call" className="h-4 w-4 shrink-0 text-gold" />
+              <StoreLink type="tel" k="store.phone" d={BRAND.phone} className="hover:text-white"><T k="store.phone" d={BRAND.phone} /></StoreLink>
+            </p>
+            <p className="flex items-center gap-3">
+              <Icon name="mail" className="h-4 w-4 shrink-0 text-gold" />
+              <StoreLink type="mailto" k="store.email" d={BRAND.email} className="break-all hover:text-white"><T k="store.email" d={BRAND.email} /></StoreLink>
+            </p>
+            <p className="flex items-start gap-3">
+              <Icon name="clock" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <span><T k="store.hours" d={BRAND.hours.map((h) => `${h.days} · ${h.time}`).join("\n")} multiline /></span>
+            </p>
           </address>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 md:col-span-8">
@@ -79,8 +92,8 @@ export function Footer() {
           </nav>
           <div className="flex flex-wrap gap-2">
             {BRAND.socials.map((s) => (
-              <a key={s.label} href={s.href} aria-label={s.label} className="rounded-full border border-white/15 px-3 py-1.5 text-white/70 transition hover:border-gold hover:text-gold">
-                {s.label}
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`PB Mobiles on ${s.label}`} title={s.label} className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white/80 transition hover:border-gold hover:text-gold">
+                <SocialIcon name={s.label} className="h-[18px] w-[18px]" />
               </a>
             ))}
           </div>

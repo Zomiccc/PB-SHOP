@@ -16,11 +16,11 @@ export const BRAND = {
     { days: "Every day", time: "10:00 am – 11:00 pm" },
   ],
   socials: [
-    { label: "Instagram", href: "#" },
-    { label: "Facebook", href: "#" },
-    { label: "TikTok", href: "#" },
+    { label: "Instagram", href: "https://instagram.com/pbmobiles.pk" },
+    { label: "Facebook", href: "https://facebook.com/pbmobiles.pk" },
+    { label: "TikTok", href: "https://www.tiktok.com/@pbmobiles.pk" },
     { label: "WhatsApp", href: "https://wa.me/923346888696" },
-  ],
+  ] as { label: "Instagram" | "Facebook" | "TikTok" | "WhatsApp"; href: string }[],
 };
 
 export const NAV = [
