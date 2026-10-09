@@ -10,6 +10,7 @@ export const metadata = { title: "Orders" };
 const VIEWS: Record<string, { label: string; where: Prisma.OrderWhereInput }> = {
   all: { label: "All", where: {} },
   open: { label: "To fulfil", where: { fulfilmentStatus: { in: ["NEW", "PROCESSING", "READY", "SHIPPED"] } } },
+  review: { label: "Receipt to check", where: { paymentStatus: "UNDER_REVIEW" } },
   pending: { label: "Payment pending", where: { paymentStatus: "PENDING" } },
   paid: { label: "Paid", where: { paymentStatus: "PAID" } },
   failed: { label: "Failed", where: { paymentStatus: "FAILED" } },

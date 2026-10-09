@@ -39,6 +39,7 @@ export const NAV = [
 export const ACCESSORY_TYPES = {
   CASE: "Cases",
   CHARGER: "Chargers",
+  CAR_CHARGER: "Car chargers",
   CABLE: "Cables",
   SCREEN_PROTECTOR: "Screen protectors",
   POWER_BANK: "Power banks",

@@ -110,9 +110,16 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
         <div className="space-y-6">
           <Panel title="Status">
             <div className="mb-4 flex flex-wrap gap-2">
-              <Badge tone={statusTone(o.paymentStatus)}>Payment: {o.paymentStatus}</Badge>
+              <Badge tone={statusTone(o.paymentStatus)}>Payment: {o.paymentStatus.replace("_", " ")}</Badge>
               <Badge tone={statusTone(o.fulfilmentStatus)}>Fulfilment: {o.fulfilmentStatus.replace("_", " ")}</Badge>
             </div>
+            {o.paymentStatus === "UNDER_REVIEW" && (
+              <div className="mb-4 rounded-xl bg-gold/10 p-3 text-sm">
+                <p className="font-semibold">The customer uploaded a payment receipt.</p>
+                <p className="mt-1 text-muted">Check it and confirm or reject it in the Payments inbox.</p>
+                <Link href="/admin/inbox?tab=payments" className="btn btn-gold mt-3 !py-2 !text-sm">Review the receipt</Link>
+              </div>
+            )}
             {!closed && (
               <ActionForm action={setFulfilmentAction} className="flex gap-2">
                 <input type="hidden" name="orderId" value={o.id} />

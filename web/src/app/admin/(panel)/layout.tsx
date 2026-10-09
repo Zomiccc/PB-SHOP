@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaffPage();
-  const [variants, newRepairs, inbox, onHold, reviews, chatRows, pendingSales, newAppointments] = await Promise.all([
+  const [variants, newRepairs, contactNew, onHold, reviews, chatRows, pendingSales, newAppointments, paymentsWaiting] = await Promise.all([
     db.variant.findMany({ where: { active: true, product: { active: true } }, select: { stockQty: true, lowStockThreshold: true } }),
     db.repairRequest.count({ where: { status: "NEW" } }),
     db.contactMessage.count({ where: { status: "NEW" } }),
@@ -18,8 +18,11 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     db.chatConversation.findMany({ where: { messages: { some: { from: "VISITOR" } } }, select: { staffReadAt: true, messages: { where: { from: "VISITOR" }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } } }, take: 200, orderBy: { updatedAt: "desc" } }),
     db.installmentSale.count({ where: { status: "PENDING" } }),
     db.installmentRequest.count({ where: { status: "NEW" } }),
+    db.order.count({ where: { paymentStatus: "UNDER_REVIEW" } }),
   ]);
   const installments = pendingSales + newAppointments;
+  // Payment receipts waiting for staff count towards the Inbox badge (Admin → Inbox → Payments).
+  const inbox = contactNew + paymentsWaiting;
   const chats = chatRows.filter((c) => c.messages[0] && (!c.staffReadAt || c.messages[0].createdAt > c.staffReadAt)).length;
   const lowStock = variants.filter((v) => v.stockQty <= v.lowStockThreshold).length;
 

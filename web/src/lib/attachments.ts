@@ -20,7 +20,7 @@ export const MAX_FILES_PER_FORM = 6;
 
 export class AttachmentError extends Error {}
 
-export type AttachmentKind = "CNIC_FRONT" | "CNIC_BACK" | "OTHER" | "PHOTO" | "CHAT_FILE" | "VOICE_NOTE";
+export type AttachmentKind = "CNIC_FRONT" | "CNIC_BACK" | "OTHER" | "PHOTO" | "CHAT_FILE" | "VOICE_NOTE" | "PAYMENT_PROOF";
 
 const SIGNATURES: { mime: string; ext: string; test: (b: Buffer) => boolean }[] = [
   { mime: "image/jpeg", ext: "jpg", test: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
@@ -56,6 +56,8 @@ const ALLOWED: Record<AttachmentKind, string[]> = {
   OTHER: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/gif", "application/pdf", OFFICE.docx, OFFICE.xlsx],
   CHAT_FILE: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/gif", "application/pdf", OFFICE.docx, OFFICE.xlsx],
   VOICE_NOTE: ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"],
+  // A screenshot or PDF of the customer's Easypaisa / JazzCash / bank transfer receipt.
+  PAYMENT_PROOF: ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"],
 };
 
 /** Detects the real file type from its first bytes. Returns null for anything unrecognised. */
@@ -70,7 +72,7 @@ export function sniffType(bytes: Buffer, fileName = "") {
 }
 
 export function allowedLabel(kind: AttachmentKind) {
-  return kind === "VOICE_NOTE" ? "an audio recording" : kind === "PHOTO" ? "a JPG, PNG, WebP or HEIC photo" : kind.startsWith("CNIC") ? "a photo or PDF of the ID card" : "a photo, PDF, Word or Excel file";
+  return kind === "VOICE_NOTE" ? "an audio recording" : kind === "PHOTO" ? "a JPG, PNG, WebP or HEIC photo" : kind.startsWith("CNIC") ? "a photo or PDF of the ID card" : kind === "PAYMENT_PROOF" ? "a screenshot or PDF of your payment receipt" : "a photo, PDF, Word or Excel file";
 }
 
 export type AttachmentLinks = {

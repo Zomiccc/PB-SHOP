@@ -6,6 +6,7 @@ import { Badge, FilterLink, PageTitle, Panel, dt, statusTone } from "@/component
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { Attachments } from "@/components/admin/Attachments";
 import { StaffChat } from "@/components/admin/StaffChat";
+import { PaymentReviews } from "@/components/admin/PaymentReviews";
 import { contactStatusAction } from "../../_actions/operations";
 
 export const metadata = { title: "Inbox & chat" };
@@ -13,7 +14,8 @@ export const metadata = { title: "Inbox & chat" };
 export default async function InboxPage(props: PageProps<"/admin/inbox">) {
   const me = await requireStaffPage();
   const sp = await props.searchParams;
-  const tab = sp.tab === "chat" ? "chat" : "contact";
+  const tab = sp.tab === "chat" ? "chat" : sp.tab === "payments" ? "payments" : "contact";
+  const paymentsWaiting = await db.order.count({ where: { paymentStatus: "UNDER_REVIEW" } });
   const [messages, chats] = await Promise.all([
     db.contactMessage.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { attachments: { include: { uploadedBy: true } } } }),
     db.chatConversation.findMany({
@@ -37,13 +39,16 @@ export default async function InboxPage(props: PageProps<"/admin/inbox">) {
 
   return (
     <>
-      <PageTitle title="Inbox & chat" sub="Contact-form messages and website chat. Reply with text, photos, documents or voice notes." />
+      <PageTitle title="Inbox & chat" sub="Payment receipts to confirm, contact-form messages and website chat." />
       <div className="mb-4 flex gap-2">
+        <FilterLink href="/admin/inbox?tab=payments" active={tab === "payments"}>Payments ({paymentsWaiting} to review)</FilterLink>
         <FilterLink href="/admin/inbox" active={tab === "contact"}>Contact form ({messages.filter((m) => m.status === "NEW").length} new)</FilterLink>
         <FilterLink href="/admin/inbox?tab=chat" active={tab === "chat"}>Website chat ({unreadIds.size} unread)</FilterLink>
       </div>
 
-      {tab === "contact" ? (
+      {tab === "payments" ? (
+        <PaymentReviews />
+      ) : tab === "contact" ? (
         <div className="space-y-3">
           {messages.length === 0 && <Panel><p className="text-sm text-muted">No messages yet.</p></Panel>}
           {messages.map((m) => (

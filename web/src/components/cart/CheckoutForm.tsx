@@ -6,7 +6,7 @@ import { phoneTierPoints, spendPoints, type PointsRules } from "@/lib/points-rul
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cartSubtotal, lineKey, useCart } from "@/store/cart";
 import { CartThumb } from "./CartThumb";
-import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/constants";
+import { MANUAL_METHODS, PAYMENT_ACCOUNTS, type ManualMethod } from "@/lib/payment-accounts";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
@@ -29,7 +29,7 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
     () => false,
   );
   const [fulfilment, setFulfilment] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
-  const [method, setMethod] = useState<PaymentMethod>("MOBILE_WALLET");
+  const [method, setMethod] = useState<ManualMethod>("EASYPAISA");
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -167,8 +167,9 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
           </Panel>
 
           <Panel n="03" title="Payment">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((m) => (
+            {/* Manual payment (client request): pay our account, then upload the receipt on the next page. */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              {MANUAL_METHODS.map((m) => (
                 <button
                   type="button"
                   key={m}
@@ -180,15 +181,15 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
                     {method === m && <span className="h-2 w-2 rounded-full bg-card" />}
                   </span>
                   <span>
-                    <span className="block font-semibold">{PAYMENT_METHODS[m].label}</span>
-                    <span className="text-xs text-muted">{PAYMENT_METHODS[m].hint}</span>
+                    <span className="block font-semibold">{PAYMENT_ACCOUNTS[m].label}</span>
+                    <span className="text-xs text-muted">{PAYMENT_ACCOUNTS[m].short}</span>
                   </span>
                 </button>
               ))}
             </div>
             <p className="mt-4 flex items-center gap-2 text-xs text-muted">
               <Icon name="shield" className="h-4 w-4 text-emerald-600" />
-              {method === "COD" ? "Pay in cash when your order arrives or at collection." : "You'll complete payment on the gateway's secure page. PB Mobiles never sees or stores your card or bank details."}
+              Next you&apos;ll see our {PAYMENT_ACCOUNTS[method].label} details{PAYMENT_ACCOUNTS[method].qr ? " and QR code" : ""}. Send the exact total, then upload your payment receipt — we confirm your order once we&apos;ve checked it.
             </p>
           </Panel>
         </div>
@@ -230,7 +231,7 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
               </span>
             </label>
             <button disabled={busy} className="btn btn-red mt-5 w-full !py-4 disabled:opacity-60">
-              {busy ? "Processing…" : method === "COD" ? `Place order · ${pkr(total)}` : `Pay securely · ${pkr(total)}`}
+              {busy ? "Processing…" : `Place order · ${pkr(total)}`}
             </button>
           </div>
         </aside>

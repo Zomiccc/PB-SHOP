@@ -42,8 +42,8 @@ export function Badge({ tone = "gray", children }: { tone?: keyof typeof TONES |
 
 export function statusTone(s: string) {
   if (["PAID", "SUCCESS", "COMPLETED", "READY", "APPROVED", "ACTIVE", "RECEIVED"].includes(s)) return "green";
-  if (["FAILED", "CANCELLED", "RETURNED", "EXHAUSTED", "VOID", "LOGIN_FAILED"].includes(s)) return "red";
-  if (["PENDING", "AWAITING", "ON_HOLD", "NEEDS_REVIEW", "PROCESSING", "DIAGNOSING", "REPAIRING"].includes(s)) return "gold";
+  if (["FAILED", "REJECTED", "CANCELLED", "RETURNED", "EXHAUSTED", "VOID", "LOGIN_FAILED"].includes(s)) return "red";
+  if (["PENDING", "UNDER_REVIEW", "SUBMITTED", "AWAITING", "ON_HOLD", "NEEDS_REVIEW", "PROCESSING", "DIAGNOSING", "REPAIRING"].includes(s)) return "gold";
   if (["NEW", "SHIPPED"].includes(s)) return "blue";
   return "gray";
 }

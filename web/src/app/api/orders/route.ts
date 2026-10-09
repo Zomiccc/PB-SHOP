@@ -3,12 +3,11 @@ import { isPkMobile, normalizePhone } from "@/lib/format";
 import { ipFrom, rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { finalizeOrder, nextOrderNumber } from "@/lib/orders";
-import { paymentProvider } from "@/lib/payments";
+import { nextOrderNumber } from "@/lib/orders";
+import { MANUAL_METHODS, PAYMENT_ACCOUNTS } from "@/lib/payment-accounts";
 import { getSetting } from "@/lib/settings";
 import { getCurrentCustomer } from "@/lib/auth";
 import { nextRewardsId } from "@/lib/rewards-id";
-import { StockError } from "@/lib/inventory";
 import { orderToken } from "@/lib/order-token";
 import { notify } from "@/lib/notify";
 import { SkinOrderError, ownImageFile, resolveSkinLine } from "@/lib/skin-orders";
@@ -36,7 +35,7 @@ const Checkout = z
     fulfilment: z.enum(["DELIVERY", "PICKUP"]),
     address: z.string().trim().max(300).optional(),
     city: z.string().trim().max(60).optional(),
-    method: z.enum(["MOBILE_WALLET", "DIRECT_DEBIT", "CARD", "COD"]),
+    method: z.enum(MANUAL_METHODS),
     agree: z.literal(true, { message: "Please accept the terms" }),
   })
   .refine((d) => d.fulfilment === "PICKUP" || (d.address && d.address.length >= 8), { path: ["address"], message: "Enter your delivery address" })
@@ -44,8 +43,8 @@ const Checkout = z
 
 /**
  * Creates a PENDING order from the cart. Prices and stock are always re-read from the database.
- * Online methods hand off to the payment gateway; stock is only committed after server-side
- * payment verification (/api/payments/callback). Cash on delivery commits stock immediately.
+ * Payment is manual (client request): the customer pays our Easypaisa / JazzCash / Faysal Bank account and uploads
+ * the receipt on /checkout/pay. Stock is committed when staff confirm the payment (Admin → Inbox → Payments).
  */
 export async function POST(req: Request) {
   if (!rateLimit(`orders:${ipFrom(req)}`, 10, 600000).ok) return NextResponse.json({ error: "Too many requests — please try again in a few minutes." }, { status: 429 });
@@ -121,7 +120,7 @@ export async function POST(req: Request) {
       },
     });
     await tx.payment.create({
-      data: { orderId: o.id, provider: d.method === "COD" ? "CASH" : paymentProvider().name, method: d.method, amount: total },
+      data: { orderId: o.id, provider: d.method, method: d.method === "FAYSAL" ? "BANK_TRANSFER" : "MOBILE_WALLET", amount: total },
     });
     return o;
   });
@@ -134,29 +133,12 @@ export async function POST(req: Request) {
 
   const token = orderToken(order.number);
 
-  if (d.method === "COD") {
-    try {
-      await finalizeOrder(order.id, { markPaid: false });
-    } catch (e) {
-      if (e instanceof StockError) {
-        await db.order.update({ where: { id: order.id }, data: { paymentStatus: "CANCELLED", fulfilmentStatus: "CANCELLED" } });
-        return NextResponse.json({ error: e.message }, { status: 409 });
-      }
-      throw e;
-    }
-    await notify({ to: { phone, email: d.email || null }, subject: `Order ${order.number} placed`, text: `PB Mobiles: we've received your cash-on-delivery order ${order.number} (Rs ${total}). We'll call to confirm delivery.` });
-    return NextResponse.json({ next: { kind: "redirect", url: `/checkout/result?order=${order.number}&t=${token}` } });
-  }
-
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
-  const start = await paymentProvider().start({
-    orderNumber: order.number,
-    amount: total,
-    method: d.method,
-    customerPhone: phone,
-    customerEmail: d.email,
-    description: `PB Mobiles order ${order.number}`,
-    returnUrl: `${site}/api/payments/callback`,
-  });
-  return NextResponse.json({ next: start });
+  const payUrl = `/checkout/pay?order=${order.number}&t=${token}`;
+  await notify({
+    to: { phone, email: d.email || null },
+    subject: `Order ${order.number} — complete your payment`,
+    text: `PB Mobiles: your order ${order.number} (Rs ${total}) is placed. Pay by ${PAYMENT_ACCOUNTS[d.method].label}, then upload your receipt here: ${site}${payUrl}`,
+  }).catch(() => {});
+  return NextResponse.json({ next: { kind: "redirect", url: payUrl } });
 }

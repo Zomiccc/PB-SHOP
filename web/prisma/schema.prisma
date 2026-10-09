@@ -309,7 +309,7 @@ model Order {
   discount         Int      @default(0)
   shippingFee      Int      @default(0)
   total            Int
-  paymentStatus    String   @default("PENDING") // PENDING | PAID | FAILED | REFUNDED | CANCELLED
+  paymentStatus    String   @default("PENDING") // PENDING | UNDER_REVIEW (receipt uploaded) | PAID | FAILED | REFUNDED | CANCELLED
   fulfilmentStatus String   @default("NEW") // NEW | PROCESSING | READY | SHIPPED | COMPLETED | CANCELLED | RETURNED
   staffId          String? // employee who processed a POS sale
   staff            Staff?   @relation("OrderStaff", fields: [staffId], references: [id])
@@ -348,12 +348,16 @@ model Payment {
   id          String   @id @default(cuid())
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id])
-  provider    String // JAZZCASH | EASYPAISA | PAYFAST | SAFEPAY | CASH | SANDBOX
+  provider    String // EASYPAISA | JAZZCASH | FAYSAL (manual transfer + receipt) | PAYFAST | SAFEPAY | CASH | SANDBOX
   method      String? // MOBILE_WALLET | DIRECT_DEBIT | CARD | OTC | CASH
   providerRef String? // gateway transaction reference
   amount      Int
-  status      String   @default("PENDING") // PENDING | SUCCESS | FAILED
+  status      String   @default("PENDING") // PENDING | SUBMITTED (receipt uploaded) | SUCCESS | REJECTED | FAILED
   rawResponse String? // verified gateway payload for reconciliation
+  submittedAt DateTime? // manual transfer: when the customer uploaded the receipt
+  reviewNote  String? // staff's reason when a receipt is rejected (optional)
+  reviewedById String?
+  reviewedAt  DateTime?
   verifiedAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

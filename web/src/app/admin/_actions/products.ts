@@ -84,7 +84,9 @@ export async function saveProductAction(_: FormState, f: FormData): Promise<Form
 export async function toggleProductActiveAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
-    const p = await db.product.findUniqueOrThrow({ where: { id: str(f, "id") } });
+    const p = await db.product.findUniqueOrThrow({ where: { id: str(f, "id") }, include: { variants: { where: { active: true }, select: { price: true } } } });
+    // Products imported without a price (e.g. the Erorex sheets) wait hidden until every option has a price.
+    if (!p.active && p.variants.some((v) => v.price <= 0)) throw new Error("Set a price for every option first — it's still Rs 0");
     await db.product.update({ where: { id: p.id }, data: { active: !p.active } });
     await audit({ staffId: staff.id, action: p.active ? "PRODUCT_DEACTIVATED" : "PRODUCT_ACTIVATED", entityType: "PRODUCT", entityId: p.id, recordLabel: p.name, before: { active: p.active }, after: { active: !p.active } });
     revalidatePath(`/admin/products/${p.id}`);

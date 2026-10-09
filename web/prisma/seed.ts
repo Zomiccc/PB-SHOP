@@ -14,6 +14,7 @@ import { SETTING_DEFAULTS } from "../src/lib/settings";
 import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
 import { RUNNING_MODELS } from "./running-models";
 import { RONIN_PRODUCTS } from "./ronin-products";
+import { BRAND_ACCESSORIES } from "./brand-accessories";
 import { INSTALLMENT_BRANDS } from "../src/lib/brands";
 
 const db = new PrismaClient();
@@ -469,6 +470,70 @@ async function addRoninProducts() {
   return added;
 }
 
+/**
+ * Erorex + Audionic accessories (prisma/brand-accessories.ts) with their official photos. One SKU per colour.
+ * Products without a price in the sheet (Erorex) are added hidden with price 0 — staff set the price, then make
+ * them live (a product can't go live while a price is 0). Stock starts at 3. Skips ones already added.
+ */
+async function addBrandAccessories() {
+  const skus = await db.variant.findMany({ select: { sku: true } });
+  let seq = Math.max(0, ...skus.map((v) => Number(v.sku.match(/^PB-(\d+)$/)?.[1] ?? 0))) + 1;
+  let added = 0;
+  for (const a of BRAND_ACCESSORIES) {
+    if (await db.product.findFirst({ where: { name: a.name, brand: a.brand, type: "ACCESSORY" } })) continue;
+    let s = slug(a.name);
+    if (await db.product.findUnique({ where: { slug: s } })) s = `${s}-${slug(a.model ?? String(seq))}`;
+    const priced = a.price != null && a.price > 0;
+    const product = await db.product.create({
+      data: {
+        slug: s,
+        name: a.name,
+        brand: a.brand,
+        type: "ACCESSORY",
+        condition: "NEW",
+        accessoryType: a.accessoryType,
+        loyaltyEligible: true,
+        active: priced, // unpriced products wait, hidden, until staff enter a price
+        description: a.description,
+        specs: JSON.stringify({
+          ...(a.tagline ? { Highlights: a.tagline } : {}),
+          ...(a.model ? { Model: a.model } : {}),
+          ...(a.color ? { Colour: a.color } : {}),
+          ...(a.keySpecs ? { "Key specs": a.keySpecs } : {}),
+          Warranty: a.warranty ?? "Ask in store",
+        }),
+        images: JSON.stringify(a.images),
+        finishHex: a.colorHex,
+        metaTitle: `${a.name} | PB Mobiles`,
+        metaDescription: a.description.slice(0, 155),
+      },
+    });
+    for (const c of a.colors.length ? a.colors : [{ name: a.color ?? "", hex: a.colorHex }]) {
+      const variant = await db.variant.create({
+        data: {
+          productId: product.id,
+          sku: `PB-${String(seq).padStart(4, "0")}`,
+          barcode: `26${String(100000000 + seq).slice(-10)}`,
+          color: c.name || null,
+          colorHex: c.hex,
+          partNumber: a.model,
+          price: a.price ?? 0,
+          salePrice: a.salePrice,
+          stockQty: 3,
+          lowStockThreshold: 1,
+          grade: assertVariantGrade("NEW", undefined),
+          warrantyInfo: a.warranty ? `${a.warranty} warranty` : "7-day replacement for manufacturing faults",
+          returnInfo: "Unopened items returnable within 7 days",
+        },
+      });
+      await db.stockMovement.create({ data: { variantId: variant.id, type: "PURCHASE", qtyChange: 3, qtyAfter: 3, reference: "OPENING", reason: "Opening stock — set the real count in Inventory" } });
+      seq++;
+    }
+    added++;
+  }
+  return added;
+}
+
 async function main() {
   // Deploy builds pass SEED_ONLY_IF_EMPTY=1 so redeploys never wipe real activity. A database counts as in use
   // once it has staff accounts (not products: the demo catalogue was removed and the shop may have none yet).
@@ -504,6 +569,7 @@ async function main() {
   await installRunningModels();
   await addRunningModelProducts();
   await addRoninProducts();
+  await addBrandAccessories();
 
   // Demo catalogue and sample skin designs only for local development (SEED_DEMO=1) — never on the live shop.
   if (process.env.SEED_DEMO === "1") await createProducts(DEMO_PRODUCTS, 1, "20");
@@ -600,6 +666,12 @@ async function upgradeExisting() {
     const added = await installRunningModels();
     await db.setting.create({ data: { key: "migration.runningModelsV1", value: JSON.stringify({ at: new Date().toISOString(), removed: fake.length, added }) } });
     console.log(`Installments: removed ${fake.length} sample / iPhone plan(s), added ${added} running model(s).`);
+  }
+  // Client request (9 Oct 2026): Erorex + Audionic accessories. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.brandAccessoriesV1" } }))) {
+    const added = await addBrandAccessories();
+    await db.setting.create({ data: { key: "migration.brandAccessoriesV1", value: JSON.stringify({ at: new Date().toISOString(), added }) } });
+    console.log(`Inventory: added ${added} Erorex / Audionic accessor${added === 1 ? "y" : "ies"} (Erorex hidden until priced).`);
   }
   // Client request (6 Oct 2026): Ronin accessories ready to sell — add them to the inventory with photos. Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.roninProductsV1" } }))) {
