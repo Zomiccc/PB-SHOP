@@ -30,7 +30,7 @@ export const RONIN_PRODUCTS: RoninProduct[] = [
     price: 7395,
     warranty: "1 year official brand warranty",
     description:
-      "Lucid combines futuristic transparent glass aesthetics with powerful everyday performance, delivering rich stereo sound through dynamic 10mm drivers and the latest Bluetooth V5.4 connectivity for a fast, stable, and seamless listening experience on both Android and iOS devices. Designed for modern lifestyles, it features Quad-Mic ENC technology for clearer calls, dual device connectivity for effortless switching, and intuitive touch controls for music, calls, and voice assistants like Siri and Google Assistant. With up to 5 hours of playtime, Type-C fast charging, IPX4 water resistance, and support for the Ronin Studio App, Lucid is built to offer style, comfort, and smart functionality in one premium wireless audio experience backed by a 1-year official brand warranty.",
+      "Lucid combines futuristic transparent glass aesthetics with powerful everyday performance, delivering rich stereo sound through dynamic 10mm drivers and the latest Bluetooth V5.4 connectivity for a fast, stable, and seamless listening experience on both Android and iOS devices. Designed for modern lifestyles, it features Quad-Mic ENC technology for clearer calls, dual device connectivity for effortless switching, and intuitive touch controls for music, calls, and voice assistants like Siri and Google Assistant. With up to 5 hours of playtime, Type-C fast charging, IPX4 water resistance, and support for the Ronin Studio App, Lucid is built to offer style, comfort, and smart functionality in one premium wireless audio experience.",
     images: photos("lucid-earbuds", 2),
   },
   {
@@ -145,7 +145,7 @@ export const RONIN_PRODUCTS: RoninProduct[] = [
     // The file lists Rs 9,995 regular and Rs 10,995 "sale" (higher) — listed at the regular Rs 9,995 until confirmed.
     price: 9995,
     warranty: "1 year warranty",
-    description: "The Ronin R-014 LUXE is a metal smart watch in gold with a stainless steel link strap, backed by a 1-year warranty.",
+    description: "The Ronin R-014 LUXE is a metal smart watch in gold with a stainless steel link strap.",
     images: photos("r014-luxe-watch", 6),
   },
 ];

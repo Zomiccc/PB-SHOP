@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { normalizePhone } from "@/lib/format";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { USED_WARRANTY } from "@/lib/constants";
 import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
 import { nextRewardsId } from "@/lib/rewards-id";
@@ -175,7 +176,7 @@ export async function createUsedPurchaseAction(_: FormState, f: FormData): Promi
         }
         const codes = await suggestCodes(tx);
         const v = await tx.variant.create({
-          data: { productId: product.id, sku: codes.sku, barcode: codes.barcode, imei, storage: purchase.storage, color: purchase.color, grade, batteryHealth: purchase.batteryHealth, price: salePrice!, costPrice: agreedPrice, stockQty: 0, lowStockThreshold: 0, warrantyInfo: "30-day PB Lab hardware warranty" },
+          data: { productId: product.id, sku: codes.sku, barcode: codes.barcode, imei, storage: purchase.storage, color: purchase.color, grade, batteryHealth: purchase.batteryHealth, price: salePrice!, costPrice: agreedPrice, stockQty: 0, lowStockThreshold: 0, warrantyInfo: USED_WARRANTY },
         });
         await receiveStock(tx, { variantId: v.id, qty: 1, unitCost: agreedPrice, staffId: staff.id, reference: purchase.ref, notes: "Bought from seller" });
         await tx.usedPhonePurchase.update({ where: { id: purchase.id }, data: { variantId: v.id } });

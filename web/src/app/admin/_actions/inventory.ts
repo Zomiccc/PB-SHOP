@@ -10,7 +10,7 @@ import { assertVariantGrade } from "@/lib/grade";
 import { assertImeiFree, receiveStock } from "@/lib/inventory";
 import { saveUpload, StorageUnavailableError } from "@/lib/storage";
 import { slugify } from "@/lib/format";
-import { ACCESSORY_TYPES, PART_TYPES } from "@/lib/constants";
+import { ACCESSORY_TYPES, ACCESSORY_WARRANTY, PART_TYPES, USED_WARRANTY } from "@/lib/constants";
 import type { FormState } from "./auth";
 import { int, optStr, run, str } from "./util";
 
@@ -115,7 +115,7 @@ export async function createItemAction(_: FormState, f: FormData): Promise<FormS
           batteryHealth: device ? int(f, "batteryHealth") : null,
           conditionNotes: optStr(f, "notes"),
           lowStockThreshold: condition === "USED" ? 0 : int(f, "lowStockThreshold") ?? (category === "PART" || category === "ACCESSORY" ? 3 : 2),
-          warrantyInfo: condition === "USED" ? "30-day PB Lab hardware warranty" : null,
+          warrantyInfo: condition === "USED" ? USED_WARRANTY : category === "ACCESSORY" ? ACCESSORY_WARRANTY : null,
           stockQty: 0,
         },
       });

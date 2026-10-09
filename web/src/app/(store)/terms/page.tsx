@@ -62,7 +62,7 @@ export default function TermsPage() {
       <h2 id="warranty"><T k="legal.terms.22" d={"7. Warranties"} multiline /></h2>
       <ul>
         <li><T k="legal.terms.23" d={"New phones carry the manufacturer's warranty where applicable."} multiline /></li>
-        <li><T k="legal.terms.24" d={"Used phones carry a 30-day PB Lab hardware warranty unless otherwise stated."} multiline /></li>
+        <li><T k="legal.terms.24" d={"Used phones carry a 3-day PB Lab warranty and accessories a 7-day warranty, unless otherwise stated."} multiline /></li>
         <li><T k="legal.terms.25" d={"Repairs carry a warranty on the replaced part and workmanship for the period stated on your invoice."} multiline /></li>
         <li><T k="legal.terms.26" d={"Warranties do not cover accidental damage, liquid damage, misuse, or repairs by third parties after our service."} multiline /></li>
       </ul>

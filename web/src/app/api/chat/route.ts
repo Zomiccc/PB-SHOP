@@ -40,7 +40,7 @@ async function answer(raw: string): Promise<Reply> {
     return { reply: "You can pay online by mobile wallet, bank account or card through our secure Pakistani payment gateway, or choose cash on delivery where available. We never store your card or bank details." };
   }
   if (/used|second|pre-?owned|grade/.test(m)) {
-    return { reply: "Every used phone is tested by our lab, graded A+ to C, and listed with battery health and notes, plus a 30-day PB Lab warranty.", links: [{ label: "Used phones", href: "/used-phones" }] };
+    return { reply: "Every used phone is tested by our lab, graded A+ to C, and listed with battery health and notes, plus a 3-day PB Lab warranty.", links: [{ label: "Used phones", href: "/used-phones" }] };
   }
   if (/passport|loyal|point|reward/.test(m)) {
     return { reply: "PB Rewards gives you 1 point per Rs 100 on repairs and accessories and 50–200 points per phone (by price), plus 25 welcome points with your first purchase. Redeem 50 points for a free screen protector, 100 for a free custom 3D mobile skin or 200 for free AirPods. Points last six months from the date earned.", links: [{ label: "PB Rewards", href: "/loyalty" }] };

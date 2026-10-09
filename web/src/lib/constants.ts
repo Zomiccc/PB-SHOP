@@ -36,6 +36,10 @@ export const NAV = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
+/** Shop warranty (client request, 10 Oct 2026): used phones 3 days, accessories 7 days. */
+export const USED_WARRANTY = "3-day PB Lab warranty";
+export const ACCESSORY_WARRANTY = "7-day warranty";
+
 export const ACCESSORY_TYPES = {
   CASE: "Cases",
   CHARGER: "Chargers",

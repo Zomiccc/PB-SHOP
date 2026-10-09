@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { pkr, parseJson } from "@/lib/format";
 import { suggestCodes } from "@/lib/barcode";
 import { requireStaffPage } from "@/lib/staff";
-import { USED_GRADES } from "@/lib/constants";
+import { ACCESSORY_WARRANTY, USED_GRADES, USED_WARRANTY } from "@/lib/constants";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { ProductForm } from "@/components/admin/ProductForm";
@@ -62,7 +62,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
                     {!v.active && <Badge>inactive</Badge>}
                   </summary>
                   <div className="space-y-5 border-t border-ink/10 p-4">
-                    <VariantForm productId={product.id} v={v} isSuper={staff.role === "SUPER_ADMIN"} used={product.condition === "USED"} />
+                    <VariantForm productId={product.id} v={v} isSuper={staff.role === "SUPER_ADMIN"} used={product.condition === "USED"} accessory={product.type === "ACCESSORY"} />
                     <ActionForm action={adjustStockAction} resetOnSuccess className="rounded-xl bg-card p-4">
                       <p className="mb-3 text-sm font-semibold">Adjust stock</p>
                       <input type="hidden" name="variantId" value={v.id} />
@@ -93,7 +93,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
               <details className="rounded-xl border-2 border-dashed border-ink/15" open={product.variants.length === 0}>
                 <summary className="cursor-pointer p-3 text-sm font-semibold text-blue">+ Add variant</summary>
                 <div className="border-t border-ink/10 p-4">
-                  <VariantForm productId={product.id} suggested={codes} isSuper={staff.role === "SUPER_ADMIN"} used={product.condition === "USED"} />
+                  <VariantForm productId={product.id} suggested={codes} isSuper={staff.role === "SUPER_ADMIN"} used={product.condition === "USED"} accessory={product.type === "ACCESSORY"} />
                 </div>
               </details>
             </div>
@@ -213,7 +213,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
   );
 }
 
-function VariantForm({ productId, v, suggested, isSuper, used }: { productId: string; v?: Variant; suggested?: { sku: string; barcode: string }; isSuper: boolean; used: boolean }) {
+function VariantForm({ productId, v, suggested, isSuper, used, accessory = false }: { productId: string; v?: Variant; suggested?: { sku: string; barcode: string }; isSuper: boolean; used: boolean; accessory?: boolean }) {
   return (
     <ActionForm action={saveVariantAction} resetOnSuccess={!v} className="space-y-4">
       <input type="hidden" name="productId" value={productId} />
@@ -246,7 +246,7 @@ function VariantForm({ productId, v, suggested, isSuper, used }: { productId: st
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Warranty info"><input name="warrantyInfo" defaultValue={v?.warrantyInfo ?? (used ? "30-day PB Lab hardware warranty" : "")} className="field" /></Field>
+        <Field label="Warranty info"><input name="warrantyInfo" defaultValue={v?.warrantyInfo ?? (used ? USED_WARRANTY : accessory ? ACCESSORY_WARRANTY : "")} className="field" /></Field>
         <Field label="Return info"><input name="returnInfo" defaultValue={v?.returnInfo ?? ""} className="field" /></Field>
       </div>
       <div className="flex flex-wrap items-center gap-5 text-sm">

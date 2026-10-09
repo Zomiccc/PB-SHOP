@@ -14,6 +14,7 @@ import { SETTING_DEFAULTS } from "../src/lib/settings";
 import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
 import { RUNNING_MODELS } from "./running-models";
 import { RONIN_PRODUCTS } from "./ronin-products";
+import { ACCESSORY_WARRANTY, USED_WARRANTY } from "../src/lib/constants";
 import { BRAND_ACCESSORIES } from "./brand-accessories";
 import { INSTALLMENT_BRANDS } from "../src/lib/brands";
 
@@ -220,7 +221,7 @@ async function createProducts(list: P[], firstSeq: number, barcodePrefix: string
           grade: assertVariantGrade(p.condition ?? "NEW", v.grade), // single grade per SKU (§8)
           batteryHealth: v.battery,
           conditionNotes: v.notes,
-          warrantyInfo: isUsed ? "30-day PB Lab hardware warranty" : p.type === "ACCESSORY" || p.type === "PART" ? "7-day replacement for manufacturing faults" : "Official brand warranty where applicable",
+          warrantyInfo: isUsed ? USED_WARRANTY : p.type === "ACCESSORY" || p.type === "PART" ? ACCESSORY_WARRANTY : "Official brand warranty where applicable",
           returnInfo: isUsed ? "7-day return if the device does not match its listed grade" : "Unopened items returnable within 7 days",
         },
       });
@@ -439,7 +440,7 @@ async function addRoninProducts() {
         accessoryType: r.accessoryType,
         loyaltyEligible: true,
         description: r.description,
-        specs: JSON.stringify({ ...(r.tagline ? { Highlights: r.tagline } : {}), Model: r.model, ...(r.color ? { Colour: r.color } : {}), Warranty: r.warranty ?? "Ask in store" }),
+        specs: JSON.stringify({ ...(r.tagline ? { Highlights: r.tagline } : {}), Model: r.model, ...(r.color ? { Colour: r.color } : {}), Warranty: ACCESSORY_WARRANTY }),
         images: JSON.stringify(r.images),
         finishHex: r.colorHex,
         metaTitle: `${r.name} | PB Mobiles`,
@@ -459,7 +460,7 @@ async function addRoninProducts() {
         stockQty: 3,
         lowStockThreshold: 1,
         grade: assertVariantGrade("NEW", undefined),
-        warrantyInfo: r.warranty ?? "7-day replacement for manufacturing faults",
+        warrantyInfo: ACCESSORY_WARRANTY,
         returnInfo: "Unopened items returnable within 7 days",
       },
     });
@@ -500,7 +501,7 @@ async function addBrandAccessories() {
           ...(a.model ? { Model: a.model } : {}),
           ...(a.color ? { Colour: a.color } : {}),
           ...(a.keySpecs ? { "Key specs": a.keySpecs } : {}),
-          Warranty: a.warranty ?? "Ask in store",
+          Warranty: ACCESSORY_WARRANTY,
         }),
         images: JSON.stringify(a.images),
         finishHex: a.colorHex,
@@ -522,7 +523,7 @@ async function addBrandAccessories() {
           stockQty: 3,
           lowStockThreshold: 1,
           grade: assertVariantGrade("NEW", undefined),
-          warrantyInfo: a.warranty ? `${a.warranty} warranty` : "7-day replacement for manufacturing faults",
+          warrantyInfo: ACCESSORY_WARRANTY,
           returnInfo: "Unopened items returnable within 7 days",
         },
       });
@@ -666,6 +667,42 @@ async function upgradeExisting() {
     const added = await installRunningModels();
     await db.setting.create({ data: { key: "migration.runningModelsV1", value: JSON.stringify({ at: new Date().toISOString(), removed: fake.length, added }) } });
     console.log(`Installments: removed ${fake.length} sample / iPhone plan(s), added ${added} running model(s).`);
+  }
+  // Client request (10 Oct 2026): prices for the Erorex power banks + neckbands (added hidden without a price) and
+  // 8 new Erorex wall chargers. A price is only filled in where it's still 0 (a price staff set is kept); products
+  // whose every option now has a price go live. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.erorexPricesV1" } }))) {
+    let priced = 0;
+    for (const a of BRAND_ACCESSORIES) {
+      if (!a.price) continue;
+      const p = await db.product.findFirst({ where: { name: a.name, brand: a.brand, type: "ACCESSORY" }, include: { variants: true } });
+      if (!p) continue;
+      const zero = p.variants.filter((v) => v.price <= 0);
+      if (zero.length) await db.variant.updateMany({ where: { id: { in: zero.map((v) => v.id) } }, data: { price: a.price, salePrice: a.salePrice } });
+      if (!p.active && p.variants.every((v) => v.price > 0 || zero.some((z) => z.id === v.id))) await db.product.update({ where: { id: p.id }, data: { active: true } });
+      if (zero.length) priced++;
+    }
+    const added = await addBrandAccessories();
+    await db.setting.create({ data: { key: "migration.erorexPricesV1", value: JSON.stringify({ at: new Date().toISOString(), priced, added }) } });
+    console.log(`Inventory: priced ${priced} Erorex product(s) and added ${added} new one(s).`);
+  }
+  // Client request (10 Oct 2026): warranty is 3 days on used phones and 7 days on accessories — every existing SKU
+  // and accessory spec sheet is updated (the brand "1 year" claims removed). Runs once; staff can still edit it.
+  if (!(await db.setting.findUnique({ where: { key: "migration.warrantyV2" } }))) {
+    const used = await db.variant.updateMany({ where: { product: { condition: "USED", type: { in: ["PHONE", "TABLET"] } } }, data: { warrantyInfo: USED_WARRANTY } });
+    const acc = await db.variant.updateMany({ where: { product: { type: "ACCESSORY" } }, data: { warrantyInfo: ACCESSORY_WARRANTY } });
+    for (const p of await db.product.findMany({ where: { type: "ACCESSORY" }, select: { id: true, specs: true, description: true } })) {
+      let specs: Record<string, string> = {};
+      try {
+        specs = JSON.parse(p.specs || "{}");
+      } catch {}
+      const description = p.description
+        .replace(" in one premium wireless audio experience backed by a 1-year official brand warranty.", " in one premium wireless audio experience.")
+        .replace(" with a stainless steel link strap, backed by a 1-year warranty.", " with a stainless steel link strap.");
+      if ("Warranty" in specs || description !== p.description) await db.product.update({ where: { id: p.id }, data: { specs: JSON.stringify({ ...specs, ...("Warranty" in specs ? { Warranty: ACCESSORY_WARRANTY } : {}) }), description } });
+    }
+    await db.setting.create({ data: { key: "migration.warrantyV2", value: JSON.stringify({ at: new Date().toISOString(), used: used.count, accessories: acc.count }) } });
+    console.log(`Warranty: ${used.count} used-phone SKU(s) → 3 days, ${acc.count} accessory SKU(s) → 7 days.`);
   }
   // Client request (9 Oct 2026): Erorex + Audionic accessories. Runs once.
   if (!(await db.setting.findUnique({ where: { key: "migration.brandAccessoriesV1" } }))) {
