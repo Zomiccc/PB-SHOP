@@ -13,6 +13,7 @@ import { quote, type FinancingConfig } from "../src/lib/finance";
 import { SETTING_DEFAULTS } from "../src/lib/settings";
 import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
 import { RUNNING_MODELS } from "./running-models";
+import { PHONE_PHOTOS, photosFor } from "./phone-photos";
 import { RONIN_PRODUCTS } from "./ronin-products";
 import { ACCESSORY_WARRANTY, USED_WARRANTY } from "../src/lib/constants";
 import { BRAND_ACCESSORIES } from "./brand-accessories";
@@ -320,7 +321,7 @@ async function installRunningModels() {
   let added = 0;
   for (const [i, m] of RUNNING_MODELS.entries()) {
     const model = `${m.name} · ${m.ram} / ${m.storage}`;
-    const data = { brand: m.brand, model, modelNo: m.modelNo, colors: m.colors, regularPrice: m.price, availability: "AVAILABLE", active: true, sortOrder: 100 + brandRank(m.brand) * 100 + i, ...(await nineMonthPlan({ regularPrice: m.price, downPayment: 0 })) };
+    const data = { brand: m.brand, model, modelNo: m.modelNo, colors: m.colors, imageUrl: PHONE_PHOTOS[m.modelNo]?.[0] ?? null, regularPrice: m.price, availability: "AVAILABLE", active: true, sortOrder: 100 + brandRank(m.brand) * 100 + i, ...(await nineMonthPlan({ regularPrice: m.price, downPayment: 0 })) };
     const existing = await db.installmentListing.findFirst({ where: { model } });
     if (existing) await db.installmentListing.update({ where: { id: existing.id }, data });
     else {
@@ -385,6 +386,7 @@ async function addRunningModelProducts() {
         description,
         specs: JSON.stringify({ "Model number": [...new Set(models.map((m) => m.modelNo))].join(" / "), RAM: [...new Set(models.map((m) => m.ram))].join(" / "), Storage: [...new Set(models.map((m) => m.storage))].join(" / "), Colours: colours.join(", ") }),
         finishHex: swatch(colours[0] ?? ""),
+        images: JSON.stringify(photosFor(models.map((m) => m.modelNo))),
         metaTitle: `${name} | PB Mobiles`,
         metaDescription: description,
       },
@@ -721,6 +723,28 @@ async function upgradeExisting() {
     const added = await addRunningModelProducts();
     await db.setting.create({ data: { key: "migration.runningModelProductsV1", value: JSON.stringify({ at: new Date().toISOString(), added }) } });
     console.log(`Inventory: added ${added} in-stock phone model(s).`);
+  }
+  // Client request (11 Oct 2026): real photos for the in-stock phones instead of the drawn placeholder — on the shop
+  // products and the installment plans. Only fills in where no picture is set (photos staff uploaded are kept). Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.phonePhotosV1" } }))) {
+    let products = 0;
+    let plans = 0;
+    const groups = new Map<string, string[]>();
+    for (const m of RUNNING_MODELS) groups.set(m.name, [...(groups.get(m.name) ?? []), m.modelNo]);
+    for (const [name, modelNos] of groups) {
+      const images = photosFor(modelNos);
+      if (!images.length) continue;
+      const r = await db.product.updateMany({ where: { name, type: "PHONE", condition: "NEW", images: { in: ["", "[]"] } }, data: { images: JSON.stringify(images) } });
+      products += r.count;
+    }
+    for (const m of RUNNING_MODELS) {
+      const photo = PHONE_PHOTOS[m.modelNo]?.[0];
+      if (!photo) continue;
+      const r = await db.installmentListing.updateMany({ where: { modelNo: m.modelNo, OR: [{ imageUrl: null }, { imageUrl: "" }] }, data: { imageUrl: photo } });
+      plans += r.count;
+    }
+    await db.setting.create({ data: { key: "migration.phonePhotosV1", value: JSON.stringify({ at: new Date().toISOString(), products, plans }) } });
+    console.log(`Photos: added real photos to ${products} phone(s) and ${plans} installment plan(s).`);
   }
   // Client request (5 Oct 2026): the shop is open 10 am – 11 pm every day, so 9 pm and 10 pm appointments are
   // added to any saved appointment times (weekdays and Sunday). Runs once; staff can still edit the times.

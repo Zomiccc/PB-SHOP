@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { MANUAL_METHODS, PAYMENT_ACCOUNTS, type ManualMethod } from "@/lib/payment-accounts";
+import { MANUAL_METHODS, PAYMENT_ACCOUNTS, appLink, type ManualMethod } from "@/lib/payment-accounts";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
@@ -20,6 +20,13 @@ export function PaymentPanel({ order, token, total, initialMethod }: { order: st
   const [zoomQr, setZoomQr] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const acc = PAYMENT_ACCOUNTS[method];
+  // Phones only: a button that opens the provider's app (the customer pastes the copied details there).
+  const ua = useSyncExternalStore(
+    () => () => {},
+    () => navigator.userAgent,
+    () => "",
+  );
+  const openApp = appLink(acc.app, ua);
 
   const copy = async (key: string, value: string) => {
     try {
@@ -123,6 +130,12 @@ export function PaymentPanel({ order, token, total, initialMethod }: { order: st
           )}
         </div>
         <p className="mt-4 text-xs text-white/60">{acc.how}</p>
+        {openApp && (
+          <a href={openApp} rel="noopener" className="btn btn-gold mt-4 w-full !py-3">
+            <Icon name="arrow-up-right" className="h-4 w-4" /> Open {acc.app.name} app
+          </a>
+        )}
+        {openApp && <p className="mt-1.5 text-center text-[0.7rem] text-white/45">Copy the details above first, then paste them in the app.</p>}
       </section>
 
       {/* 3 — upload the receipt */}

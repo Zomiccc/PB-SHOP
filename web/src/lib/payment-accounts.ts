@@ -16,6 +16,8 @@ export type PaymentAccount = {
   /** QR code to scan, if the provider has one for this account. */
   qr: string | null;
   how: string;
+  /** The provider's official app: Android package + App Store id (for the "Open app" button — it never fills anything in). */
+  app: { name: string; android: string; ios: string };
 };
 
 export const PAYMENT_ACCOUNTS: Record<ManualMethod, PaymentAccount> = {
@@ -29,6 +31,7 @@ export const PAYMENT_ACCOUNTS: Record<ManualMethod, PaymentAccount> = {
     ],
     qr: null,
     how: "Open Easypaisa → Send Money → Easypaisa account, paste the number and send the exact total.",
+    app: { name: "Easypaisa", android: "pk.com.telenor.phoenix", ios: "1227725092" },
   },
   JAZZCASH: {
     label: "JazzCash",
@@ -40,6 +43,7 @@ export const PAYMENT_ACCOUNTS: Record<ManualMethod, PaymentAccount> = {
     ],
     qr: "/payments/jazzcash-qr.png",
     how: "Open JazzCash and scan the QR code, or send money to the account number, then pay the exact total.",
+    app: { name: "JazzCash", android: "com.techlogix.mobilinkcustomer", ios: "1224617688" },
   },
   FAYSAL: {
     label: "Faysal Bank",
@@ -51,6 +55,7 @@ export const PAYMENT_ACCOUNTS: Record<ManualMethod, PaymentAccount> = {
     ],
     qr: "/payments/faysal-qr.png",
     how: "Transfer from any bank app to the IBAN (or scan the QR in your banking app) and send the exact total.",
+    app: { name: "Faysal DigiBank", android: "com.avanza.ambitwizfbl", ios: "1459836486" },
   },
 };
 
@@ -65,3 +70,17 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   REFUNDED: "Refunded",
   CANCELLED: "Cancelled",
 };
+
+/**
+ * Link that opens the provider's app on the customer's phone (client request). Android: launches the installed app,
+ * or its Play Store page if it isn't installed. iPhone: the App Store page (shows "Open" when installed) — iOS has no
+ * public way for a website to launch these apps. Elsewhere (computers): null, so no button is shown.
+ */
+export function appLink(app: PaymentAccount["app"], userAgent: string): string | null {
+  const play = `https://play.google.com/store/apps/details?id=${app.android}`;
+  if (/android/i.test(userAgent)) {
+    return `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${app.android};S.browser_fallback_url=${encodeURIComponent(play)};end`;
+  }
+  if (/iphone|ipad|ipod/i.test(userAgent)) return `https://apps.apple.com/pk/app/id${app.ios}`;
+  return null;
+}

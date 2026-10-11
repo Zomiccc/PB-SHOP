@@ -148,7 +148,8 @@ export function EditableMedia({ k, fallback, className, mediaClassName, label = 
   const [open, setOpen] = useState(false);
   const media = value as MediaValue | undefined;
   return (
-    <div className={cn("relative", className)}>
+    // Keep a caller's absolute/fixed positioning: adding "relative" too would override it and collapse the box.
+    <div className={cn(!/\b(absolute|fixed)\b/.test(className ?? "") && "relative", className)}>
       {media ? <MediaView media={media} className={mediaClassName} /> : fallback}
       {editing && (
         <div className="absolute inset-x-2 top-2 z-20 flex flex-wrap gap-1.5">

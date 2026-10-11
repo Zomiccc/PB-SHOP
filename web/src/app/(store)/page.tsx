@@ -61,11 +61,11 @@ export default async function HomePage() {
         <div className="container-pb grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 xl:grid-cols-7">
           {[
             { id: "repair", href: "/repair", title: "Phone repairs", sub: "Screen, battery, software & more.", art: <RepairArt />, glow: "rgba(0,119,217,.45)" },
-            { id: "newPhones", href: "/new-phones", title: "New phones", sub: "Latest models, official warranty.", art: <ProductArt kind="PHONE" colorHex="#3a3f4a" brand="Apple" name="iPhone 16 Pro" />, glow: "rgba(215,25,32,.4)" },
+            { id: "newPhones", href: "/new-phones", title: "New phones", sub: "Latest models, official warranty.", art: <TilePhoto src="/products/phones/reno15-pro-1.webp" />, glow: "rgba(215,25,32,.4)" },
             { id: "usedPhones", href: "/used-phones", title: "Used phones", sub: "Lab-checked, one clear grade.", art: <ProductArt kind="PHONE" colorHex="#5b6b7d" brand="Samsung" name="Galaxy S23" />, glow: "rgba(217,166,46,.4)" },
-            { id: "tablets", href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <ProductArt kind="TABLET" colorHex="#8fa7c4" brand="Apple" name="iPad Air" />, glow: "rgba(0,119,217,.4)" },
+            { id: "tablets", href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <TilePhoto src="/products/tablets/infinix-xpad.webp" />, glow: "rgba(0,119,217,.4)" },
             { id: "accessories", href: "/accessories", title: "Accessories", sub: "Cases, chargers & essentials.", art: <ProductArt kind="ACCESSORY" accessoryType="EARBUDS" colorHex="#e8e8e8" />, glow: "rgba(217,166,46,.4)" },
-            { id: "installments", href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <ProductArt kind="PHONE" colorHex="#b8955a" brand="Infinix" name="NOTE 60" />, glow: "rgba(215,25,32,.35)" },
+            { id: "installments", href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <TilePhoto src="/products/phones/note-60-1.webp" />, glow: "rgba(215,25,32,.35)" },
             // Custom Skins (v6 §3): opens the brand → model → preview page.
             { id: "customSkins", href: "/custom-skins", title: "Custom Skins", sub: "Try designs on your exact phone — or upload your own.", art: <SkinTileArt />, glow: "rgba(217,166,46,.45)", wide: true },
           ].map((c, i) => (
@@ -106,7 +106,7 @@ export default async function HomePage() {
       {featuredPhones.length > 0 && (
         <Row k="home.row.newPhones" title="Featured Phones" href="/new-phones">
           {featuredPhones.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={<ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -115,7 +115,7 @@ export default async function HomePage() {
       {usedPhones.length > 0 && (
         <Row k="home.row.usedPhones" title="Used Phones" href="/used-phones">
           {usedPhones.map((p) => (
-            <MiniCard key={p.id} href={p.href} name={`${p.name}${p.grade ? ` · Grade ${p.grade}` : ""}`} price={p.fromPrice} art={<ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={p.href} name={`${p.name}${p.grade ? ` · Grade ${p.grade}` : ""}`} price={p.fromPrice} art={p.image ? <RowPhoto src={p.image} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -139,7 +139,7 @@ export default async function HomePage() {
       {featuredTablets.length > 0 && (
         <Row k="home.row.tablets" title="Tablets" href="/tablets">
           {featuredTablets.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={<ProductArt kind="TABLET" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="TABLET" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -148,7 +148,7 @@ export default async function HomePage() {
       {featuredAcc.length > 0 && (
         <Row k="home.row.accessories" title="Accessories" href="/accessories">
           {featuredAcc.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={p.images[0] ? <Image src={p.images[0]} alt="" fill sizes="(min-width: 768px) 16vw, 42vw" className="object-contain" /> : <ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
           ))}
         </Row>
       )}
@@ -424,4 +424,14 @@ function brandMix<T extends { brand: string | null }>(list: T[], n: number) {
   const out: T[] = [];
   for (let i = 0; out.length < n && [...groups.values()].some((g) => g.length > i); i++) for (const g of groups.values()) if (g[i] && out.length < n) out.push(g[i]);
   return out;
+}
+
+/** A real product photo for a homepage category tile (client request: real phones and a real tablet, not drawings). */
+function TilePhoto({ src }: { src: string }) {
+  return <Image src={src} alt="" fill sizes="(min-width: 1280px) 14vw, (min-width: 768px) 25vw, 50vw" className="object-contain drop-shadow-[0_14px_24px_rgba(0,0,0,.5)]" />;
+}
+
+/** A product's own photo in a homepage row card. */
+function RowPhoto({ src }: { src: string }) {
+  return <Image src={src} alt="" fill sizes="(min-width: 768px) 16vw, 42vw" className="object-contain" />;
 }
