@@ -16,8 +16,12 @@ export type PaymentAccount = {
   /** QR code to scan, if the provider has one for this account. */
   qr: string | null;
   how: string;
-  /** The provider's official app: Android package + App Store id (for the "Open app" button — it never fills anything in). */
-  app: { name: string; android: string; ios: string };
+  /**
+   * The provider's official app for the "Open app" button (it never fills anything in): Android package, App Store id,
+   * and — where the provider publishes one — the app's own link address (`scheme`), which is what lets Chrome open the
+   * app itself. `iosLink` is the provider's official link that opens the app on iPhone (App Store if not installed).
+   */
+  app: { name: string; android: string; ios: string; scheme?: string; iosLink?: string };
 };
 
 export const PAYMENT_ACCOUNTS: Record<ManualMethod, PaymentAccount> = {
@@ -31,7 +35,8 @@ export const PAYMENT_ACCOUNTS: Record<ManualMethod, PaymentAccount> = {
     ],
     qr: null,
     how: "Open Easypaisa → Send Money → Easypaisa account, paste the number and send the exact total.",
-    app: { name: "Easypaisa", android: "pk.com.telenor.phoenix", ios: "1227725092" },
+    // easypaisa:// and the iPhone link are the ones Easypaisa's own website uses (easypaisa.com.pk/faqs).
+    app: { name: "Easypaisa", android: "pk.com.telenor.phoenix", ios: "1227725092", scheme: "easypaisa", iosLink: "https://easypaisa.onelink.me/cw4d/d16aphk9" },
   },
   JAZZCASH: {
     label: "JazzCash",
@@ -72,15 +77,16 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
 };
 
 /**
- * Link that opens the provider's app on the customer's phone (client request). Android: launches the installed app,
- * or its Play Store page if it isn't installed. iPhone: the App Store page (shows "Open" when installed) — iOS has no
- * public way for a website to launch these apps. Elsewhere (computers): null, so no button is shown.
+ * Link that opens the provider's app on the customer's phone (client request). Android browsers only open an app
+ * through the link address the app registers, so: with a `scheme` the app itself opens (Play Store if it isn't
+ * installed); without one, its Play Store page (which shows "Open" when installed). iPhone: the provider's own app
+ * link, else the App Store page. Elsewhere (computers): null, so no button is shown.
  */
 export function appLink(app: PaymentAccount["app"], userAgent: string): string | null {
   const play = `https://play.google.com/store/apps/details?id=${app.android}`;
   if (/android/i.test(userAgent)) {
-    return `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${app.android};S.browser_fallback_url=${encodeURIComponent(play)};end`;
+    return app.scheme ? `intent://#Intent;scheme=${app.scheme};package=${app.android};S.browser_fallback_url=${encodeURIComponent(play)};end` : play;
   }
-  if (/iphone|ipad|ipod/i.test(userAgent)) return `https://apps.apple.com/pk/app/id${app.ios}`;
+  if (/iphone|ipad|ipod/i.test(userAgent)) return app.iosLink ?? `https://apps.apple.com/pk/app/id${app.ios}`;
   return null;
 }
