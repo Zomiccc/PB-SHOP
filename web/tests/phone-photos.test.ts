@@ -30,14 +30,18 @@ describe("Open the payment app", () => {
   const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1";
   const desktop = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36";
 
-  it("opens the Easypaisa app itself on Android through its easypaisa:// address, Play Store if not installed", () => {
+  it("opens the Easypaisa app itself on Android through a link its start screen handles, Play Store if not installed", () => {
     const link = appLink(PAYMENT_ACCOUNTS.EASYPAISA.app, android)!;
-    expect(link).toMatch(/^intent:\/\/#Intent;scheme=easypaisa;package=pk\.com\.telenor\.phoenix;/);
+    expect(link.startsWith("intent://easypaisa.onelink.me/cw4d#Intent;scheme=https;package=pk.com.telenor.phoenix;")).toBe(true);
     expect(decodeURIComponent(link)).toContain("play.google.com/store/apps/details?id=pk.com.telenor.phoenix");
   });
 
-  it("apps without a published address go to their Play Store page (Open button) on Android", () => {
-    expect(appLink(PAYMENT_ACCOUNTS.JAZZCASH.app, android)).toBe("https://play.google.com/store/apps/details?id=com.techlogix.mobilinkcustomer");
+  it("opens the JazzCash app on Android through jazzcash://deeplink", () => {
+    expect(appLink(PAYMENT_ACCOUNTS.JAZZCASH.app, android)!.startsWith("intent://deeplink#Intent;scheme=jazzcash;package=com.techlogix.mobilinkcustomer;")).toBe(true);
+  });
+
+  it("Faysal DigiBank (no browser link in the app) goes to its Play Store page, which shows Open", () => {
+    expect(appLink(PAYMENT_ACCOUNTS.FAYSAL.app, android)).toBe("https://play.google.com/store/apps/details?id=com.avanza.ambitwizfbl");
   });
 
   it("uses Easypaisa's own app link on iPhone, the App Store elsewhere, and shows nothing on a computer", () => {
