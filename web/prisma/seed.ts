@@ -14,6 +14,7 @@ import { SETTING_DEFAULTS } from "../src/lib/settings";
 import { formatRewardsId, rewardsIdNumber, REWARDS_ID_PREFIX } from "../src/lib/rewards-id";
 import { RUNNING_MODELS } from "./running-models";
 import { PHONE_PHOTOS, photosFor } from "./phone-photos";
+import { COLOR_PHOTOS } from "./phone-colors";
 import { RONIN_PRODUCTS } from "./ronin-products";
 import { ACCESSORY_WARRANTY, USED_WARRANTY } from "../src/lib/constants";
 import { BRAND_ACCESSORIES } from "./brand-accessories";
@@ -403,6 +404,7 @@ async function addRunningModelProducts() {
             ram: m.ram,
             color,
             colorHex: swatch(color),
+            imageUrl: COLOR_PHOTOS[m.modelNo]?.[color] ?? null,
             price: m.price,
             stockQty: 3,
             lowStockThreshold: 1,
@@ -745,6 +747,22 @@ async function upgradeExisting() {
     }
     await db.setting.create({ data: { key: "migration.phonePhotosV1", value: JSON.stringify({ at: new Date().toISOString(), products, plans }) } });
     console.log(`Photos: added real photos to ${products} phone(s) and ${plans} installment plan(s).`);
+  }
+  // Client request (12 Oct 2026): picking a colour shows that colour's photo — fill in the per-colour photos for the
+  // in-stock phones. Only where no colour photo is set (ones staff chose are kept). Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.colorPhotosV1" } }))) {
+    let set = 0;
+    for (const m of RUNNING_MODELS) {
+      for (const [color, imageUrl] of Object.entries(COLOR_PHOTOS[m.modelNo] ?? {})) {
+        const r = await db.variant.updateMany({
+          where: { color, ram: m.ram, storage: m.storage, imageUrl: null, product: { name: m.name, type: "PHONE", condition: "NEW" } },
+          data: { imageUrl },
+        });
+        set += r.count;
+      }
+    }
+    await db.setting.create({ data: { key: "migration.colorPhotosV1", value: JSON.stringify({ at: new Date().toISOString(), set }) } });
+    console.log(`Photos: added colour photos to ${set} phone colour option(s).`);
   }
   // Client request (5 Oct 2026): the shop is open 10 am – 11 pm every day, so 9 pm and 10 pm appointments are
   // added to any saved appointment times (weekdays and Sunday). Runs once; staff can still edit the times.

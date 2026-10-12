@@ -50,6 +50,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
     }
   };
 
+  const photo = variant.imageUrl ?? product.images[0];
   const price = variant.salePrice ?? variant.price;
   const out = variant.stockQty <= 0;
   const low = !out && variant.stockQty <= Math.max(variant.lowStockThreshold, 2);
@@ -104,9 +105,9 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
         ) : (
           <div className="grid gap-3">
             <div className="relative aspect-square overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-b from-card to-cream-200">
-              {product.images[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={product.images[0]} alt={product.name} className="h-full w-full object-contain p-8" />
+              {photo ? (
+                // The picked colour's own photo when there is one (client request); otherwise the main photo.
+                <motion.img key={photo} src={photo} alt={[product.name, variant.color].filter(Boolean).join(" — ")} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }} className="h-full w-full object-contain p-8" />
               ) : (
                 <motion.div key={variant.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-10">
                   <ProductArt kind={product.type} accessoryType={product.accessoryType} colorHex={variant.colorHex ?? product.finishHex} brand={product.brand} name={product.name} />

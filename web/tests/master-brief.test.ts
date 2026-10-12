@@ -32,8 +32,8 @@ describe("Strict single-grade rule (§8)", () => {
       description: "", specs: {}, images: [], finishHex: null, featured: false, model3dUrl: null, model3dTextures: null,
       sketchfabUid: null, metaTitle: null, metaDescription: null, fromPrice: 0, totalStock: 2,
       variants: [
-        { id: "v1", sku: "PB-1", storage: "128GB", ram: null, color: "Blue", colorHex: null, price: 100, salePrice: null, stockQty: 1, lowStockThreshold: 0, grade: "A+", batteryHealth: 91, conditionNotes: null, warrantyInfo: null, returnInfo: null },
-        { id: "v2", sku: "PB-2", storage: "128GB", ram: null, color: "Blue", colorHex: null, price: 90, salePrice: null, stockQty: 1, lowStockThreshold: 0, grade: "B", batteryHealth: 84, conditionNotes: null, warrantyInfo: null, returnInfo: null },
+        { id: "v1", sku: "PB-1", storage: "128GB", ram: null, color: "Blue", colorHex: null, imageUrl: null, price: 100, salePrice: null, stockQty: 1, lowStockThreshold: 0, grade: "A+", batteryHealth: 91, conditionNotes: null, warrantyInfo: null, returnInfo: null },
+        { id: "v2", sku: "PB-2", storage: "128GB", ram: null, color: "Blue", colorHex: null, imageUrl: null, price: 90, salePrice: null, stockQty: 1, lowStockThreshold: 0, grade: "B", batteryHealth: 84, conditionNotes: null, warrantyInfo: null, returnInfo: null },
       ],
     } as ProductDTO;
     const cards = toCatalogItems([p]);

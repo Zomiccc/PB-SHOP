@@ -218,6 +218,7 @@ model Variant {
   ram               String? // tablets / phones where applicable, e.g. "8GB"
   color             String?
   colorHex          String?
+  imageUrl          String? // photo of this colour — the product page shows it when the colour is picked
   price             Int // PKR, whole rupees
   salePrice         Int?
   costPrice         Int? // purchase price per unit (investment / profit reports)

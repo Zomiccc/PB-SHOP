@@ -232,6 +232,7 @@ function VariantForm({ productId, v, suggested, isSuper, used, accessory = false
         <Field label="RAM (optional)"><input name="ram" defaultValue={v?.ram ?? ""} placeholder="8GB" className="field" /></Field>
         <Field label="Colour name"><input name="color" defaultValue={v?.color ?? ""} className="field" /></Field>
         <Field label="Colour hex"><input name="colorHex" defaultValue={v?.colorHex ?? ""} placeholder="#2b2b2e" className="field" /></Field>
+        <Field label="Photo of this colour (optional)" hint="Shown when a customer picks this colour — https://… or /path"><input name="imageUrl" defaultValue={v?.imageUrl ?? ""} className="field" /></Field>
       </div>
       {used && (
         <div className="grid gap-3 rounded-xl bg-gold/10 p-3 sm:grid-cols-3">

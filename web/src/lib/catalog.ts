@@ -12,6 +12,8 @@ export type VariantDTO = {
   ram: string | null;
   color: string | null;
   colorHex: string | null;
+  /** Photo of this colour, shown when it's picked on the product page. */
+  imageUrl: string | null;
   price: number;
   salePrice: number | null;
   stockQty: number;
@@ -59,6 +61,7 @@ function toDTO(p: Row): ProductDTO {
     ram: v.ram,
     color: v.color,
     colorHex: v.colorHex,
+    imageUrl: v.imageUrl,
     price: v.price,
     salePrice: v.salePrice,
     stockQty: v.stockQty,

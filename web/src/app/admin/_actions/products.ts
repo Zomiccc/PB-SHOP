@@ -121,6 +121,7 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       storage: optStr(f, "storage"),
       color: optStr(f, "color"),
       colorHex: optStr(f, "colorHex"),
+      imageUrl: optStr(f, "imageUrl"),
       price,
       salePrice,
       costPrice: int(f, "costPrice"),

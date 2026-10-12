@@ -6,6 +6,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { RUNNING_MODELS } from "../prisma/running-models";
 import { PHONE_PHOTOS, photosFor } from "../prisma/phone-photos";
+import { COLOR_PHOTOS } from "../prisma/phone-colors";
 import { PAYMENT_ACCOUNTS, appLink } from "@/lib/payment-accounts";
 
 const pub = (p: string) => path.join(__dirname, "..", "public", p);
@@ -18,6 +19,21 @@ describe("Phone photos", () => {
 
   it("RAM / storage versions of one phone share its photos without duplicates", () => {
     expect(photosFor(["X6728", "X6728B"])).toEqual(PHONE_PHOTOS.X6728);
+  });
+
+  it("colour photos belong to a real colour of that model, and every file exists", () => {
+    let n = 0;
+    for (const [modelNo, byColour] of Object.entries(COLOR_PHOTOS)) {
+      const model = RUNNING_MODELS.find((m) => m.modelNo === modelNo);
+      expect(model, modelNo).toBeDefined();
+      const colours = model!.colors.split(/,\s*/);
+      for (const [colour, p] of Object.entries(byColour)) {
+        expect(colours, `${modelNo} ${colour}`).toContain(colour);
+        expect(fs.existsSync(pub(p)), p).toBe(true);
+        n++;
+      }
+    }
+    expect(n).toBeGreaterThan(120);
   });
 
   it("the homepage tablet tile uses a real tablet photo", () => {
