@@ -70,7 +70,7 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
               </span>
               {item.onSale && <span className="rounded-full bg-red px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-white">Offer</span>}
             </div>
-            {(item.type === "PHONE" || item.type === "TABLET") && (
+            {(item.type === "PHONE" || item.type === "TABLET") && item.condition === "USED" && (
               <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-navy-950/80 text-gold opacity-0 transition-opacity group-hover:opacity-100" title="3D view available">
                 <Icon name="rotate" className="h-4 w-4" />
               </span>

@@ -25,12 +25,14 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
   // Phones and tablets share device features (3D viewer, installments, grades).
   const isPhone = isDevice(product.type);
   const used = product.condition === "USED";
+  // Brand-new devices show their real photos only (client request, 12 Oct 2026); the 3D viewer stays for used ones.
+  const has3d = isPhone && used;
   const [variantId, setVariantId] = useState(
     () => (product.variants.find((v) => v.id === initialVariantId) ?? product.variants.find((v) => v.stockQty > 0) ?? product.variants[0])?.id,
   );
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
   const [qty, setQty] = useState(1);
-  const [view, setView] = useState<"3d" | "photos">(isPhone ? "3d" : "photos");
+  const [view, setView] = useState<"3d" | "photos">(has3d ? "3d" : "photos");
   const [added, setAdded] = useState(false);
 
   const storages = useMemo(() => [...new Set(product.variants.map((v) => v.storage).filter(Boolean))] as string[], [product.variants]);
@@ -82,7 +84,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
     <div className="container-pb grid gap-10 pb-20 pt-8 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
       {/* Gallery / 3D */}
       <div className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
-        {isPhone && (
+        {has3d && (
           <div className="mb-4 inline-flex rounded-full bg-card p-1 shadow-[var(--shadow-card)]" role="tablist">
             {(["3d", "photos"] as const).map((v) => (
               <button
@@ -97,7 +99,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
             ))}
           </div>
         )}
-        {view === "3d" && isPhone ? (
+        {view === "3d" && has3d ? (
           <ProductViewer color={variant.colorHex ?? product.finishHex ?? "#1c3552"} modelUrl={product.model3dUrl} textures={product.model3dTextures} sketchfabUid={product.sketchfabUid} name={product.name} brand={product.brand} type={product.type} />
         ) : (
           <div className="grid gap-3">

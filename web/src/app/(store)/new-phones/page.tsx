@@ -19,7 +19,7 @@ export default async function NewPhonesPage() {
         eyebrow="New phones"
         title="The latest,"
         accent="in stock."
-        intro="Brand-new devices with official warranty where applicable. Rotate any phone in 3D, compare storage and colours, and pay securely online."
+        intro="Brand-new devices with official warranty where applicable. See real photos, compare storage and colours, and pay securely online."
       />
         <Catalog items={items} mode="new" />
     </>
