@@ -51,6 +51,8 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
   };
 
   const photo = variant.imageUrl ?? product.images[0];
+  // This colour has no photo of its own while others do: say so rather than pass another colour off as it.
+  const otherColourShown = Boolean(variant.color && !variant.imageUrl && photo && product.variants.some((v) => v.imageUrl));
   const price = variant.salePrice ?? variant.price;
   const out = variant.stockQty <= 0;
   const low = !out && variant.stockQty <= Math.max(variant.lowStockThreshold, 2);
@@ -114,6 +116,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
                 </motion.div>
               )}
             </div>
+            {otherColourShown && <p className="-mt-1 text-center text-xs text-muted">Photo shows another colour — {variant.color} looks different.</p>}
             {product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
                 {product.images.slice(1, 5).map((src) => (

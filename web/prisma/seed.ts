@@ -749,8 +749,9 @@ async function upgradeExisting() {
     console.log(`Photos: added real photos to ${products} phone(s) and ${plans} installment plan(s).`);
   }
   // Client request (12 Oct 2026): picking a colour shows that colour's photo — fill in the per-colour photos for the
-  // in-stock phones. Only where no colour photo is set (ones staff chose are kept). Runs once.
-  if (!(await db.setting.findUnique({ where: { key: "migration.colorPhotosV1" } }))) {
+  // in-stock phones. Only where no colour photo is set (ones staff chose are kept). Runs once per version: V2 (18 Oct 2026) adds the
+  // photos found while double-checking every phone against WhatMobile and PriceOye.
+  if (!(await db.setting.findUnique({ where: { key: "migration.colorPhotosV2" } }))) {
     let set = 0;
     for (const m of RUNNING_MODELS) {
       for (const [color, imageUrl] of Object.entries(COLOR_PHOTOS[m.modelNo] ?? {})) {
@@ -761,7 +762,7 @@ async function upgradeExisting() {
         set += r.count;
       }
     }
-    await db.setting.create({ data: { key: "migration.colorPhotosV1", value: JSON.stringify({ at: new Date().toISOString(), set }) } });
+    await db.setting.create({ data: { key: "migration.colorPhotosV2", value: JSON.stringify({ at: new Date().toISOString(), set }) } });
     console.log(`Photos: added colour photos to ${set} phone colour option(s).`);
   }
   // Client request (5 Oct 2026): the shop is open 10 am – 11 pm every day, so 9 pm and 10 pm appointments are

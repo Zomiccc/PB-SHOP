@@ -1,7 +1,8 @@
 /**
  * One official photo per phone colour (client request, 12 Oct 2026): picking a colour on the product page shows
  * that colour. Keyed by model number, then the colour name exactly as in running-models.ts. Colours the brand has
- * no photo for are left out and keep the product's main photo.
+ * no photo for are left out and keep the product's main photo. Each photo was checked against two independent
+ * sources (the brand's site plus WhatMobile / PriceOye, Oct 2026); itel A200+ and the nubia colours come from PriceOye.
  */
 export const COLOR_PHOTOS: Record<string, Record<string, string>> = {
   "X6891": { "Black Abyss": "/products/phones/colors/gt-50-pro-black-abyss.webp", "Silver Glacier": "/products/phones/colors/gt-50-pro-silver-glacier.webp", "Red Blaze": "/products/phones/colors/gt-50-pro-red-blaze.webp" },
@@ -27,6 +28,7 @@ export const COLOR_PHOTOS: Record<string, Record<string, string>> = {
   "A673L": { "Fresh Green": "/products/phones/colors/itel-a100-fresh-green.webp", "Star Titanium": "/products/phones/colors/itel-a100-star-titanium.webp", "Shadow Titanium": "/products/phones/colors/itel-a100-shadow-titanium.webp" },
   "P673L": { "Natural Black": "/products/phones/colors/itel-power-70-natural-black.webp", "Marine": "/products/phones/colors/itel-power-70-marine.webp", "Star Titanium": "/products/phones/colors/itel-power-70-star-titanium.webp" },
   "S685LN": { "Sahara Gleam": "/products/phones/colors/itel-s25-sahara-gleam.webp", "Mambo Mint": "/products/phones/colors/itel-s25-mambo-mint.webp", "Bromo Black": "/products/phones/colors/itel-s25-bromo-black.webp" },
+  "A676L": { "Orange": "/products/phones/colors/itel-a200-plus-orange.webp", "Blue": "/products/phones/colors/itel-a200-plus-blue.webp", "Star Titanium": "/products/phones/colors/itel-a200-plus-star-titanium.webp" },
   "C671L": { "Fairy Purple": "/products/phones/colors/itel-city-100-fairy-purple.webp", "Navy Blue": "/products/phones/colors/itel-city-100-navy-blue.webp", "Meteor Titanium": "/products/phones/colors/itel-city-100-meteor-titanium.webp" },
   "P671L": { "Cyber Titanium": "/products/phones/colors/itel-power-65-cyber-titanium.webp", "Cyber Black": "/products/phones/colors/itel-power-65-cyber-black.webp", "Cyber Blaze": "/products/phones/colors/itel-power-65-cyber-blaze.webp" },
   "A6611L": { "Blaze Blue": "/products/phones/colors/itel-a100c-blaze-blue.webp", "Pure Black": "/products/phones/colors/itel-a100c-pure-black.webp", "Titanium Gold": "/products/phones/colors/itel-a100c-titanium-gold.webp", "Silk Green": "/products/phones/colors/itel-a100c-silk-green.webp" },
@@ -41,7 +43,10 @@ export const COLOR_PHOTOS: Record<string, Record<string, string>> = {
   "CPH2825": { "Aurora White": "/products/phones/reno15-1.webp", "Twilight Blue": "/products/phones/reno15-2.webp" },
   "CPH2859": { "Pop White": "/products/phones/reno16-f-1.webp", "Twilight Violet": "/products/phones/reno16-f-2.webp" },
   "CPH2801": { "Aurora Blue": "/products/phones/reno15-f-1.webp", "Twilight Blue": "/products/phones/reno15-f-2.webp" },
-  "CPH2833": { "Eclipse Blue": "/products/phones/a6s-pro-1.webp" },
+  "Z2575": { "Midnight Black": "/products/phones/colors/nubia-v80-pro-midnight-black.webp", "Peach Fuzz": "/products/phones/colors/nubia-v80-pro-peach-fuzz.webp" },
+  "Z2577": { "Space Black": "/products/phones/colors/nubia-v80-max-space-black.webp", "Aurellia Gold": "/products/phones/colors/nubia-v80-max-aurellia-gold.webp" },
+  // OPPO sells this colour as "Lumina Frost" (white) in Pakistan; the running-model list spells it "Lumina Forest".
+  "CPH2833": { "Eclipse Blue": "/products/phones/a6s-pro-1.webp", "Lumina Forest": "/products/phones/a6s-pro-2.webp" },
   "CPH2815": { "Ice White": "/products/phones/a6s-1.webp", "Cappuccino Brown": "/products/phones/a6s-2.webp" },
   "CPH2799": { "Stellar Blue": "/products/phones/a6-pro-1.webp", "Rosewood Red": "/products/phones/a6-pro-2.webp" },
   "CPH2817": { "Sapphire Blue": "/products/phones/a6-1.webp", "Aurora Gold": "/products/phones/a6-2.webp" },
