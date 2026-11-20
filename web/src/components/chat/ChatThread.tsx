@@ -23,7 +23,7 @@ export type ThreadMessage = {
   failed?: string;
 };
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("en-PK", { hour: "numeric", minute: "2-digit" });
+const time = (iso: string) => new Date(iso).toLocaleTimeString("en-PK", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Karachi" });
 const ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/gif,application/pdf,.docx,.xlsx";
 
 /**

@@ -8,13 +8,14 @@ import { uploadMedia } from "@/lib/upload-client";
 import { shrinkImage } from "../ui/FileField";
 import { BroadcastShowcase } from "../home/BroadcastShowcase";
 
-type Initial = { id: string; message: string; ctaLabel: string | null; ctaHref: string | null; startsAt: string; endsAt: string; active: boolean; media: BroadcastMedia[] };
+type Initial = { id: string; title: string | null; message: string; ctaLabel: string | null; ctaHref: string | null; startsAt: string; endsAt: string; active: boolean; media: BroadcastMedia[] };
 
 /**
  * Create / edit a broadcast (v6 §2): text, pictures and videos, start/end dates and a live preview of exactly
  * how it will look beneath Shop Phones. Media upload in pieces, so large videos work on any host.
  */
-export function BroadcastForm({ b }: { b?: Initial }) {
+export function BroadcastForm({ b, products = [] }: { b?: Initial; products?: { name: string; href: string }[] }) {
+  const [title, setTitle] = useState(b?.title ?? "");
   const [message, setMessage] = useState(b?.message ?? "");
   const [ctaLabel, setCtaLabel] = useState(b?.ctaLabel ?? "");
   const [ctaHref, setCtaHref] = useState(b?.ctaHref ?? "");
@@ -52,7 +53,11 @@ export function BroadcastForm({ b }: { b?: Initial }) {
       <input type="hidden" name="id" value={b?.id ?? ""} />
       <input type="hidden" name="media" value={JSON.stringify(media)} />
       <label className="block">
-        <span className="label">Message</span>
+        <span className="label">Title</span>
+        <input name="title" maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Eid sale — 10% off accessories" className="field" />
+      </label>
+      <label className="block">
+        <span className="label">Short message</span>
         <textarea name="message" rows={2} maxLength={400} value={message} onChange={(e) => setMessage(e.target.value)} required className="field" placeholder="Eid timings: open 2 pm – 11 pm this week" />
         <span className="mt-1 block text-xs text-muted">Short and clear — up to 400 characters.</span>
       </label>
@@ -93,7 +98,7 @@ export function BroadcastForm({ b }: { b?: Initial }) {
             aria-label="Add pictures or videos"
           />
         )}
-        <span className="mt-1 block text-xs text-muted">Pictures up to 10 MB, videos (MP4 / WebM / MOV) up to 60 MB. Up to 8 per broadcast.</span>
+        <span className="mt-1 block text-xs text-muted">Pictures up to 10 MB, videos (MP4 / WebM / MOV) up to 60 MB. Up to 8 per announcement.</span>
         {progress && (
           <div className="mt-2 text-xs text-muted" role="status">
             Uploading {progress.name}… {progress.pct}%
@@ -105,7 +110,11 @@ export function BroadcastForm({ b }: { b?: Initial }) {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block"><span className="label">Button text (optional)</span><input name="ctaLabel" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="Shop the sale" className="field" /></label>
-        <label className="block"><span className="label">Button link (optional)</span><input name="ctaHref" value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} placeholder="/used-phones or https://…" className="field" /></label>
+        <label className="block">
+          <span className="label">Link — a product or page (optional)</span>
+          <input name="ctaHref" list="announcement-links" value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} placeholder="Type a product name, /used-phones or https://…" className="field" />
+          <datalist id="announcement-links">{products.map((p) => <option key={p.href} value={p.href}>{p.name}</option>)}</datalist>
+        </label>
         <label className="block"><span className="label">Show from (optional, PKT)</span><input name="startsAt" type="datetime-local" defaultValue={b?.startsAt} className="field" /></label>
         <label className="block"><span className="label">Show until (optional, PKT)</span><input name="endsAt" type="datetime-local" defaultValue={b?.endsAt} className="field" /></label>
       </div>
@@ -115,14 +124,14 @@ export function BroadcastForm({ b }: { b?: Initial }) {
         {showPreview && (
           <div className="mt-3 rounded-2xl bg-black p-4">
             <p className="mb-3 text-center text-xs uppercase tracking-[0.18em] text-white/40">As shown beneath Shop Phones</p>
-            {message.trim().length >= 3 ? <BroadcastShowcase preview broadcasts={[{ id: "preview", message, ctaLabel: ctaLabel || null, ctaHref: ctaHref || null, media }]} /> : <p className="text-center text-sm text-white/50">Write the message to see the preview.</p>}
+            {message.trim().length >= 3 ? <BroadcastShowcase preview broadcasts={[{ id: "preview", title: title || null, message, ctaLabel: ctaLabel || null, ctaHref: ctaHref || null, media }]} /> : <p className="text-center text-sm text-white/50">Write the message to see the preview.</p>}
           </div>
         )}
       </div>
 
       <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={b?.active ?? true} className="h-4 w-4" /> Published</label>
-        <Submit variant="gold">{progress ? "Uploading…" : b ? "Save" : "Create broadcast"}</Submit>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={b?.active ?? true} className="h-4 w-4" /> On (showing on the website)</label>
+        <Submit variant="gold">{progress ? "Uploading…" : b ? "Save" : "Create announcement"}</Submit>
       </div>
     </ActionForm>
   );

@@ -1,65 +1,36 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { pkr } from "@/lib/format";
-import { monthlyPayment } from "@/lib/installments";
 import { Field, PageTitle, Panel } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
-import { ACCEPT, FileField } from "@/components/ui/FileField";
-import { ID_CONSENT_TEXT, IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { createInstallmentSaleAction } from "../../../../_actions/workflows";
 
 export const metadata = { title: "New installment sale" };
 
-/** In-store workflow for a new phone bought on installments (master brief §5). CNIC front + back required. */
+/**
+ * Installment sale, short form (Nov 2026): the financing company keeps the customer's full details and CNIC in
+ * its own app, so the shop only records name, mobile, phone model, retail price and IMEI. PB Points are given
+ * straight away on the retail price, by the same new-phone rule as a cash sale.
+ */
 export default async function NewInstallmentSalePage() {
-  const listings = await db.installmentListing.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
+  const listings = await db.installmentListing.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, model: true, regularPrice: true } });
   return (
     <>
-      <PageTitle title="New installment sale" sub="Completed in store only. Check the customer's original CNIC and upload both sides.">
+      <PageTitle title="New installment sale" sub="Just the basics — the financing company keeps the customer's full details in its own app.">
         <Link href="/admin/installments" className="text-sm text-blue">← Installments</Link>
       </PageTitle>
-      <ActionForm action={createInstallmentSaleAction} className="grid max-w-5xl gap-6 xl:grid-cols-2">
-        <Panel title="1. Customer">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Full name (as on CNIC)"><input name="customerName" required autoComplete="off" className="field" /></Field>
-            <Field label="Mobile number"><input name="customerPhone" type="tel" required placeholder="0300 1234567" className="field" /></Field>
-            <Field label="CNIC number"><input name="cnicNumber" required inputMode="numeric" placeholder="35202-1234567-1" className="field font-mono" /></Field>
-            <Field label="Address (optional)"><input name="address" className="field" /></Field>
-          </div>
-        </Panel>
-        <Panel title="2. Phone & plan">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Plan from homepage listing" className="sm:col-span-2" hint="Fills the plan below; you can still edit the figures">
-              <select name="listingId" defaultValue="" className="field">
-                <option value="">— Custom plan —</option>
-                {listings.map((l) => <option key={l.id} value={l.id}>{l.model} · {pkr(l.downPayment)} down + {pkr(monthlyPayment(l))} × {l.durationMonths}</option>)}
-              </select>
+      <ActionForm action={createInstallmentSaleAction} className="max-w-xl">
+        <Panel>
+          <div className="grid gap-4">
+            <Field label="Full name"><input name="customerName" required autoComplete="off" className="field !py-3.5 text-base" /></Field>
+            <Field label="Mobile number"><input name="customerPhone" type="tel" inputMode="tel" required placeholder="0300 1234567" className="field !py-3.5 text-base" /></Field>
+            <Field label="Phone model" hint="Start typing to pick a phone from the installment list">
+              <input name="phoneModel" list="installment-models" required autoComplete="off" placeholder="Infinix NOTE 60 · 8GB / 256GB" className="field !py-3.5 text-base" />
+              <datalist id="installment-models">{listings.map((l) => <option key={l.id} value={l.model} />)}</datalist>
             </Field>
-            <Field label="Phone model (if custom)"><input name="phoneModel" className="field" /></Field>
-            <Field label="IMEI (optional now)"><input name="imei" inputMode="numeric" className="field font-mono" /></Field>
-            <Field label="Total on plan (Rs)" hint="Leave blank to use the listing"><input name="totalPrice" type="number" min={1} className="field" /></Field>
-            <Field label="Phone cash price (Rs)" hint="For PB Points tiers · blank = listing's regular price"><input name="phoneValue" type="number" min={1} className="field" /></Field>
-            <Field label="Down payment (Rs)"><input name="downPayment" type="number" min={0} className="field" /></Field>
-            <Field label="Duration (months)"><input name="durationMonths" type="number" min={1} max={60} className="field" /></Field>
+            <Field label="Phone retail price (Rs)" hint="Blank = the price from the installment list"><input name="phoneValue" type="number" inputMode="numeric" min={1} className="field !py-3.5 text-base" /></Field>
+            <Field label="IMEI"><input name="imei" inputMode="numeric" autoComplete="off" className="field !py-3.5 font-mono text-base" /></Field>
           </div>
-        </Panel>
-        <Panel title="3. ID documents (required)" className="xl:col-span-2">
-          <div className="grid gap-4 md:grid-cols-3">
-            <FileField name="cnicFront" label="ID Card — Front" required accept={ACCEPT.id} hint="Photo or PDF · compressed automatically" capture tone="panel" />
-            <FileField name="cnicBack" label="ID Card — Back" required accept={ACCEPT.id} hint="Photo or PDF · compressed automatically" capture tone="panel" />
-            <FileField name="attachments" label="Other documents / attachments" multiple maxFiles={5} accept={ACCEPT.docs} hint="Guarantor CNIC, salary slip, utility bill…" tone="panel" />
-          </div>
-          <p className="mt-3 text-xs text-muted">ID documents are stored privately. Only signed-in staff can open them, and every view is recorded in the audit log.</p>
-          <div className="mt-5"><IdPrivacyNotice tone="panel" /></div>
-          <label className="mt-4 flex items-start gap-3 rounded-xl bg-gold/10 p-3 text-sm ring-1 ring-gold/40">
-            <input type="checkbox" name="idConsent" required className="mt-0.5 h-4 w-4 shrink-0" />
-            <span><b>The customer agrees:</b> “{ID_CONSENT_TEXT}”</span>
-          </label>
-
-        </Panel>
-        <Panel className="xl:col-span-2">
-          <Field label="Notes (optional)"><textarea name="notes" rows={2} className="field" /></Field>
-          <div className="mt-4"><Submit variant="gold">Save installment sale</Submit></div>
+          <div className="mt-6"><Submit variant="gold">Save installment sale</Submit></div>
         </Panel>
       </ActionForm>
     </>

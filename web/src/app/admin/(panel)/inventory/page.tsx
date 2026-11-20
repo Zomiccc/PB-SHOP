@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { requireStaffPage } from "@/lib/staff";
 import { pkr } from "@/lib/format";
 import { ITEM_CATEGORIES } from "@/lib/constants";
 import { Badge, FilterLink, PageTitle, Panel, Stat, Table, Td, dt } from "@/components/admin/Primitives";
@@ -18,6 +19,8 @@ const MOVE_TYPES = ["PURCHASE", "RECEIVED", "SALE", "RETURN", "CANCEL", "ADJUST"
  * with its own Item Number. Type or scan an Item Number, barcode or IMEI to find the exact item.
  */
 export default async function InventoryPage(props: PageProps<"/admin/inventory">) {
+  // Purchase prices are the owner's (Nov 2026): employees see sale prices and stock only.
+  const owner = (await requireStaffPage()).role === "SUPER_ADMIN";
   const sp = await props.searchParams;
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).trim() : "");
   const filter = one("filter") || "all";
@@ -66,9 +69,9 @@ export default async function InventoryPage(props: PageProps<"/admin/inventory">
       </PageTitle>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Stat label="Units in stock" value={units.toLocaleString("en-PK")} />
-        <Stat label="Stock at purchase price" value={pkr(atCost)} />
+        {owner && <Stat label="Stock at purchase price" value={pkr(atCost)} />}
         <Stat label="Retail stock value" value={pkr(retail)} />
-        <Stat label="Total investment" value={pkr(investment)} hint="All recorded purchases" />
+        {owner && <Stat label="Total investment" value={pkr(investment)} hint="All recorded purchases" />}
         <Stat label="Low / out of stock" value={`${variants.filter((v) => v.active && v.stockQty > 0 && v.stockQty <= v.lowStockThreshold).length} / ${variants.filter((v) => v.active && v.stockQty <= 0).length}`} tone="gold" />
       </div>
 
@@ -89,7 +92,7 @@ export default async function InventoryPage(props: PageProps<"/admin/inventory">
       {q && exact.length === 1 && <p className="mb-3 rounded-xl bg-emerald-600/10 px-4 py-2 text-sm text-emerald-400">Exact match for “{q}”.</p>}
 
       <Panel>
-        <Table head={["Item", "Item No. / barcode", "Cost → price", "On hand", "Purchase (stock in)", "Adjust"]} empty="No items match.">
+        <Table head={["Item", "Item No. / barcode", owner ? "Cost → price" : "Price", "On hand", "Purchase (stock in)", "Adjust"]} empty="No items match.">
           {list.map((v) => (
             <tr key={v.id}>
               <Td>
@@ -101,13 +104,13 @@ export default async function InventoryPage(props: PageProps<"/admin/inventory">
                 </span>
               </Td>
               <Td className="font-mono text-xs">{v.sku}<span className="block text-muted">{v.barcode}</span>{v.imei && <span className="block text-muted">IMEI {v.imei}</span>}{v.partNumber && <span className="block text-muted">#{v.partNumber}</span>}</Td>
-              <Td className="text-xs">{v.costPrice != null ? pkr(v.costPrice) : "—"} → <b>{pkr(v.salePrice ?? v.price)}</b></Td>
+              <Td className="text-xs">{owner && <>{v.costPrice != null ? pkr(v.costPrice) : "—"} → </>}<b>{pkr(v.salePrice ?? v.price)}</b></Td>
               <Td><Badge tone={v.stockQty <= 0 ? "red" : v.stockQty <= v.lowStockThreshold ? "gold" : "green"}>{v.stockQty}</Badge></Td>
               <Td>
                 <ActionForm action={receiveStockAction} resetOnSuccess className="flex gap-1.5">
                   <input type="hidden" name="variantId" value={v.id} />
                   <input name="qty" type="number" min={1} placeholder="Qty" required aria-label="Quantity purchased" className="field !w-16 !py-1.5" />
-                  <input name="unitCost" type="number" min={0} placeholder="Cost" defaultValue={v.costPrice ?? ""} aria-label="Purchase price per unit" className="field !w-24 !py-1.5" />
+                  {owner && <input name="unitCost" type="number" min={0} placeholder="Cost" defaultValue={v.costPrice ?? ""} aria-label="Purchase price per unit" className="field !w-24 !py-1.5" />}
                   <input name="reference" placeholder="Invoice" aria-label="Supplier reference" className="field !w-24 !py-1.5" />
                   <Submit variant="ghost">+ In</Submit>
                 </ActionForm>

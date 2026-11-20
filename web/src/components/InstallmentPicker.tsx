@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Brand } from "@/lib/brands";
-import type { FinancingConfig } from "@/lib/finance";
+import { configFor, headlinePlan, type FinancingConfig } from "@/lib/finance";
 import { cn, pkr } from "@/lib/format";
 import { FinanceCalculator } from "./FinanceCalculator";
 import { ProductArt } from "./product/ProductArt";
@@ -30,7 +30,13 @@ const AVAIL: Record<string, { label: string; tone: string }> = {
   OUT_OF_STOCK: { label: "Out of stock", tone: "bg-red/15 text-red" },
 };
 
-const monthly = (l: PickerListing) => Math.ceil(Math.max(0, l.installmentTotal - l.downPayment) / Math.max(1, l.durationMonths));
+const savedMonthly = (l: PickerListing) => Math.ceil(Math.max(0, l.installmentTotal - l.downPayment) / Math.max(1, l.durationMonths));
+
+/** A model's headline plan by its company's own policy (Nov 2026); the saved listing figures if no plan applies. */
+function planOf(l: PickerListing, config: FinancingConfig) {
+  const q = headlinePlan(l.regularPrice, configFor(config, l.brand));
+  return q ? { monthly: q.perInstallment, down: q.downPayment, months: q.terms } : { monthly: savedMonthly(l), down: l.downPayment, months: l.durationMonths };
+}
 
 /**
  * Installments, step by step: 1. choose the brand (logo tiles) → 2. choose the model → 3. see the
@@ -126,7 +132,7 @@ export function InstallmentPicker({ brands, listings, config, initialBrand, init
                     <span className="mt-1 block font-semibold leading-snug">{l.model}</span>
                     <span className="block text-xs text-muted">Cash price {pkr(l.regularPrice)}{l.modelNo ? ` · ${l.modelNo}` : ""}</span>
                     {l.colors && <span className="mt-0.5 block text-[0.7rem] leading-snug text-white/55">Colours: {l.colors}</span>}
-                    <span className="mt-1 block text-sm"><b className="text-gold">{pkr(monthly(l))}</b><span className="text-white/60">/month · {l.durationMonths} months</span></span>
+                    <span className="mt-1 block text-sm"><b className="text-gold">{pkr(planOf(l, config).monthly)}</b><span className="text-white/60">/month · {planOf(l, config).months} months</span></span>
                   </span>
                   <Icon name="arrow-right" className="h-4 w-4 shrink-0 text-white/50" />
                 </button>
@@ -144,16 +150,15 @@ export function InstallmentPicker({ brands, listings, config, initialBrand, init
             <div className="rounded-[var(--radius-card)] bg-gradient-to-br from-gold/15 to-transparent p-5 ring-1 ring-gold/40">
               <p className="text-xs uppercase tracking-wider text-gold-soft">PB Mobiles plan</p>
               <p className="mt-1 text-lg font-semibold">{plan.model}</p>
-              <p className="display mt-4 text-4xl text-gold">{pkr(monthly(plan))}<span className="text-base text-white/60"> /month</span></p>
+              <p className="display mt-4 text-4xl text-gold">{pkr(planOf(plan, config).monthly)}<span className="text-base text-white/60"> /month</span></p>
               <dl className="mt-4 space-y-2 text-sm">
-                <Fact k="Down payment (in store)" v={pkr(plan.downPayment)} />
-                <Fact k="Plan" v={plan.planLabel || `${plan.durationMonths} monthly payments`} />
-                <Fact k="Total on plan" v={pkr(plan.installmentTotal)} />
+                <Fact k="Down payment (in store)" v={pkr(planOf(plan, config).down)} />
+                <Fact k="Plan" v={`${planOf(plan, config).months} monthly payments`} />
                 <Fact k="Cash price" v={pkr(plan.regularPrice)} />
               </dl>
               <p className="mt-4 text-xs text-white/55">Want a different down payment or number of months? Use the calculator.</p>
             </div>
-            <FinanceCalculator key={plan.id} config={config} initialPrice={plan.regularPrice} productName={plan.model} bookable />
+            <FinanceCalculator key={plan.id} config={configFor(config, plan.brand)} initialPrice={plan.regularPrice} productName={plan.model} bookable />
           </div>
         ) : (
           <p className="mt-4 rounded-2xl bg-card p-5 text-sm text-muted ring-1 ring-white/10">Choose a model to see its monthly payment and try different down payments.</p>

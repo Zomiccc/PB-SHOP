@@ -5,17 +5,22 @@ import { useEffect, useRef, useState } from "react";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
-type Line = { variantId: string; name: string; detail: string; sku: string; price: number; stock: number; qty: number };
+type Line = { variantId: string; name: string; detail: string; sku: string; price: number; listPrice: number; floor: number; stock: number; qty: number };
+type Item = { variantId: string; name: string; detail: string; sku: string; price: number; floor: number; stock: number; active: boolean };
+type Reward = { id: string; name: string; pointsCost: number };
 type Customer = { found: boolean; name?: string; passportNo?: string; points?: number };
 
 const METHODS = { CASH: "Cash", CARD: "Card (terminal)", MOBILE_WALLET: "JazzCash / Easypaisa", BANK_TRANSFER: "Bank transfer" } as const;
 
 /**
- * POS / scan-and-sell (§6, §19, §20). USB scanners act as a keyboard: they "type" the code and
- * press Enter into the focused scan box. Camera scanning is available on phones/tablets.
+ * POS / sell (§6, §19, §20; simplified Nov 2026). One box: type a product name or model and tap a result, or
+ * scan a barcode (USB scanners type the code and press Enter). A salesman can lower a line's price down to the
+ * item's offer / discount price; the owner has no limit.
  */
-export function Pos({ isSuper }: { isSuper: boolean }) {
+export function Pos({ isSuper, rewards }: { isSuper: boolean; rewards: Reward[] }) {
   const [code, setCode] = useState("");
+  const [results, setResults] = useState<Item[]>([]);
+  const [rewardId, setRewardId] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [flash, setFlash] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [phone, setPhone] = useState("");
@@ -28,7 +33,6 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
   const [busy, setBusy] = useState(false);
   const [override, setOverride] = useState<{ open: boolean; email: string; password: string; error?: string }>({ open: false, email: "", password: "" });
   const [done, setDone] = useState<{ orderId: string; number: string; total: number } | null>(null);
-  const [camera, setCamera] = useState(false);
   const scanRef = useRef<HTMLInputElement>(null);
 
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
@@ -41,6 +45,35 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
     scanRef.current?.focus();
   }, [done]);
 
+  // Search as you type (name, model, SKU…). A scanned barcode is typed fast and ends with Enter.
+  useEffect(() => {
+    const q = code.trim();
+    if (q.length < 2) return;
+    const t = setTimeout(async () => {
+      const r = await fetch(`/api/admin/pos/search?q=${encodeURIComponent(q)}`).then((x) => x.json()).catch(() => ({ results: [] }));
+      setResults(r.results ?? []);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [code]);
+
+  function add(data: Item) {
+    if (!data.active) {
+      setFlash({ tone: "err", text: `${data.name} is switched off` });
+      beep(220);
+      return;
+    }
+    beep(880);
+    setCode("");
+    setResults([]);
+    setFlash({ tone: data.stock > 0 ? "ok" : "err", text: `${data.name}${data.detail ? ` · ${data.detail}` : ""} · ${pkr(data.price)} · ${data.stock} in stock` });
+    setLines((ls) => {
+      const found = ls.find((l) => l.variantId === data.variantId);
+      if (found) return ls.map((l) => (l.variantId === data.variantId ? { ...l, qty: l.qty + 1 } : l));
+      return [...ls, { variantId: data.variantId, name: data.name, detail: data.detail, sku: data.sku, price: data.price, listPrice: data.price, floor: data.floor, stock: data.stock, qty: 1 }];
+    });
+    scanRef.current?.focus();
+  }
+
   useEffect(() => {
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 11) return;
@@ -52,29 +85,19 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
     return () => clearTimeout(t);
   }, [phone, name]);
 
+  /** Enter: a barcode / SKU / IMEI adds that item straight away; otherwise the only search result is added. */
   async function lookup(raw: string) {
     const c = raw.trim();
     if (!c) return;
-    setCode("");
     const res = await fetch(`/api/admin/pos/lookup?code=${encodeURIComponent(c)}`);
-    const data = await res.json();
-    if (!res.ok) {
-      setFlash({ tone: "err", text: data.error });
+    if (res.ok) return add(await res.json());
+    const r = await fetch(`/api/admin/pos/search?q=${encodeURIComponent(c)}`).then((x) => x.json()).catch(() => ({ results: [] }));
+    if (r.results?.length === 1) return add(r.results[0]);
+    setResults(r.results ?? []);
+    if (!r.results?.length) {
+      setFlash({ tone: "err", text: `Nothing found for “${c}”` });
       beep(220);
-      return;
     }
-    if (!data.active) {
-      setFlash({ tone: "err", text: `${data.name} is deactivated` });
-      beep(220);
-      return;
-    }
-    beep(880);
-    setFlash({ tone: data.stock > 0 ? "ok" : "err", text: `${data.name} · ${data.sku} · ${pkr(data.price)} · ${data.stock} in stock` });
-    setLines((ls) => {
-      const found = ls.find((l) => l.variantId === data.variantId);
-      if (found) return ls.map((l) => (l.variantId === data.variantId ? { ...l, qty: l.qty + 1 } : l));
-      return [...ls, { variantId: data.variantId, name: data.name, detail: data.detail, sku: data.sku, price: data.price, stock: data.stock, qty: 1 }];
-    });
   }
 
   async function complete(withOverride = false) {
@@ -84,7 +107,8 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
+          items: lines.map((l) => ({ variantId: l.variantId, qty: l.qty, ...(l.price !== l.listPrice ? { unitPrice: l.price } : {}) })),
+          rewardId: phone.trim() && rewardId ? rewardId : undefined,
           method,
           customerPhone: phone.trim() || undefined,
           customerName: name.trim() || undefined,
@@ -116,6 +140,9 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
     setDiscount(0);
     setNote("");
     setPoints("");
+    setRewardId("");
+    setCode("");
+    setResults([]);
     setMethod("CASH");
     setFlash(null);
     setDone(null);
@@ -143,34 +170,71 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
             e.preventDefault();
             lookup(code);
           }}
-          className="flex gap-2 rounded-2xl bg-navy-950 p-4"
+          className="relative rounded-2xl bg-navy-950 p-4"
         >
-          <label htmlFor="scan" className="sr-only">Scan barcode or type SKU</label>
-          <input
-            id="scan"
-            ref={scanRef}
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            autoComplete="off"
-            placeholder="Scan barcode or type SKU, then Enter"
-            className="field field-dark flex-1 !py-4 font-mono text-lg"
-          />
-          <button type="button" onClick={() => setCamera(true)} className="btn btn-ghost-light" aria-label="Scan with camera">
-            <Icon name="search" className="h-4 w-4" /> Camera
-          </button>
+          <label htmlFor="scan" className="sr-only">Search a product or scan a barcode</label>
+          <div className="relative">
+            <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+            <input
+              id="scan"
+              ref={scanRef}
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                if (e.target.value.trim().length < 2) setResults([]);
+              }}
+              autoComplete="off"
+              enterKeyHint="search"
+              placeholder="Type a name or model (e.g. Note 60) or scan a barcode"
+              className="field field-dark w-full !py-4 !pl-12 text-lg"
+            />
+          </div>
+          {results.length > 0 && code.trim().length >= 2 && (
+            <ul className="mt-2 max-h-[60vh] divide-y divide-white/8 overflow-y-auto rounded-xl bg-white/[0.04] ring-1 ring-white/10" role="listbox" aria-label="Search results">
+              {results.map((r) => (
+                <li key={r.variantId}>
+                  <button type="button" onClick={() => add(r)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-white transition hover:bg-white/10">
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold leading-snug">{r.name}</span>
+                      <span className="block text-xs text-white/55">{[r.detail, r.sku].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <b className="block">{pkr(r.price)}</b>
+                      <span className={cn("text-xs", r.stock > 0 ? "text-emerald-400" : "text-red")}>{r.stock > 0 ? `${r.stock} in stock` : "out of stock"}</span>
+                    </span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold text-[#120d02]"><Icon name="plus" className="h-4 w-4" /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </form>
         {flash && <p role="status" className={cn("rounded-xl px-4 py-3 text-sm font-medium", flash.tone === "ok" ? "bg-emerald-600/10 text-emerald-400" : "bg-red/10 text-red")}>{flash.text}</p>}
 
         <div className="rounded-2xl bg-card shadow-[var(--shadow-card)]">
           {lines.length === 0 ? (
-            <p className="p-10 text-center text-muted">Scan an item to start the sale.</p>
+            <p className="p-10 text-center text-muted">Search or scan an item to start the sale.</p>
           ) : (
             <ul className="divide-y divide-ink/5">
               {lines.map((l) => (
                 <li key={l.variantId} className="flex flex-wrap items-center gap-3 p-4">
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{l.name}</p>
-                    <p className="text-xs text-muted">{l.detail} · <span className="font-mono">{l.sku}</span> · {pkr(l.price)}</p>
+                    <p className="text-xs text-muted">{[l.detail, l.sku].filter(Boolean).join(" · ")}</p>
+                    <label className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="text-muted">Price</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={isSuper ? 0 : l.floor}
+                        value={l.price || ""}
+                        onChange={(e) => setLines((ls) => ls.map((x) => (x.variantId === l.variantId ? { ...x, price: Math.max(0, Math.round(Number(e.target.value) || 0)) } : x)))}
+                        aria-label={`Price for ${l.name}`}
+                        className={cn("field !w-28 !py-1.5 !text-sm", !isSuper && l.price < l.floor && "!ring-2 !ring-red")}
+                      />
+                      {!isSuper && l.floor < l.listPrice && <span className={cn(l.price < l.floor ? "font-semibold text-red" : "text-muted")}>lowest {pkr(l.floor)}</span>}
+                      {l.price !== l.listPrice && <button type="button" onClick={() => setLines((ls) => ls.map((x) => (x.variantId === l.variantId ? { ...x, price: x.listPrice } : x)))} className="text-blue underline-offset-2 hover:underline">reset to {pkr(l.listPrice)}</button>}
+                    </label>
                     <p className={cn("text-xs", l.qty > l.stock ? "font-semibold text-red" : "text-muted")}>{l.stock} available{l.qty > l.stock ? " — exceeds stock" : ""}</p>
                   </div>
                   <div className="flex items-center rounded-full border border-ink/15">
@@ -200,6 +264,16 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
             </p>
           )}
           {customer && !customer.found && <p className="mt-2 text-xs text-muted">New customer — a PB Rewards account will be created.</p>}
+          {customer?.found && rewards.some((r) => r.pointsCost <= (customer.points ?? 0)) && (
+            <label className="mt-3 block">
+              <span className="label">Use points (optional)</span>
+              <select value={rewardId} onChange={(e) => setRewardId(e.target.value)} className="field">
+                <option value="">No reward</option>
+                {rewards.filter((r) => r.pointsCost <= (customer.points ?? 0)).map((r) => <option key={r.id} value={r.id}>{r.name} — {r.pointsCost} points</option>)}
+              </select>
+              <span className="mt-1 block text-xs text-muted">Hand over the reward; the points used are printed on the bill.</span>
+            </label>
+          )}
         </div>
 
         <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
@@ -253,50 +327,6 @@ export function Pos({ isSuper }: { isSuper: boolean }) {
         </div>
       )}
 
-      {camera && <CameraScanner onClose={() => setCamera(false)} onCode={(c) => { setCamera(false); lookup(c); }} />}
-    </div>
-  );
-}
-
-function CameraScanner({ onCode, onClose }: { onCode: (c: string) => void; onClose: () => void }) {
-  const video = useRef<HTMLVideoElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const cb = useRef(onCode);
-  useEffect(() => {
-    cb.current = onCode;
-  }, [onCode]);
-  useEffect(() => {
-    let stop: (() => void) | undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const reader = new BrowserMultiFormatReader();
-        const controls = await reader.decodeFromVideoDevice(undefined, video.current!, (result) => {
-          if (result && !cancelled) {
-            cancelled = true;
-            cb.current(result.getText());
-          }
-        });
-        stop = () => controls.stop();
-      } catch {
-        setError("Camera unavailable — allow camera access or use a USB scanner.");
-      }
-    })();
-    return () => {
-      cancelled = true;
-      stop?.();
-    };
-  }, []);
-  return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/80 p-4" role="dialog" aria-label="Camera scanner">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-navy-950 text-white">
-        <video ref={video} className="aspect-[4/3] w-full bg-black object-cover" muted playsInline />
-        <div className="flex items-center justify-between p-4 text-sm">
-          <span>{error ?? "Point the camera at the barcode"}</span>
-          <button onClick={onClose} className="btn btn-ghost-light !py-2">Close</button>
-        </div>
-      </div>
     </div>
   );
 }

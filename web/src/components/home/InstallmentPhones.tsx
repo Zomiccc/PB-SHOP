@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { InstallmentListing } from "@prisma/client";
 import { pkr } from "@/lib/format";
 import { AVAILABILITY, STORE_VISIT_NOTICE, monthlyPayment, type Availability } from "@/lib/installments";
+import { configFor, headlinePlan, type FinancingConfig } from "@/lib/finance";
 import { ProductArt } from "../product/ProductArt";
 import { Icon } from "../ui/Icon";
 import { Reveal } from "../ui/Reveal";
@@ -19,7 +20,7 @@ const TONE: Record<string, string> = {
  * Separate "Phones on installments" section (master brief §3). Deliberately has NO buy / apply /
  * checkout button: installment sales are completed in store with the customer's CNIC.
  */
-export function InstallmentPhones({ listings, brands = [], heading = true, showCalculatorLink = true }: { listings: InstallmentListing[]; brands?: Brand[]; heading?: boolean; showCalculatorLink?: boolean }) {
+export function InstallmentPhones({ listings, brands = [], heading = true, showCalculatorLink = true, config }: { listings: InstallmentListing[]; brands?: Brand[]; heading?: boolean; showCalculatorLink?: boolean; /** Calculator settings — each company's own policy decides the plan shown. */ config?: FinancingConfig }) {
   if (!listings.length) return null;
   return (
     <section id="installments" className="relative overflow-hidden py-14 md:py-20">
@@ -55,7 +56,10 @@ export function InstallmentPhones({ listings, brands = [], heading = true, showC
         )}
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
           {listings.map((l, i) => {
-            const monthly = monthlyPayment(l);
+            // The company's own policy (Nov 2026): lowest down payment, longest plan; else the saved listing figures.
+            const q = config ? headlinePlan(l.regularPrice, configFor(config, l.brand)) : null;
+            const monthly = q?.perInstallment ?? monthlyPayment(l);
+            const months = q?.terms ?? l.durationMonths;
             return (
               <Reveal key={l.id} delay={Math.min(i, 5) * 0.05}>
                 <li className="flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-card ring-1 ring-white/10">
@@ -77,11 +81,9 @@ export function InstallmentPhones({ listings, brands = [], heading = true, showC
                   </div>
                   <div className="mt-auto grid grid-cols-2 gap-px bg-white/8 text-sm">
                     <Fact k="Monthly" v={`${pkr(monthly)}`} strong />
-                    <Fact k="Down payment" v={pkr(l.downPayment)} />
-                    <Fact k="Plan" v={l.planLabel || `${l.durationMonths} months`} />
-                    <Fact k="Total on plan" v={pkr(l.installmentTotal)} />
-                    <Fact k="Interest / markup" v={`${l.interestPercent}%`} />
-                    <Fact k="Duration" v={`${l.durationMonths} months`} />
+                    <Fact k="Down payment" v={pkr(q?.downPayment ?? l.downPayment)} />
+                    <Fact k="Plan" v={`${months} monthly payments`} />
+                    <Fact k="Cash price" v={pkr(l.regularPrice)} />
                   </div>
                   <Link href={`/installments?plan=${l.id}#calculator`} className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3 text-sm font-semibold text-gold transition hover:bg-gold/10">
                     <Icon name="card" className="h-4 w-4" /> <T k="installments.calcPlan" d="Calculate my plan" />

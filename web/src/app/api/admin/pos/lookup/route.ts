@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getStaff } from "@/lib/staff";
+import { toPosItem } from "@/lib/pos-item";
 
 /** Item Number (SKU) / barcode / IMEI lookup for the POS (master brief §10): exact match, instant. */
 export async function GET(req: Request) {
@@ -13,15 +14,5 @@ export async function GET(req: Request) {
     include: { product: true },
   });
   if (!v) return NextResponse.json({ error: `No item with Item Number, barcode or IMEI “${code}”` }, { status: 404 });
-  return NextResponse.json({
-    variantId: v.id,
-    name: `${v.product.name}${v.product.condition === "USED" ? " (Used)" : ""}`,
-    detail: [v.storage, v.color, v.grade ? `Grade ${v.grade}` : null].filter(Boolean).join(" · "),
-    sku: v.sku,
-    barcode: v.barcode,
-    price: v.salePrice ?? v.price,
-    stock: v.stockQty,
-    active: v.active && v.product.active,
-    allowBackorder: v.allowBackorder,
-  });
+  return NextResponse.json(toPosItem(v, staff.role === "SUPER_ADMIN"));
 }

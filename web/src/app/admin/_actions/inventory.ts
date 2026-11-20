@@ -10,7 +10,9 @@ import { assertVariantGrade } from "@/lib/grade";
 import { assertImeiFree, receiveStock } from "@/lib/inventory";
 import { saveUpload, StorageUnavailableError } from "@/lib/storage";
 import { slugify } from "@/lib/format";
-import { ACCESSORY_TYPES, ACCESSORY_WARRANTY, PART_TYPES, USED_WARRANTY } from "@/lib/constants";
+import { ACCESSORY_WARRANTY, PART_TYPES, USED_WARRANTY, USED_WARRANTY_OPTIONS } from "@/lib/constants";
+import { saveDevicePhotos } from "@/lib/device-photos";
+import { resolveAccessoryCategory } from "@/lib/categories";
 import type { FormState } from "./auth";
 import { int, optStr, run, str } from "./util";
 
@@ -37,9 +39,12 @@ export async function createItemAction(_: FormState, f: FormData): Promise<FormS
     if (!brand) throw new Error("Enter the company / brand");
 
     const salePrice = int(f, "salePrice");
-    const costPrice = int(f, "costPrice");
+    // Purchase price is entered by the owner only (Nov 2026); the offer / discount price is the salesman's floor.
+    const costPrice = staff.role === "SUPER_ADMIN" ? int(f, "costPrice") : null;
+    const floorPrice = int(f, "floorPrice");
     if (!salePrice || salePrice <= 0) throw new Error("Enter the sale price");
-    if (costPrice == null || costPrice < 0) throw new Error("Enter the purchase price");
+    if (costPrice != null && costPrice < 0) throw new Error("Purchase price can't be negative");
+    if (floorPrice != null && (floorPrice <= 0 || floorPrice > salePrice)) throw new Error("The offer / discount price must be between 1 and the sale price");
     const imei = device ? optStr(f, "imei")?.replace(/\s/g, "") ?? null : null;
     if (imei && !/^[A-Za-z0-9-]{6,20}$/.test(imei)) throw new Error("IMEI should be 6–20 letters or digits");
     const grade = device ? assertVariantGrade(condition, optStr(f, "grade")) : null;
@@ -60,8 +65,12 @@ export async function createItemAction(_: FormState, f: FormData): Promise<FormS
       }
     }
 
+    const sidePhotos = condition === "USED" ? await saveDevicePhotos(f, null) : null;
+    if (sidePhotos?.skipped) photosSkipped = true;
+    const usedWarranty = (USED_WARRANTY_OPTIONS as readonly string[]).includes(str(f, "warrantyInfo")) ? str(f, "warrantyInfo") : USED_WARRANTY;
+
     const partType = category === "PART" ? (str(f, "partType") in PART_TYPES ? str(f, "partType") : "OTHER") : null;
-    const accessoryType = category === "ACCESSORY" ? (str(f, "accessoryType") in ACCESSORY_TYPES ? str(f, "accessoryType") : "OTHER") : null;
+    const accessoryType = category === "ACCESSORY" ? await resolveAccessoryCategory(f) : null;
 
     productId = await db.$transaction(async (tx) => {
       await assertImeiFree(tx, imei);
@@ -107,15 +116,17 @@ export async function createItemAction(_: FormState, f: FormData): Promise<FormS
           imei,
           partNumber: optStr(f, "partNumber"),
           storage: device ? optStr(f, "storage") : null,
-          ram: category === "TABLET" ? optStr(f, "ram") : null,
+          ram: device ? optStr(f, "ram") : null,
           color: optStr(f, "color"),
           price: salePrice,
+          floorPrice,
           costPrice,
+          ...(sidePhotos ? { photos: sidePhotos.json } : {}),
           grade,
           batteryHealth: device ? int(f, "batteryHealth") : null,
           conditionNotes: optStr(f, "notes"),
           lowStockThreshold: condition === "USED" ? 0 : int(f, "lowStockThreshold") ?? (category === "PART" || category === "ACCESSORY" ? 3 : 2),
-          warrantyInfo: condition === "USED" ? USED_WARRANTY : category === "ACCESSORY" ? ACCESSORY_WARRANTY : null,
+          warrantyInfo: condition === "USED" ? usedWarranty : category === "ACCESSORY" ? ACCESSORY_WARRANTY : null,
           stockQty: 0,
         },
       });

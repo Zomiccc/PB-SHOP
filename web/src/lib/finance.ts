@@ -29,7 +29,29 @@ export type FinancingConfig = {
   /** Lowest phone price eligible for financing, Rs. */
   minPrice: number;
   disclaimer: string;
+  /**
+   * Each company's own policy (Nov 2026 — the shop sells four brands, each with its own down payment and markup),
+   * keyed by brand slug (src/lib/brands.ts). Anything left out uses the main settings above.
+   */
+  companies?: Record<string, CompanyPolicy>;
 };
+
+export type CompanyPolicy = Partial<Pick<FinancingConfig, "minDownPaymentPercent" | "downPaymentOptions" | "termOptions" | "markupPercentPerMonth">>;
+
+/** The calculator settings for one company (brand slug), its own policy over the main settings. */
+export function configFor(cfg: FinancingConfig, brand?: string | null): FinancingConfig {
+  const own = brand ? cfg.companies?.[brand] : undefined;
+  if (!own) return cfg;
+  const pick = <K extends keyof CompanyPolicy>(k: K) => (own[k] === undefined || own[k] === "" ? cfg[k] : own[k]) as FinancingConfig[K];
+  return { ...cfg, minDownPaymentPercent: pick("minDownPaymentPercent"), downPaymentOptions: pick("downPaymentOptions"), termOptions: pick("termOptions"), markupPercentPerMonth: pick("markupPercentPerMonth") };
+}
+
+/** The shop's headline plan for a phone: lowest down payment, longest term (what the plan cards show). */
+export function headlinePlan(price: number, cfg: FinancingConfig) {
+  const terms = termList(cfg);
+  if (!terms.length) return null;
+  return quote(price, minDownPayment(price, cfg), terms[terms.length - 1], cfg);
+}
 
 export type FinancingQuote = {
   price: number;

@@ -8,6 +8,7 @@ import { audit } from "@/lib/audit";
 import { requireStaff } from "@/lib/staff";
 import { SETTING_DEFAULTS, getSetting, type SettingKey } from "@/lib/settings";
 import { parseTiers } from "@/lib/points-rules";
+import type { CompanyPolicy } from "@/lib/finance";
 import type { FormState } from "./auth";
 import { bool, diff, int, run, str } from "./util";
 
@@ -21,7 +22,9 @@ export async function saveSettingAction(_: FormState, f: FormData): Promise<Form
     const before = await getSetting(key);
     const next: Record<string, unknown> = {};
     for (const [k, def] of Object.entries(SETTING_DEFAULTS[key])) {
-      if (typeof def === "boolean") next[k] = bool(f, k);
+      // Structured values (e.g. per-company installment policies) have their own form: keep them as they are.
+      if (def !== null && typeof def === "object") next[k] = (before as Record<string, unknown>)[k];
+      else if (typeof def === "boolean") next[k] = bool(f, k);
       else if (typeof def === "number") {
         // Decimals allowed (e.g. 2.5% fees), kept to 2 places.
         const n = Number(str(f, k).replace(/,/g, ""));
@@ -123,5 +126,47 @@ export async function resetStaffPasswordAction(_: FormState, f: FormData): Promi
     await db.staff.update({ where: { id: s.id }, data: { passwordHash: await bcrypt.hash(temp, 10), mustChangePassword: true } });
     await audit({ staffId: staff.id, action: "STAFF_PASSWORD_RESET", entityType: "STAFF", entityId: s.id, recordLabel: s.name });
     return `Temporary password for ${s.name}: ${temp}`;
+  });
+}
+
+/**
+ * Installment policy per company (Nov 2026): minimum down payment, down-payment choices, plan lengths and markup
+ * for each brand. An empty box means "same as the main calculator settings". Audited like other settings.
+ */
+export async function saveCompanyPoliciesAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff({ superAdmin: true });
+  return run(async () => {
+    const before = await getSetting("installmentCalc");
+    const slugs = str(f, "brands").split(",").filter(Boolean);
+    const companies: Record<string, CompanyPolicy> = {};
+    const list = (v: string, name: string) => {
+      if (!v) return undefined;
+      const parts = v.split(/[,\s]+/).filter(Boolean).map(Number);
+      if (!parts.length || parts.some((n) => !Number.isFinite(n) || n <= 0)) throw new Error(`${name}: use numbers separated by commas, e.g. 20,30,40`);
+      return parts.join(",");
+    };
+    for (const slug of slugs) {
+      const num = (k: string) => {
+        const v = str(f, `${slug}.${k}`);
+        if (v === "") return undefined;
+        const n = Number(v);
+        if (!Number.isFinite(n) || n < 0 || n >= 100) throw new Error(`${slug}: ${k} must be a number from 0 to 99`);
+        return Math.round(n * 100) / 100;
+      };
+      const p: CompanyPolicy = {
+        minDownPaymentPercent: num("minDownPaymentPercent"),
+        downPaymentOptions: list(str(f, `${slug}.downPaymentOptions`), `${slug} down payments`),
+        termOptions: list(str(f, `${slug}.termOptions`), `${slug} plans`),
+        markupPercentPerMonth: num("markupPercentPerMonth"),
+      };
+      const clean = Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined)) as CompanyPolicy;
+      if (Object.keys(clean).length) companies[slug] = clean;
+    }
+    const next = { ...before, companies };
+    await db.setting.upsert({ where: { key: "installmentCalc" }, create: { key: "installmentCalc", value: JSON.stringify(next) }, update: { value: JSON.stringify(next) } });
+    await audit({ staffId: staff.id, action: "SETTING_CHANGED", entityType: "SETTING", entityId: "installmentCalc", recordLabel: "Installment policies per company", before: { companies: before.companies }, after: { companies } });
+    revalidatePath("/admin/settings");
+    revalidatePath("/installments");
+    return "Company policies saved";
   });
 }

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { resolveAccessoryCategory } from "@/lib/categories";
+import { saveDevicePhotos } from "@/lib/device-photos";
 import { audit } from "@/lib/audit";
 import { requireStaff, clientIp } from "@/lib/staff";
 import { adjustStock, assertImeiFree, receiveStock } from "@/lib/inventory";
@@ -12,7 +14,7 @@ import type { FormState } from "./auth";
 import { assertVariantGrade } from "@/lib/grade";
 import { bool, diff, int, optStr, run, str } from "./util";
 
-function productData(f: FormData) {
+async function productData(f: FormData) {
   const t = str(f, "type");
   const type = t === "ACCESSORY" ? "ACCESSORY" : t === "TABLET" ? "TABLET" : t === "PART" ? "PART" : "PHONE";
   const specsText = str(f, "specs");
@@ -29,7 +31,7 @@ function productData(f: FormData) {
     brand: str(f, "brand"),
     type,
     condition: type === "ACCESSORY" || type === "PART" ? "NEW" : str(f, "condition") === "USED" ? "USED" : "NEW",
-    accessoryType: type === "ACCESSORY" ? str(f, "accessoryType") || "OTHER" : null,
+    accessoryType: type === "ACCESSORY" ? await resolveAccessoryCategory(f) : null,
     partType: type === "PART" ? str(f, "partType") || "OTHER" : null,
     compatibleModel: type === "PART" ? optStr(f, "compatibleModel") : null,
     description: str(f, "description"),
@@ -49,7 +51,7 @@ export async function saveProductAction(_: FormState, f: FormData): Promise<Form
   const id = str(f, "id");
   let createdId: string | null = null;
   const res = await run(async () => {
-    const data = productData(f);
+    const data = await productData(f);
     if (id) {
       const before = await db.product.findUniqueOrThrow({ where: { id }, include: { variants: true } });
       if (before.condition !== data.condition && before.variants.length) {
@@ -107,8 +109,13 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
     if (!barcode) throw new Error("Barcode is required (use Generate)");
     if (price == null || price <= 0) throw new Error("Price must be greater than 0");
     const salePrice = int(f, "salePrice");
-    if (salePrice != null && salePrice >= price) throw new Error("Sale price must be lower than the price");
+    if (salePrice != null && salePrice >= price) throw new Error("The website offer price must be lower than the sale price");
+    const floorPrice = int(f, "floorPrice");
+    if (floorPrice != null && (floorPrice <= 0 || floorPrice > (salePrice ?? price))) throw new Error("The offer / discount price must be between 1 and the selling price");
     const existing = id ? await db.variant.findUnique({ where: { id } }) : null;
+    // Purchase price is the owner's to see and set (Nov 2026); an employee's save keeps what the owner entered.
+    const costPrice = staff.role === "SUPER_ADMIN" ? int(f, "costPrice") : (existing?.costPrice ?? null);
+    const photos = product0Used(f) ? await saveDevicePhotos(f, existing?.photos) : null;
     const product = await db.product.findUniqueOrThrow({ where: { id: productId } });
     // One grade per SKU, used devices only (master brief §8) — throws on "A/B", missing or invalid grades.
     const grade = assertVariantGrade(product.condition, optStr(f, "grade"));
@@ -124,7 +131,9 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       imageUrl: optStr(f, "imageUrl"),
       price,
       salePrice,
-      costPrice: int(f, "costPrice"),
+      floorPrice,
+      costPrice,
+      ...(photos ? { photos: photos.json } : {}),
       imei: optStr(f, "imei")?.replace(/\s/g, "") ?? null,
       partNumber: optStr(f, "partNumber"),
       lowStockThreshold: int(f, "lowStockThreshold") ?? 2,
@@ -146,7 +155,7 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       const before = await db.variant.findUniqueOrThrow({ where: { id } });
       const d = diff(before as unknown as Record<string, unknown>, data);
       if (!d.changed) return "No changes";
-      const priceChanged = "price" in d.after || "salePrice" in d.after;
+      const priceChanged = "price" in d.after || "salePrice" in d.after || "floorPrice" in d.after;
       await db.$transaction(async (tx) => {
         await tx.variant.update({ where: { id }, data });
         await audit({ staffId: staff.id, action: priceChanged ? "PRICE_CHANGED" : "VARIANT_UPDATED", entityType: "VARIANT", entityId: id, recordLabel: `${product.name} / ${sku}`, before: d.before, after: d.after, ip: await clientIp() }, tx);
@@ -161,6 +170,7 @@ export async function saveVariantAction(_: FormState, f: FormData): Promise<Form
       });
     }
     revalidatePath(`/admin/products/${productId}`);
+    if (photos?.skipped) return "Saved — photos weren't stored (file storage isn't set up on this server)";
     return id ? "Variant saved" : "Variant added";
   });
 }
@@ -234,3 +244,6 @@ export async function clearModelAction(_: FormState, f: FormData): Promise<FormS
     return "3D model removed — the default 3D preview is shown";
   });
 }
+
+/** The variant form of a used device carries its six-side photo boxes. */
+const product0Used = (f: FormData) => f.get("deviceUsed") === "1";

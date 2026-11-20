@@ -11,11 +11,11 @@ export async function activeBroadcast(now = new Date()) {
 }
 
 export type BroadcastMedia = { url: string; type: "IMAGE" | "VIDEO" };
-export type LiveBroadcast = { id: string; message: string; ctaLabel: string | null; ctaHref: string | null; media: BroadcastMedia[] };
+export type LiveBroadcast = { id: string; title?: string | null; message: string; ctaLabel: string | null; ctaHref: string | null; media: BroadcastMedia[] };
 
 /** Every broadcast showing right now, newest first, with its pictures / videos (v6 §1 — shown beneath Shop Phones). */
 export async function activeBroadcasts(now = new Date()): Promise<LiveBroadcast[]> {
-  const rows = await db.broadcast.findMany({ where: live(now), orderBy: [{ startsAt: "desc" }, { updatedAt: "desc" }], take: 10, select: { id: true, message: true, ctaLabel: true, ctaHref: true, media: true } });
+  const rows = await db.broadcast.findMany({ where: live(now), orderBy: [{ startsAt: "desc" }, { updatedAt: "desc" }], take: 10, select: { id: true, title: true, message: true, ctaLabel: true, ctaHref: true, media: true } });
   return rows.map((b) => ({ ...b, ctaHref: safeHref(b.ctaHref), media: parseMedia(b.media) }));
 }
 

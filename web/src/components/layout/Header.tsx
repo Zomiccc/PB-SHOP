@@ -10,6 +10,7 @@ import { cn } from "@/lib/format";
 import { Logo } from "./Logo";
 import { Icon } from "../ui/Icon";
 import { StoreLink, T } from "../site/Editable";
+import { AnnouncementBell, type Announcement } from "./Announcements";
 
 /** Content key for a menu item, e.g. "/new-phones" → "nav.new-phones". */
 const navKey = (href: string) => `nav.${href.replace(/^\//, "") || "home"}`;
@@ -17,7 +18,7 @@ const navKey = (href: string) => `nav.${href.replace(/^\//, "") || "home"}`;
 /** Pages whose first screen is dark navy — header starts in its light-on-dark state. */
 const DARK_TOP = ["/", "/loyalty", "/repair"];
 
-export function Header() {
+export function Header({ announcements = [] }: { announcements?: Announcement[] }) {
   const pathname = usePathname();
   const items = useCart((s) => s.items);
   const setOpen = useCart((s) => s.setOpen);
@@ -120,6 +121,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5">
+            <AnnouncementBell items={announcements} dark={dark} />
             <Link
               href="/account"
               aria-label="Account and PB Rewards"

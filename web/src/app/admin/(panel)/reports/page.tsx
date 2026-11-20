@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { pkr } from "@/lib/format";
 import { ITEM_CATEGORIES, REPAIR_STATUSES } from "@/lib/constants";
 import { financeReport } from "@/lib/reports";
+import { expenseTotals } from "@/lib/expenses";
 import { Badge, FilterLink, PageTitle, Panel, Stat, Table, Td, dt } from "@/components/admin/Primitives";
 import { BarChart } from "@/components/admin/BarChart";
 
@@ -24,12 +25,13 @@ export default async function ReportsPage(props: PageProps<"/admin/reports">) {
   const to = one("to") ? new Date(`${one("to")}T23:59:59+05:00`) : new Date();
   const filters = { from, to, category: one("category") in ITEM_CATEGORIES ? one("category") : undefined, staffId: one("staff") || undefined, item: one("item") || undefined, type: ["PURCHASE", "SALE", "RETURN", "ADJUST", "CANCEL", "RECEIVED"].includes(one("type")) ? one("type") : undefined };
 
-  const [finance, orders, repairs, variants, staff] = await Promise.all([
+  const [finance, orders, repairs, variants, staff, expenses] = await Promise.all([
     financeReport(filters),
     db.order.findMany({ where: { createdAt: { gte: since } }, include: { items: true } }),
     db.repairRequest.findMany({ where: { createdAt: { gte: since } } }),
     db.variant.findMany({ where: { active: true, product: { active: true } }, include: { product: true } }),
     db.staff.findMany({ include: { ordersHandled: { where: { createdAt: { gte: since }, paymentStatus: "PAID" } }, repairChanges: { where: { createdAt: { gte: since } } } } }),
+    expenseTotals(),
   ]);
   const paid = orders.filter((o) => o.paymentStatus === "PAID");
   const revenue = paid.reduce((s, o) => s + o.total, 0);
@@ -61,6 +63,23 @@ export default async function ReportsPage(props: PageProps<"/admin/reports">) {
         <Stat label="Average order" value={pkr(paid.length ? Math.round(revenue / paid.length) : 0)} />
         <Stat label="Repairs booked" value={repairs.length} hint={`${repairs.filter((r) => r.status === "COMPLETED").length} completed`} />
       </div>
+
+      {/* Daily and monthly expenses (Nov 2026): shop expenses + repair parts & tools, in Pakistan time. */}
+      <Panel title="Expenses" className="mt-6" action={<span className="flex gap-3 text-sm"><Link href="/admin/expenses" className="text-blue">Daily expenses →</Link><Link href="/admin/repair-expenses" className="text-blue">Repair parts & tools →</Link></span>}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Stat label="Today" value={pkr(expenses.today.total)} hint={`Shop ${pkr(expenses.today.daily)} · repair ${pkr(expenses.today.repair)}`} />
+          <Stat label={`This month (${expenses.month.label})`} value={pkr(expenses.month.total)} />
+          <Stat label="Daily expenses this month" value={pkr(expenses.month.daily)} />
+          <Stat label="Repair parts & tools this month" value={pkr(expenses.month.repair)} />
+        </div>
+        {expenses.byCategory.length > 0 && (
+          <ul className="mt-4 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {expenses.byCategory.map(([c, v]) => (
+              <li key={c} className="flex justify-between border-b border-ink/5 py-1"><span className="text-muted">{c}</span><b>{pkr(v)}</b></li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       <Panel title="Investment, revenue & profit" className="mt-6">
         <form className="mb-5 grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-7">

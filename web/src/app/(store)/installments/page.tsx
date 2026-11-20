@@ -4,7 +4,7 @@ import { PageHero } from "@/components/layout/PageHero";
 import { T } from "@/components/site/Editable";
 import { FinanceCalculator } from "@/components/FinanceCalculator";
 import { InstallmentPicker } from "@/components/InstallmentPicker";
-import { brandsWithListings, isApplePhone } from "@/lib/brands";
+import { brandsWithListings, isApplePhone, brandSlugFor } from "@/lib/brands";
 import { Icon } from "@/components/ui/Icon";
 import { IdPrivacyNotice } from "@/components/IdPrivacyNotice";
 import { listProducts } from "@/lib/catalog";
@@ -32,7 +32,8 @@ export default async function InstallmentsPage(props: PageProps<"/installments">
   // Any-price calculator: in-stock shop phones (the brand picker covers the installment phones).
   const shopOptions = phones
     .filter((p) => p.totalStock > 0 && !isApplePhone(`${p.brand} ${p.name}`)) // no installments on iPhone
-    .map((p) => ({ slug: p.slug, name: `${p.name}${p.condition === "USED" ? " (Used)" : ""}`, price: p.fromPrice }))
+    .filter((p) => p.condition !== "USED") // used phones aren't sold on installments (Nov 2026)
+    .map((p) => ({ slug: p.slug, name: p.name, price: p.fromPrice, brand: brandSlugFor(p.brand, p.name) }))
     .sort((a, b) => b.price - a.price);
   const plan = typeof sp.plan === "string" ? sp.plan : undefined;
   const brand = typeof sp.brand === "string" ? sp.brand : undefined;

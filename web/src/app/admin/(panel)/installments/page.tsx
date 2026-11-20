@@ -103,7 +103,7 @@ export default async function InstallmentsAdminPage() {
             {sales.map((s) => (
               <tr key={s.id}>
                 <Td><Link href={`/admin/installments/sales/${s.id}`} className="font-semibold hover:text-blue">{s.ref}</Link><span className="block text-xs text-muted">{dt(s.createdAt)} · {s.staff.name}</span></Td>
-                <Td>{s.customerName}<span className="block font-mono text-xs text-muted">{maskCnic(s.cnicNumber)}</span></Td>
+                <Td>{s.customerName}{s.cnicNumber && <span className="block font-mono text-xs text-muted">{maskCnic(s.cnicNumber)}</span>}</Td>
                 <Td className="text-xs">{s.phoneModel}</Td>
                 <Td className="text-xs">{pkr(s.monthlyPayment)} × {s.durationMonths}</Td>
                 <Td><Badge tone={statusTone(s.status)}>{s.status}</Badge></Td>

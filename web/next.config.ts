@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// The whole portal runs on Pakistan time (PKT, UTC+5): dates, receipts and "today" totals (Nov 2026).
+process.env.TZ = "Asia/Karachi";
+
 const dev = process.env.NODE_ENV !== "production";
 const jazz = process.env.JAZZCASH_ENV === "production" ? "https://payments.jazzcash.com.pk" : "https://sandbox.jazzcash.com.pk";
 const storage = process.env.STORAGE_PUBLIC_URL ?? "";

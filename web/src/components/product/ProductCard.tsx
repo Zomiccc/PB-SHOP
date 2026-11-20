@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import type { CatalogItem } from "@/lib/catalog";
-import { ACCESSORY_TYPES, type AccessoryType } from "@/lib/constants";
+import { accessoryLabel } from "@/lib/constants";
 import { cn, pkr } from "@/lib/format";
 import { ProductArt } from "./ProductArt";
 import { Icon } from "../ui/Icon";
@@ -22,7 +22,7 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
   const low = !out && item.totalStock <= 2;
   const tag =
     item.type === "ACCESSORY"
-      ? ACCESSORY_TYPES[(item.accessoryType ?? "OTHER") as AccessoryType]
+      ? accessoryLabel(item.accessoryType)
       : item.condition === "USED"
         ? `${item.type === "TABLET" ? "Used tablet" : "Used"} · Grade ${item.grade ?? "—"}`
         : item.type === "TABLET"

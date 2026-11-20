@@ -35,7 +35,9 @@ export async function saveBroadcastAction(_: FormState, f: FormData): Promise<Fo
     if (rawHref && !ctaHref) throw new Error("Link must be a page on this site (e.g. /used-phones) or an https:// address");
     // Pictures / videos (v6 §2) — only files uploaded through the dashboard are accepted.
     const media = JSON.stringify(parseMedia(str(f, "media")));
-    const data = { message, media, ctaLabel: optStr(f, "ctaLabel"), ctaHref, startsAt: date(f, "startsAt"), endsAt: date(f, "endsAt"), active: bool(f, "active") };
+    const title = optStr(f, "title");
+    if (title && title.length > 80) throw new Error("Keep the title under 80 characters");
+    const data = { title, message, media, ctaLabel: optStr(f, "ctaLabel"), ctaHref, startsAt: date(f, "startsAt"), endsAt: date(f, "endsAt"), active: bool(f, "active") };
     if (data.startsAt && data.endsAt && data.endsAt <= data.startsAt) throw new Error("End must be after start");
     const id = str(f, "id");
     let published = false;
@@ -57,8 +59,8 @@ export async function saveBroadcastAction(_: FormState, f: FormData): Promise<Fo
     revalidatePath("/admin/broadcasts");
     revalidatePath("/");
     // Customers who tapped "Enable Notifications" hear about newly published broadcasts (v6 §9).
-    if (published && (!data.startsAt || data.startsAt <= new Date())) await notifyVisitorsBroadcast(message).catch(() => 0);
-    return id ? "Broadcast saved" : data.active ? "Broadcast published" : "Broadcast saved as draft";
+    if (published && (!data.startsAt || data.startsAt <= new Date())) await notifyVisitorsBroadcast(title ? `${title} — ${message}` : message).catch(() => 0);
+    return id ? "Announcement saved" : data.active ? "Announcement published" : "Announcement saved as draft";
   });
 }
 

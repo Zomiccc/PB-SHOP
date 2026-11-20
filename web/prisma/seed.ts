@@ -748,6 +748,13 @@ async function upgradeExisting() {
     await db.setting.create({ data: { key: "migration.phonePhotosV1", value: JSON.stringify({ at: new Date().toISOString(), products, plans }) } });
     console.log(`Photos: added real photos to ${products} phone(s) and ${plans} installment plan(s).`);
   }
+  // Client request (Nov 2026): used phones show "3-day checking warranty" or "No checking warranty". Renames the
+  // old wording; devices staff set to anything else keep it. Runs once.
+  if (!(await db.setting.findUnique({ where: { key: "migration.warrantyV3" } }))) {
+    const r = await db.variant.updateMany({ where: { warrantyInfo: "3-day PB Lab warranty" }, data: { warrantyInfo: USED_WARRANTY } });
+    await db.setting.create({ data: { key: "migration.warrantyV3", value: JSON.stringify({ at: new Date().toISOString(), renamed: r.count }) } });
+    if (r.count) console.log(`Warranty: ${r.count} used phone(s) now show "${USED_WARRANTY}".`);
+  }
   // Client request (12 Oct 2026): picking a colour shows that colour's photo — fill in the per-colour photos for the
   // in-stock phones. Only where no colour photo is set (ones staff chose are kept). Runs once per version: V2 (18 Oct 2026) adds the
   // photos found while double-checking every phone against WhatMobile and PriceOye.

@@ -3,10 +3,11 @@ import Link from "next/link";
 import { HeroStory } from "@/components/home/HeroStory";
 import { FlipPassportCard } from "@/components/home/FlipPassportCard";
 import { ProductArt } from "@/components/product/ProductArt";
+import { AccessoriesIcon, InstallmentsIcon, NewPhoneIcon, RepairIcon, TabletIcon, UsedPhoneIcon } from "@/components/home/CategoryIcons";
 import { Reveal } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
 import { ReviewCard, ReviewForm, Stars } from "@/components/reviews/Reviews";
-import { listProducts, toCatalogItems } from "@/lib/catalog";
+import { cardPhoto, listProducts, toCatalogItems } from "@/lib/catalog";
 import { approvedReviews, reviewStats } from "@/lib/reviews";
 import { getSetting } from "@/lib/settings";
 import { pkr } from "@/lib/format";
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 /** Homepage — follows the master brief's reference layout on a fully dark, logo-coloured theme. */
 export default async function HomePage() {
-  const [phones, tablets, accessories, passport, installments, reviews, stats, broadcasts, rewards] = await Promise.all([
+  const [phones, tablets, accessories, passport, installments, reviews, stats, broadcasts, rewards, financing] = await Promise.all([
     listProducts({ type: "PHONE" }),
     listProducts({ type: "TABLET" }),
     listProducts({ type: "ACCESSORY" }),
@@ -34,6 +35,7 @@ export default async function HomePage() {
     reviewStats(),
     activeBroadcasts().catch(() => []),
     db.reward.findMany({ where: { active: true }, orderBy: [{ pointsCost: "asc" }, { sortOrder: "asc" }], select: { id: true, name: true, pointsCost: true } }),
+    getSetting("installmentCalc"),
   ]);
   // Featured first, then the newest — so real stock shows even before anything is marked featured.
   const newPhones = phones.filter((p) => p.condition === "NEW");
@@ -60,12 +62,12 @@ export default async function HomePage() {
       <section className="relative z-10 pb-6 pt-6 md:pt-14">
         <div className="container-pb grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 xl:grid-cols-7">
           {[
-            { id: "repair", href: "/repair", title: "Phone repairs", sub: "Screen, battery, software & more.", art: <RepairArt />, glow: "rgba(0,119,217,.45)" },
-            { id: "newPhones", href: "/new-phones", title: "New phones", sub: "Latest models, official warranty.", art: <TilePhoto src="/products/phones/reno15-pro-1.webp" />, glow: "rgba(215,25,32,.4)" },
-            { id: "usedPhones", href: "/used-phones", title: "Used phones", sub: "Lab-checked, one clear grade.", art: <ProductArt kind="PHONE" colorHex="#5b6b7d" brand="Samsung" name="Galaxy S23" />, glow: "rgba(217,166,46,.4)" },
-            { id: "tablets", href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <TilePhoto src="/products/tablets/infinix-xpad.webp" />, glow: "rgba(0,119,217,.4)" },
-            { id: "accessories", href: "/accessories", title: "Accessories", sub: "Cases, chargers & essentials.", art: <ProductArt kind="ACCESSORY" accessoryType="EARBUDS" colorHex="#e8e8e8" />, glow: "rgba(217,166,46,.4)" },
-            { id: "installments", href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <TilePhoto src="/products/phones/note-60-1.webp" />, glow: "rgba(215,25,32,.35)" },
+            { id: "repair", href: "/repair", title: "Phone repairs", sub: "Screen, battery, software & more.", art: <RepairIcon className="h-full w-full" />, glow: "rgba(0,119,217,.45)" },
+            { id: "newPhones", href: "/new-phones", title: "New phones", sub: "Latest models, official warranty.", art: <NewPhoneIcon className="h-full w-full" />, glow: "rgba(215,25,32,.4)" },
+            { id: "usedPhones", href: "/used-phones", title: "Used phones", sub: "Lab-checked, one clear grade.", art: <UsedPhoneIcon className="h-full w-full" />, glow: "rgba(217,166,46,.4)" },
+            { id: "tablets", href: "/tablets", title: "Tablets", sub: "New & used iPad, Galaxy Tab.", art: <TabletIcon className="h-full w-full" />, glow: "rgba(0,119,217,.4)" },
+            { id: "accessories", href: "/accessories", title: "Accessories", sub: "Cases, chargers & essentials.", art: <AccessoriesIcon className="h-full w-full" />, glow: "rgba(217,166,46,.4)" },
+            { id: "installments", href: "#installments", title: "Installments", sub: "Easy plans · pay in store.", art: <InstallmentsIcon className="h-full w-full" />, glow: "rgba(215,25,32,.35)" },
             // Custom Skins (v6 §3): opens the brand → model → preview page.
             { id: "customSkins", href: "/custom-skins", title: "Custom Skins", sub: "Try designs on your exact phone — or upload your own.", art: <SkinTileArt />, glow: "rgba(217,166,46,.45)", wide: true },
           ].map((c, i) => (
@@ -106,7 +108,7 @@ export default async function HomePage() {
       {featuredPhones.length > 0 && (
         <Row k="home.row.newPhones" title="Featured Phones" href="/new-phones">
           {featuredPhones.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={cardPhoto(p) ? <RowPhoto src={cardPhoto(p)!} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -133,7 +135,7 @@ export default async function HomePage() {
         ))}
       </div>
 
-      <InstallmentPhones listings={brandMix(installments, 6)} brands={brandsWithListings(installments)} />
+      <InstallmentPhones listings={brandMix(installments, 6)} brands={brandsWithListings(installments)} config={financing} />
 
       {/* Tablets */}
       {featuredTablets.length > 0 && (
@@ -426,10 +428,6 @@ function brandMix<T extends { brand: string | null }>(list: T[], n: number) {
   return out;
 }
 
-/** A real product photo for a homepage category tile (client request: real phones and a real tablet, not drawings). */
-function TilePhoto({ src }: { src: string }) {
-  return <Image src={src} alt="" fill sizes="(min-width: 1280px) 14vw, (min-width: 768px) 25vw, 50vw" className="object-contain drop-shadow-[0_14px_24px_rgba(0,0,0,.5)]" />;
-}
 
 /** A product's own photo in a homepage row card. */
 function RowPhoto({ src }: { src: string }) {

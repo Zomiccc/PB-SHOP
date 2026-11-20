@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { parseJson } from "./format";
+import { devicePhotoList } from "./device-photo-list";
 
 export type ProductType = "PHONE" | "TABLET" | "ACCESSORY" | "PART";
 /** Phones and tablets share device features: 3D viewer, grades, installments. */
@@ -14,6 +15,8 @@ export type VariantDTO = {
   colorHex: string | null;
   /** Photo of this colour, shown when it's picked on the product page. */
   imageUrl: string | null;
+  /** Used devices: this phone's own six-side photos (front, back, left, right, top, bottom). */
+  photos: { side: string; label: string; url: string }[];
   price: number;
   salePrice: number | null;
   stockQty: number;
@@ -62,6 +65,7 @@ function toDTO(p: Row): ProductDTO {
     color: v.color,
     colorHex: v.colorHex,
     imageUrl: v.imageUrl,
+    photos: devicePhotoList(v.photos),
     price: v.price,
     salePrice: v.salePrice,
     stockQty: v.stockQty,
@@ -142,6 +146,22 @@ export type CatalogItem = Pick<ProductDTO, "slug" | "name" | "brand" | "type" | 
   createdOrder: number;
 };
 
+// A calm, balanced look for product cards (client feedback, Nov 2026): show each new phone in a neutral finish
+// — titanium / silver / grey, then black, then white — when that colour has its own photo. Colours stay accurate:
+// the product page still shows every colour's real photo.
+const NEUTRAL = [/titanium|silver|grey|gray|glacier|frost|graphite|moonstone|meteor/i, /black|midnight|abyss|night|shadow|sleek|space|rock|torino|bromo|starlit|sandstone/i, /white|pearl|ice|feather|gilded/i];
+
+/** The photo a product card shows. */
+export function cardPhoto(p: Pick<ProductDTO, "images" | "condition" | "variants">) {
+  if (p.condition !== "USED") {
+    for (const rx of NEUTRAL) {
+      const v = p.variants.find((x) => x.imageUrl && x.color && rx.test(x.color));
+      if (v) return v.imageUrl;
+    }
+  }
+  return p.images[0] ?? null;
+}
+
 const uniq = <T,>(xs: (T | null | undefined)[]) => [...new Set(xs.filter((x): x is T => x != null && x !== ""))];
 
 /**
@@ -160,7 +180,7 @@ export function toCatalogItems(products: ProductDTO[]): CatalogItem[] {
       accessoryType: p.accessoryType,
       finishHex: p.finishHex,
       featured: p.featured,
-      image: p.images[0] ?? null,
+      image: cardPhoto(p),
     };
     if (p.condition === "USED") {
       for (const v of p.variants) {
@@ -177,6 +197,7 @@ export function toCatalogItems(products: ProductDTO[]): CatalogItem[] {
           grade: v.grade,
           bestBattery: v.batteryHealth,
           onSale: v.salePrice != null,
+          image: v.photos[0]?.url ?? base.image,
           createdOrder: out.length,
         });
       }

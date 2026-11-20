@@ -6,12 +6,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { isDevice, type ProductDTO } from "@/lib/catalog";
-import { ACCESSORY_TYPES, USED_GRADES, type AccessoryType } from "@/lib/constants";
+import { BRAND, USED_GRADES, accessoryLabel } from "@/lib/constants";
 import { cn, pkr } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { ProductArt } from "./ProductArt";
-import { lowestInstallment, type FinancingConfig } from "@/lib/finance";
+import { configFor, lowestInstallment, type FinancingConfig } from "@/lib/finance";
+import { brandSlugFor } from "@/lib/brands";
 import { Icon } from "../ui/Icon";
 
 const ProductViewer = dynamic(() => import("../three/ProductViewer"), {
@@ -32,7 +33,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
   );
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
   const [qty, setQty] = useState(1);
-  const [view, setView] = useState<"3d" | "photos">(has3d ? "3d" : "photos");
+  const [view, setView] = useState<"3d" | "photos">(has3d && !product.variants.some((v) => v.photos.length) ? "3d" : "photos");
   const [added, setAdded] = useState(false);
 
   const storages = useMemo(() => [...new Set(product.variants.map((v) => v.storage).filter(Boolean))] as string[], [product.variants]);
@@ -50,7 +51,10 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
     }
   };
 
-  const photo = variant.imageUrl ?? product.images[0];
+  // Used phones show their own six-side photos (Nov 2026); new phones the picked colour's photo.
+  const gallery = used && variant.photos.length ? variant.photos : null;
+  const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
+  const photo = (gallery && (gallery.find((g) => g.url === pickedPhoto)?.url ?? gallery[0].url)) || variant.imageUrl || product.images[0];
   // This colour has no photo of its own while others do: say so rather than pass another colour off as it.
   const otherColourShown = Boolean(variant.color && !variant.imageUrl && photo && product.variants.some((v) => v.imageUrl));
   const price = variant.salePrice ?? variant.price;
@@ -59,6 +63,12 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
   // Standard PB Points criteria (v4 §3): phones by price tier; accessories 1 point per Rs 100; tablets none.
   const points = product.type === "PHONE" ? phoneTierPoints(price, pointsRules.phoneTiers) * qty : product.type === "ACCESSORY" ? spendPoints(price * qty, pointsRules.rupeesPerPoint) : 0;
   const label = [variant.storage, variant.ram ? `${variant.ram} RAM` : null, variant.color, variant.grade ? `Grade ${variant.grade}` : null].filter(Boolean).join(" · ") || "Standard";
+
+  // WhatsApp "make an offer" message with this exact phone (the page link is added when tapped).
+  const offerLink = (origin: string) =>
+    `https://wa.me/${BRAND.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
+      [`Assalam o Alaikum PB Mobiles, I'd like to make an offer on:`, `${product.name}${used ? " (Used)" : ""} — ${label}`, `Listed at ${pkr(price)} · SKU ${variant.sku}`, origin ? `${origin}/product/${product.slug}${used ? `?v=${variant.id}` : ""}` : ""].filter(Boolean).join("\n"),
+    )}`;
 
   const toCart = (buyNow = false) => {
     add({
@@ -117,7 +127,18 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
               )}
             </div>
             {otherColourShown && <p className="-mt-1 text-center text-xs text-muted">Photo shows another colour — {variant.color} looks different.</p>}
-            {product.images.length > 1 && (
+            {gallery && (
+              <div className="grid grid-cols-6 gap-2">
+                {gallery.map((g) => (
+                  <button key={g.side} type="button" onClick={() => setPickedPhoto(g.url)} aria-label={`${g.label} photo`} aria-pressed={photo === g.url} className={cn("overflow-hidden rounded-xl bg-card p-1 ring-1 transition", photo === g.url ? "ring-2 ring-gold" : "ring-ink/10 hover:ring-ink/30")}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.url} alt="" className="aspect-square w-full object-contain" />
+                    <span className="block truncate text-[0.6rem] text-muted">{g.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {!gallery && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
                 {product.images.slice(1, 5).map((src) => (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -141,7 +162,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
         <h1 className="display mt-2 text-4xl md:text-6xl">{product.name}</h1>
         <div className="mt-3 flex flex-wrap gap-2">
           <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", product.condition === "USED" ? "bg-gold/20 text-gold-soft" : "bg-blue/10 text-blue")}>
-            {isPhone ? (used ? `Used · Grade ${variant.grade ?? "—"}` : "Brand new") : ACCESSORY_TYPES[(product.accessoryType ?? "OTHER") as AccessoryType]}
+            {isPhone ? (used ? `Used · Grade ${variant.grade ?? "—"}` : "Brand new") : accessoryLabel(product.accessoryType)}
           </span>
         </div>
         <p className="mt-5 text-lg text-muted">{product.description}</p>
@@ -151,6 +172,11 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
           {variant.salePrice && <p className="pb-1 text-lg text-muted line-through">{pkr(variant.price)}</p>}
         </div>
         <p className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">SKU {variant.sku}</p>
+        {used && variant.warrantyInfo && (
+          <p className={cn("mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold", /^no /i.test(variant.warrantyInfo) ? "bg-white/10 text-muted" : "bg-emerald-500/15 text-emerald-300")}>
+            <Icon name="shield" className="h-3.5 w-3.5" /> {variant.warrantyInfo}
+          </p>
+        )}
 
         {/* Variant pickers */}
         {used && product.variants.length > 1 && (
@@ -276,14 +302,32 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
             Buy now
           </button>
         </div>
+        {/* "Negotiable? Make an offer" (Nov 2026): straight to the shop's WhatsApp with this exact phone in the message. */}
+        {isPhone && !out && (
+          <div className="mt-3">
+            <a
+              href={offerLink("")}
+              onClick={(e) => {
+                e.currentTarget.href = offerLink(window.location.origin);
+              }}
+              target="_blank"
+              rel="noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gold/70 bg-gold/5 px-4 py-3.5 font-semibold text-gold transition hover:bg-gold/15"
+            >
+              <WhatsAppGlyph className="h-5 w-5" /> Negotiable? Make an offer
+            </a>
+            <p className="mt-1.5 text-center text-xs text-muted">WhatsApp par seedha chat khulegi</p>
+          </div>
+        )}
         {out && (
           <Link href={`/contact?subject=${encodeURIComponent(`Notify me: ${product.name}`)}`} className="mt-3 inline-block text-sm text-blue hover:underline">
             Ask us when it&apos;s back in stock →
           </Link>
         )}
 
-        {isPhone && (() => {
-          const low = lowestInstallment(price, financing);
+        {/* Used phones are not sold on installments (Nov 2026). */}
+        {isPhone && !used && (() => {
+          const low = lowestInstallment(price, configFor(financing, brandSlugFor(product.brand, product.name)));
           if (!low) return null;
           return (
             <Link
@@ -330,5 +374,13 @@ function Info({ label, value, hint }: { label: string; value: string; hint?: str
       <p className="text-sm font-semibold">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
     </div>
+  );
+}
+
+function WhatsAppGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91A9.85 9.85 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24a8.2 8.2 0 0 1 8.24 8.25c0 4.54-3.7 8.24-8.24 8.24Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.13-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.16-.48-.29Z" />
+    </svg>
   );
 }

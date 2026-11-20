@@ -53,18 +53,27 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             </li>
           ))}
           {r.status === "CANCELLED" && <li className="rounded-full bg-red px-3 py-1.5 text-xs font-semibold text-white">Cancelled</li>}
+          {r.status === "COMPLETED" && r.completedAt && <li className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Delivered {dt(r.completedAt)}</li>}
         </ol>
         <div className="mt-4 flex flex-wrap gap-2">
-          {next && r.status !== "CANCELLED" && (
+          {/* Deliver (Nov 2026): handing the phone back to the customer completes the repair in one tap. */}
+          {r.status !== "COMPLETED" && r.status !== "CANCELLED" && (
+            <ActionForm action={repairStatusAction}>
+              <input type="hidden" name="repairId" value={r.id} />
+              <input type="hidden" name="status" value="COMPLETED" />
+              <Submit variant="gold">Deliver — mark Completed ✓</Submit>
+            </ActionForm>
+          )}
+          {next && next.key !== "COMPLETED" && r.status !== "CANCELLED" && (
             <ActionForm action={repairStatusAction}>
               <input type="hidden" name="repairId" value={r.id} />
               <input type="hidden" name="status" value={next.key} />
               <Submit variant="red">Move to “{next.label}” →</Submit>
             </ActionForm>
           )}
-          <ActionForm action={repairStatusAction} className="flex gap-2">
+          <ActionForm action={repairStatusAction} className="flex w-full flex-wrap gap-2 sm:w-auto">
             <input type="hidden" name="repairId" value={r.id} />
-            <select name="status" defaultValue={r.status} aria-label="Set status" className="field !py-2">
+            <select name="status" defaultValue={r.status} aria-label="Set status" className="field !w-auto min-w-[15rem] flex-1 !py-2">
               {[...REPAIR_STATUSES, { key: "CANCELLED", label: "Cancelled" }].map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
             <Submit variant="ghost">Set</Submit>

@@ -23,7 +23,7 @@ export function ReviewCard({ r }: { r: ReviewItem }) {
     <article className="flex h-full flex-col rounded-2xl bg-card p-5 ring-1 ring-white/8">
       <div className="flex items-center justify-between gap-3">
         <Stars value={r.rating} />
-        <span className="text-xs text-muted">{new Date(r.createdAt).toLocaleDateString("en-PK", { month: "short", year: "numeric" })}</span>
+        <span className="text-xs text-muted">{new Date(r.createdAt).toLocaleDateString("en-PK", { month: "short", year: "numeric", timeZone: "Asia/Karachi" })}</span>
       </div>
       {r.title && <h3 className="mt-3 font-semibold">{r.title}</h3>}
       <p className="mt-2 flex-1 text-sm leading-relaxed text-white/80">“{r.body}”</p>

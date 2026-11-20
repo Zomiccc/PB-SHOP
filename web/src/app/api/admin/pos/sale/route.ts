@@ -4,13 +4,14 @@ import { getStaff } from "@/lib/staff";
 import { createPosSale, PosError } from "@/lib/pos";
 
 const Sale = z.object({
-  items: z.array(z.object({ variantId: z.string(), qty: z.number().int().min(1).max(50) })).min(1),
+  items: z.array(z.object({ variantId: z.string(), qty: z.number().int().min(1).max(50), unitPrice: z.number().int().min(0).optional() })).min(1),
   method: z.enum(["CASH", "CARD", "MOBILE_WALLET", "BANK_TRANSFER"]),
   customerPhone: z.string().trim().max(20).optional(),
   customerName: z.string().trim().max(80).optional(),
   note: z.string().max(2000).optional(),
   discount: z.number().int().min(0).optional(),
   points: z.number().int().min(0).max(10000).optional(),
+  rewardId: z.string().optional(),
   override: z.object({ email: z.string().optional(), password: z.string().optional() }).optional(),
 });
 

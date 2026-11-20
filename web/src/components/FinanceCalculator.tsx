@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { downPaymentList, quote, termList, type FinancingConfig } from "@/lib/finance";
+import { configFor, downPaymentList, quote, termList, type FinancingConfig } from "@/lib/finance";
 import { cn, pkr } from "@/lib/format";
 import { Icon } from "./ui/Icon";
 import { choosePlan } from "./InstallmentRequestForm";
 
-type PhoneOption = { slug: string; name: string; price: number };
+type PhoneOption = { slug: string; name: string; price: number; /** Company (brand slug): its own installment policy applies. */ brand?: string | null };
 
 /**
  * Installment calculator laid out like the financing partner's app ("Product Price Center"):
@@ -15,16 +15,20 @@ type PhoneOption = { slug: string; name: string; price: number };
  * app (flat monthly markup on the financed amount, rounded to the rupee). Informational only — installment
  * purchases are completed in store with the customer's CNIC (master brief §3).
  */
-export function FinanceCalculator({ config, phones, initialPrice, initialSlug, productName, compact = false, bookable = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; initialSlug?: string; productName?: string; compact?: boolean; /** Show "Book an appointment with this plan" (Installments page, v6 §7). */ bookable?: boolean }) {
-  const terms = termList(config);
-  const downOptions = downPaymentList(config);
-  const eligiblePhones = (phones ?? []).filter((p) => p.price >= config.minPrice);
+export function FinanceCalculator({ config: baseConfig, phones, initialPrice, initialSlug, productName, compact = false, bookable = false }: { config: FinancingConfig; phones?: PhoneOption[]; initialPrice?: number; initialSlug?: string; productName?: string; compact?: boolean; /** Show "Book an appointment with this plan" (Installments page, v6 §7). */ bookable?: boolean }) {
+  const eligiblePhones = (phones ?? []).filter((p) => p.price >= baseConfig.minPrice);
   // Start on the phone picked on the page (or a price from a product page → "Other amount").
   const [slug, setSlug] = useState(initialSlug && eligiblePhones.some((p) => p.slug === initialSlug) ? initialSlug : initialPrice ? "" : eligiblePhones[0]?.slug ?? "");
   const [customPrice, setCustomPrice] = useState(initialPrice ?? eligiblePhones[0]?.price ?? 100000);
   const price = phones && slug ? (eligiblePhones.find((p) => p.slug === slug)?.price ?? customPrice) : customPrice;
-  const [dpPercent, setDpPercent] = useState(downOptions.includes(30) ? 30 : downOptions[0]);
-  const [term, setTerm] = useState(terms.includes(9) ? 9 : terms[terms.length - 1] ?? 6);
+  const config = configFor(baseConfig, phones && slug ? eligiblePhones.find((p) => p.slug === slug)?.brand : null);
+  const terms = termList(config);
+  const downOptions = downPaymentList(config);
+  const [dpPick, setDpPercent] = useState<number | null>(null);
+  const [termPick, setTerm] = useState<number | null>(null);
+  // Each company has its own choices: fall back to its first down payment / longest plan when a choice doesn't apply.
+  const dpPercent = dpPick != null && downOptions.includes(dpPick) ? dpPick : downOptions[0];
+  const term = termPick != null && terms.includes(termPick) ? termPick : (terms[terms.length - 1] ?? 6);
 
   const q = quote(price, Math.round((price * dpPercent) / 100), term, config);
   const unit = config.period === "WEEKLY" ? "Week" : "Month";

@@ -33,6 +33,13 @@ export const SETTING_DEFAULTS = {
     closedDates: "",
   },
   shipping: { flatFee: 250, freeOver: 50000 },
+  // Accessory categories the shop added itself ("+ Create new category", Nov 2026), on top of ACCESSORY_TYPES.
+  accessoryCategories: { custom: [] as string[] },
+  // Expense categories (Nov 2026): the lists staff pick from; new ones are added from the form.
+  expenseCategories: {
+    DAILY: ["Rent", "Electricity", "Internet", "Staff salary", "Tea & food", "Transport", "Packing & bags", "Marketing", "Other"] as string[],
+    REPAIR: ["Screens", "Batteries", "Charging ports", "Back glass", "Small parts", "Tools", "Glue & chemicals", "Other"] as string[],
+  },
   // Installment calculator — defaults match the partner (Palm) app's standard plan: 6% flat per month,
   // no extra fees. New key so older saved sample rates don't override these.
   installmentCalc: {
@@ -48,6 +55,8 @@ export const SETTING_DEFAULTS = {
     guaranteeDeposit: 0,
     minPrice: 10000,
     disclaimer: "The results shown are for estimation purposes only. Your actual repayment plan will be confirmed after approval.",
+    // Per-company policies (Nov 2026): { infinix: { minDownPaymentPercent: 20, downPaymentOptions: "20,30,40", … }, … }
+    companies: {} as Record<string, import("./finance").CompanyPolicy>,
   },
 };
 

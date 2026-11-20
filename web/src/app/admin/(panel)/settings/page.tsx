@@ -5,7 +5,8 @@ import { requireStaffPage } from "@/lib/staff";
 import { getSetting } from "@/lib/settings";
 import { Badge, Field, PageTitle, Panel } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
-import { saveRewardAction, saveSettingAction } from "../../_actions/owner";
+import { saveCompanyPoliciesAction, saveRewardAction, saveSettingAction } from "../../_actions/owner";
+import { brandsWithListings } from "@/lib/brands";
 
 export const metadata = { title: "Settings & rules" };
 
@@ -22,6 +23,7 @@ export default async function SettingsPage() {
     getSetting("customSkins"),
     getSetting("installmentAppointments"),
   ]);
+  const companies = brandsWithListings(await db.installmentListing.findMany({ where: { active: true }, select: { brand: true } }));
 
   return (
     <>
@@ -29,7 +31,7 @@ export default async function SettingsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel title="Installment calculator" className="xl:col-span-2">
           <p className="mb-4 text-sm text-muted">
-            Shown on <a href="/installments" target="_blank" className="text-blue underline">/installments</a> and on every phone page. Defaults match the partner app&apos;s standard plan (6% per month flat, no extra fees, 10% minimum down payment).
+            Shown on <a href="/installments" target="_blank" className="text-blue underline">/installments</a> and on every phone page. These are the main settings; each company can have its own down payment and markup below.
           </p>
           <ActionForm action={saveSettingAction} className="space-y-4">
             <input type="hidden" name="key" value="installmentCalc" />
@@ -55,6 +57,43 @@ export default async function SettingsPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={financing.enabled} className="h-4 w-4" /> Show installments on the website</label>
               <Submit>Save calculator</Submit>
             </div>
+          </ActionForm>
+        </Panel>
+
+        <Panel title="Installment policy per company" className="xl:col-span-2" id="company-policies">
+          <p className="mb-4 text-sm text-muted">
+            Each company has its own down payment and markup. Fill only what differs from the main calculator above — an empty box uses the main setting. Down payments can start at 20%. The website&apos;s plans and calculator use these for that company&apos;s phones.
+          </p>
+          <ActionForm action={saveCompanyPoliciesAction} className="space-y-3">
+            <input type="hidden" name="brands" value={companies.map((c) => c.slug).join(",")} />
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted">
+                    <th className="py-2 pr-3">Company</th>
+                    <th className="py-2 pr-3">Min. down %</th>
+                    <th className="py-2 pr-3">Down-payment choices %</th>
+                    <th className="py-2 pr-3">Plans (months)</th>
+                    <th className="py-2">Markup % / month</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {companies.map((c) => {
+                    const p = financing.companies?.[c.slug] ?? {};
+                    return (
+                      <tr key={c.slug} className="border-t border-ink/10">
+                        <td className="py-2 pr-3 font-semibold">{c.name}</td>
+                        <td className="py-2 pr-3"><input name={`${c.slug}.minDownPaymentPercent`} type="number" step="0.01" min={0} max={99} defaultValue={p.minDownPaymentPercent ?? ""} placeholder={String(financing.minDownPaymentPercent)} className="field !py-2" /></td>
+                        <td className="py-2 pr-3"><input name={`${c.slug}.downPaymentOptions`} defaultValue={p.downPaymentOptions ?? ""} placeholder={financing.downPaymentOptions} className="field !py-2" /></td>
+                        <td className="py-2 pr-3"><input name={`${c.slug}.termOptions`} defaultValue={p.termOptions ?? ""} placeholder={financing.termOptions} className="field !py-2" /></td>
+                        <td className="py-2"><input name={`${c.slug}.markupPercentPerMonth`} type="number" step="0.01" min={0} max={99} defaultValue={p.markupPercentPerMonth ?? ""} placeholder={String(financing.markupPercentPerMonth)} className="field !py-2" /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Submit>Save company policies</Submit>
           </ActionForm>
         </Panel>
 

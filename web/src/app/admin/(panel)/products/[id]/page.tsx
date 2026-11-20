@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import { pkr, parseJson } from "@/lib/format";
 import { suggestCodes } from "@/lib/barcode";
 import { requireStaffPage } from "@/lib/staff";
-import { ACCESSORY_WARRANTY, USED_GRADES, USED_WARRANTY } from "@/lib/constants";
+import { ACCESSORY_WARRANTY, USED_GRADES, USED_WARRANTY, USED_WARRANTY_OPTIONS } from "@/lib/constants";
+import { accessoryCategories } from "@/lib/categories";
+import { SidePhotoInputs } from "@/components/admin/SidePhotoInputs";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { ProductForm } from "@/components/admin/ProductForm";
@@ -30,6 +32,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
   if (!product) notFound();
   const images = parseJson<string[]>(product.images, []);
   const codes = await suggestCodes();
+  const categories = await accessoryCategories();
   const textures = parseJson<Record<string, string> | null>(product.model3dTextures, null);
 
   return (
@@ -47,7 +50,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
       {!product.active && <p className="mb-6 rounded-xl bg-gold/15 px-4 py-3 text-sm text-gold-soft">This product is hidden from customers.</p>}
 
       <div className="grid gap-6 2xl:grid-cols-[1fr_1fr]">
-        <Panel title="Details"><ProductForm product={product} /></Panel>
+        <Panel title="Details"><ProductForm product={product} categories={categories} /></Panel>
 
         <div className="space-y-6">
           <Panel title={`Variants & stock (${product.variants.length})`}>
@@ -222,9 +225,9 @@ function VariantForm({ productId, v, suggested, isSuper, used, accessory = false
         <Field label="SKU"><input name="sku" defaultValue={v?.sku ?? suggested?.sku} required className="field font-mono" /></Field>
         <Field label="Barcode" hint="Scan the manufacturer EAN or keep the generated one"><input name="barcode" defaultValue={v?.barcode ?? suggested?.barcode} required className="field font-mono" /></Field>
         <Field label="Low-stock alert at"><input name="lowStockThreshold" type="number" min={0} defaultValue={v?.lowStockThreshold ?? (used ? 0 : 2)} className="field" /></Field>
-        <Field label="Price (PKR)"><input name="price" type="number" min={1} defaultValue={v?.price} required className="field" /></Field>
-        <Field label="Sale price (optional)"><input name="salePrice" type="number" min={1} defaultValue={v?.salePrice ?? ""} className="field" /></Field>
-        <Field label="Purchase price (PKR)" hint="For investment & profit reports"><input name="costPrice" type="number" min={0} defaultValue={v?.costPrice ?? ""} className="field" /></Field>
+        <Field label="Sale price (Rs)" hint="Normal selling price"><input name="price" type="number" min={1} defaultValue={v?.price} required className="field" /></Field>
+        <Field label="Offer / discount price (Rs)" hint="Lowest a salesman can give after negotiation"><input name="floorPrice" type="number" min={1} defaultValue={v?.floorPrice ?? ""} placeholder="Same as sale price" className="field" /></Field>
+        {isSuper && <Field label="Purchase price (Rs) — owner only" hint="Our cost · for profit reports"><input name="costPrice" type="number" min={0} defaultValue={v?.costPrice ?? ""} className="field" /></Field>}
         <Field label="IMEI / serial (devices)"><input name="imei" defaultValue={v?.imei ?? ""} className="field font-mono" /></Field>
         <Field label="Part / article number"><input name="partNumber" defaultValue={v?.partNumber ?? ""} className="field font-mono" /></Field>
         {!v && <Field label="Opening stock"><input name="openingStock" type="number" min={0} defaultValue={used ? 1 : 0} className="field" /></Field>}
@@ -233,7 +236,15 @@ function VariantForm({ productId, v, suggested, isSuper, used, accessory = false
         <Field label="Colour name"><input name="color" defaultValue={v?.color ?? ""} className="field" /></Field>
         <Field label="Colour hex"><input name="colorHex" defaultValue={v?.colorHex ?? ""} placeholder="#2b2b2e" className="field" /></Field>
         <Field label="Photo of this colour (optional)" hint="Shown when a customer picks this colour — https://… or /path"><input name="imageUrl" defaultValue={v?.imageUrl ?? ""} className="field" /></Field>
+        <Field label="Website offer price (optional)" hint="Shown to customers with the sale price crossed out"><input name="salePrice" type="number" min={1} defaultValue={v?.salePrice ?? ""} className="field" /></Field>
       </div>
+      {used && (
+        <div className="space-y-2">
+          <input type="hidden" name="deviceUsed" value="1" />
+          <p className="label">This phone&apos;s photos — all six sides</p>
+          <SidePhotoInputs current={v?.photos} />
+        </div>
+      )}
       {used && (
         <div className="grid gap-3 rounded-xl bg-gold/10 p-3 sm:grid-cols-3">
           <Field label="Grade (exactly one)" hint="A different grade = a separate SKU">
@@ -247,7 +258,15 @@ function VariantForm({ productId, v, suggested, isSuper, used, accessory = false
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Warranty info"><input name="warrantyInfo" defaultValue={v?.warrantyInfo ?? (used ? USED_WARRANTY : accessory ? ACCESSORY_WARRANTY : "")} className="field" /></Field>
+        {used ? (
+          <Field label="Warranty">
+            <select name="warrantyInfo" defaultValue={v?.warrantyInfo && (USED_WARRANTY_OPTIONS as readonly string[]).includes(v.warrantyInfo) ? v.warrantyInfo : USED_WARRANTY} className="field">
+              {USED_WARRANTY_OPTIONS.map((w) => <option key={w}>{w}</option>)}
+            </select>
+          </Field>
+        ) : (
+          <Field label="Warranty info"><input name="warrantyInfo" defaultValue={v?.warrantyInfo ?? (accessory ? ACCESSORY_WARRANTY : "")} className="field" /></Field>
+        )}
         <Field label="Return info"><input name="returnInfo" defaultValue={v?.returnInfo ?? ""} className="field" /></Field>
       </div>
       <div className="flex flex-wrap items-center gap-5 text-sm">

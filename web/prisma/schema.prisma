@@ -21,16 +21,16 @@ datasource db {
 
 /// 7 individual accounts: 6 ADMIN (employees) + 1 SUPER_ADMIN (owner). No shared logins.
 model Staff {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("ADMIN") // ADMIN | SUPER_ADMIN
-  active       Boolean  @default(true)
-  mustChangePassword Boolean @default(true) // forced reset on first login
-  lastLoginAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  role               String    @default("ADMIN") // ADMIN | SUPER_ADMIN
+  active             Boolean   @default(true)
+  mustChangePassword Boolean   @default(true) // forced reset on first login
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   loginEvents     StaffLoginEvent[]
   auditLogs       AuditLog[]
@@ -45,6 +45,7 @@ model Staff {
   usedPurchases   UsedPhonePurchase[]
   attachments     Attachment[]
   broadcasts      Broadcast[]
+  expenses        Expense[]
   chatMessages    ChatMessage[]
   pushSubs        PushSubscription[]
 }
@@ -83,31 +84,31 @@ model AuditLog {
 // ─────────────────────────────── Customers & loyalty (§7, PB Phone Passport) ───────────────────────────────
 
 model Customer {
-  id            String   @id @default(cuid())
-  name          String
-  phone         String   @unique
-  email         String?  @unique
-  passwordHash  String? // null for walk-in / guest customers created at POS
-  passportNo    String   @unique // PB Rewards customer ID shown on the card: PBM-0001 (src/lib/rewards-id.ts)
-  legacyNo      String? // the older random number (PBP-123456) before renumbering, so old cards still scan
-  loyaltyPoints Int      @default(0) // cached balance = sum of unexpired, unspent earning lots
-  marketingOptIn Boolean @default(false)
+  id                 String     @id @default(cuid())
+  name               String
+  phone              String     @unique
+  email              String?    @unique
+  passwordHash       String? // null for walk-in / guest customers created at POS
+  passportNo         String     @unique // PB Rewards customer ID shown on the card: PBM-0001 (src/lib/rewards-id.ts)
+  legacyNo           String? // the older random number (PBP-123456) before renumbering, so old cards still scan
+  loyaltyPoints      Int        @default(0) // cached balance = sum of unexpired, unspent earning lots
+  marketingOptIn     Boolean    @default(false)
   // Birthday from the Passport form: month + day only — the year is never asked for (Passport brief §2)
-  birthMonth    Int? // 1–12
-  birthDay      Int? // 1–31
+  birthMonth         Int? // 1–12
+  birthDay           Int? // 1–31
   // Card expiry: an admin/system field. Never printed on the physical card; shown on the digital card
   // only when the owner turns that on (Setting "passportCard") — Passport brief §1.
-  cardExpiresAt DateTime?
+  cardExpiresAt      DateTime?
   // Joined the Passport (online sign-up / staff-issued card / claimed profile). Makes them eligible for the
   // welcome reward, which is credited on their first paid purchase or completed repair (Passport brief §4).
-  passportJoinedAt DateTime?
+  passportJoinedAt   DateTime?
   // Referral (Passport brief §3): who referred this customer, and when the referrer was credited.
   referredById       String?
   referredBy         Customer?  @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals         Customer[] @relation("Referrals")
+  referrals          Customer[] @relation("Referrals")
   referralRewardedAt DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   orders       Order[]
   repairs      RepairRequest[]
@@ -120,26 +121,26 @@ model Customer {
 /// expiry date and `remaining` balance, so six-month expiry is exact per earning event (master brief §4).
 /// Spending, deductions and expiry consume lots oldest-first (see src/lib/loyalty.ts).
 model LoyaltyTransaction {
-  id         String    @id @default(cuid())
-  customerId String
-  customer   Customer  @relation(fields: [customerId], references: [id])
-  type       String // EARN | REDEEM | ADJUST | EXPIRE | PROMO | AWARD (manual award by staff)
-  source     String? // REPAIR | NEW_PHONE | USED_PHONE | WELCOME | REFERRAL | MANUAL (earning events)
-  points     Int // positive = earned, negative = spent/expired
-  remaining  Int? // lots only: points of this event not yet spent or expired
-  reason     String?
-  orderId    String?
-  order      Order?    @relation(fields: [orderId], references: [id])
-  repairId   String?
-  repair     RepairRequest? @relation(fields: [repairId], references: [id])
+  id                String           @id @default(cuid())
+  customerId        String
+  customer          Customer         @relation(fields: [customerId], references: [id])
+  type              String // EARN | REDEEM | ADJUST | EXPIRE | PROMO | AWARD (manual award by staff)
+  source            String? // REPAIR | NEW_PHONE | USED_PHONE | WELCOME | REFERRAL | MANUAL (earning events)
+  points            Int // positive = earned, negative = spent/expired
+  remaining         Int? // lots only: points of this event not yet spent or expired
+  reason            String?
+  orderId           String?
+  order             Order?           @relation(fields: [orderId], references: [id])
+  repairId          String?
+  repair            RepairRequest?   @relation(fields: [repairId], references: [id])
   installmentSaleId String? // points for an installment phone (v4 §3)
   installmentSale   InstallmentSale? @relation(fields: [installmentSaleId], references: [id])
-  rewardId   String?
-  reward     Reward?   @relation(fields: [rewardId], references: [id])
-  staffId    String?
-  staff      Staff?    @relation(fields: [staffId], references: [id])
-  expiresAt  DateTime?
-  createdAt  DateTime  @default(now())
+  rewardId          String?
+  reward            Reward?          @relation(fields: [rewardId], references: [id])
+  staffId           String?
+  staff             Staff?           @relation(fields: [staffId], references: [id])
+  expiresAt         DateTime?
+  createdAt         DateTime         @default(now())
 
   @@index([customerId, createdAt])
   @@index([customerId, expiresAt])
@@ -166,22 +167,22 @@ model Reward {
 // ─────────────────────────────── Catalogue & inventory (§5, §6, §19) ───────────────────────────────
 
 model Product {
-  id              String   @id @default(cuid())
-  slug            String   @unique
+  id              String  @id @default(cuid())
+  slug            String  @unique
   name            String
   brand           String
   type            String // PHONE | TABLET | ACCESSORY | PART (phone spare parts) | SKIN (hidden, made-to-order custom skins — one variant per skin type)
-  condition       String   @default("NEW") // NEW | USED  (accessories are NEW)
+  condition       String  @default("NEW") // NEW | USED  (accessories are NEW)
   accessoryType   String? // CASE | CHARGER | CABLE | SCREEN_PROTECTOR | POWER_BANK | EARBUDS | OTHER
   partType        String? // spare parts: SCREEN | BATTERY | CHARGING_PORT | CAMERA | BACK_GLASS | SPEAKER | OTHER
   compatibleModel String? // spare parts: e.g. "iPhone 13 / 13 Pro"
   description     String
-  specs           String   @default("{}") // JSON key/value spec sheet
-  images          String   @default("[]") // JSON array of image URLs
+  specs           String  @default("{}") // JSON key/value spec sheet
+  images          String  @default("[]") // JSON array of image URLs
   finishHex       String? // colour used to tint the procedural 3D phone when no GLB exists
-  featured        Boolean  @default(false)
-  active          Boolean  @default(true) // deactivate instead of hard delete
-  loyaltyEligible Boolean  @default(true)
+  featured        Boolean @default(false)
+  active          Boolean @default(true) // deactivate instead of hard delete
+  loyaltyEligible Boolean @default(true)
 
   // 3D (§4, §14)
   model3dUrl      String? // approved GLB/GLTF shown in customer viewer
@@ -193,8 +194,8 @@ model Product {
   metaTitle       String?
   metaDescription String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   variants  Variant[]
   modelJobs Model3DJob[]
@@ -207,11 +208,11 @@ model Product {
 /// Sellable unit. Every variant has a unique SKU and barcode (§6).
 /// Used phones are usually one physical device per variant (stock 1) with its own grade/battery data.
 model Variant {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   productId         String
-  product           Product  @relation(fields: [productId], references: [id])
-  sku               String   @unique // the Item Number printed on labels and typed/scanned at the till
-  barcode           String   @unique
+  product           Product @relation(fields: [productId], references: [id])
+  sku               String  @unique // the Item Number printed on labels and typed/scanned at the till
+  barcode           String  @unique
   imei              String? // phones / tablets: one physical device per SKU (uniqueness checked in src/lib/inventory.ts)
   partNumber        String? // spare parts: manufacturer part number; accessories: article number
   storage           String?
@@ -219,23 +220,25 @@ model Variant {
   color             String?
   colorHex          String?
   imageUrl          String? // photo of this colour — the product page shows it when the colour is picked
+  photos            String  @default("{}") // used devices: this phone's own six-side photos, JSON {front, back, left, right, top, bottom}
   price             Int // PKR, whole rupees
-  salePrice         Int?
+  salePrice         Int? // website offer price (shown with the normal price crossed out)
+  floorPrice        Int? // lowest price a salesman may give after negotiation (POS); null = the normal price
   costPrice         Int? // purchase price per unit (investment / profit reports)
-  stockQty          Int      @default(0)
-  lowStockThreshold Int      @default(2)
-  allowBackorder    Boolean  @default(false) // zero-stock exception, set only by authorised admin
+  stockQty          Int     @default(0)
+  lowStockThreshold Int     @default(2)
+  allowBackorder    Boolean @default(false) // zero-stock exception, set only by authorised admin
 
   // Used-device fields (§2 Used Phones). ONE grade per SKU — enforced in src/lib/grade.ts (master brief §8).
-  grade             String? // A+ | A | B | C (used devices only; null for new)
-  batteryHealth     Int? // %
-  conditionNotes    String?
-  warrantyInfo      String?
-  returnInfo        String?
+  grade          String? // A+ | A | B | C (used devices only; null for new)
+  batteryHealth  Int? // %
+  conditionNotes String?
+  warrantyInfo   String?
+  returnInfo     String?
 
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   movements     StockMovement[]
   orderItems    OrderItem[]
@@ -295,8 +298,8 @@ model Model3DJob {
 // ─────────────────────────────── Orders & payments (§3) ───────────────────────────────
 
 model Order {
-  id               String   @id @default(cuid())
-  number           String   @unique // PB-100001
+  id               String    @id @default(cuid())
+  number           String    @unique // PB-100001
   channel          String // ONLINE | POS
   customerId       String?
   customer         Customer? @relation(fields: [customerId], references: [id])
@@ -305,25 +308,26 @@ model Order {
   customerEmail    String?
   shippingAddress  String?
   city             String?
-  fulfilment       String   @default("DELIVERY") // DELIVERY | PICKUP | IN_STORE
+  fulfilment       String    @default("DELIVERY") // DELIVERY | PICKUP | IN_STORE
   subtotal         Int
-  discount         Int      @default(0)
-  shippingFee      Int      @default(0)
+  discount         Int       @default(0)
+  shippingFee      Int       @default(0)
   total            Int
-  paymentStatus    String   @default("PENDING") // PENDING | UNDER_REVIEW (receipt uploaded) | PAID | FAILED | REFUNDED | CANCELLED
-  fulfilmentStatus String   @default("NEW") // NEW | PROCESSING | READY | SHIPPED | COMPLETED | CANCELLED | RETURNED
+  paymentStatus    String    @default("PENDING") // PENDING | UNDER_REVIEW (receipt uploaded) | PAID | FAILED | REFUNDED | CANCELLED
+  fulfilmentStatus String    @default("NEW") // NEW | PROCESSING | READY | SHIPPED | COMPLETED | CANCELLED | RETURNED
   staffId          String? // employee who processed a POS sale
-  staff            Staff?   @relation("OrderStaff", fields: [staffId], references: [id])
-  stockCommitted   Boolean  @default(false) // true once inventory was decremented
+  staff            Staff?    @relation("OrderStaff", fields: [staffId], references: [id])
+  stockCommitted   Boolean   @default(false) // true once inventory was decremented
   socialProofLabel String? // privacy-safe label, e.g. "Ali K. from Lahore" (§15)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  pointsBalance    Int? // the customer's PB Points balance right after this sale — printed on the bill
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  items      OrderItem[]
-  payments   Payment[]
-  notes      Note[]
-  movements  StockMovement[]
-  loyaltyTx  LoyaltyTransaction[]
+  items       OrderItem[]
+  payments    Payment[]
+  notes       Note[]
+  movements   StockMovement[]
+  loyaltyTx   LoyaltyTransaction[]
   attachments Attachment[] // e.g. the customer's own design for a custom skin
 
   @@index([createdAt])
@@ -346,22 +350,22 @@ model OrderItem {
 
 /// Gateway transaction. Never stores card/bank credentials — only references and status.
 model Payment {
-  id          String   @id @default(cuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id])
-  provider    String // EASYPAISA | JAZZCASH | FAYSAL (manual transfer + receipt) | PAYFAST | SAFEPAY | CASH | SANDBOX
-  method      String? // MOBILE_WALLET | DIRECT_DEBIT | CARD | OTC | CASH
-  providerRef String? // gateway transaction reference
-  amount      Int
-  status      String   @default("PENDING") // PENDING | SUBMITTED (receipt uploaded) | SUCCESS | REJECTED | FAILED
-  rawResponse String? // verified gateway payload for reconciliation
-  submittedAt DateTime? // manual transfer: when the customer uploaded the receipt
-  reviewNote  String? // staff's reason when a receipt is rejected (optional)
+  id           String    @id @default(cuid())
+  orderId      String
+  order        Order     @relation(fields: [orderId], references: [id])
+  provider     String // EASYPAISA | JAZZCASH | FAYSAL (manual transfer + receipt) | PAYFAST | SAFEPAY | CASH | SANDBOX
+  method       String? // MOBILE_WALLET | DIRECT_DEBIT | CARD | OTC | CASH
+  providerRef  String? // gateway transaction reference
+  amount       Int
+  status       String    @default("PENDING") // PENDING | SUBMITTED (receipt uploaded) | SUCCESS | REJECTED | FAILED
+  rawResponse  String? // verified gateway payload for reconciliation
+  submittedAt  DateTime? // manual transfer: when the customer uploaded the receipt
+  reviewNote   String? // staff's reason when a receipt is rejected (optional)
   reviewedById String?
-  reviewedAt  DateTime?
-  verifiedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  reviewedAt   DateTime?
+  verifiedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([providerRef])
 }
@@ -369,36 +373,36 @@ model Payment {
 // ─────────────────────────────── Repairs (§8) ───────────────────────────────
 
 model RepairRequest {
-  id            String    @id @default(cuid())
-  ref           String    @unique // PBR-1042
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id])
-  name          String
-  phone         String
-  email         String?
-  brand         String
-  model         String
-  imei          String? // IMEI or serial number, recorded at intake
-  category      String // SCREEN | BATTERY | CHARGING | CAMERA | WATER | SOFTWARE | SPEAKER_MIC | OTHER
-  description   String
-  photos        String    @default("[]") // JSON array of uploaded photo URLs
-  preferredAt   DateTime?
-  dropOff       String    @default("WALK_IN") // WALK_IN | APPOINTMENT | PICKUP
-  status        String    @default("NEW") // NEW | RECEIVED | DIAGNOSING | AWAITING | REPAIRING | READY | COMPLETED | CANCELLED
-  quote         Int?
-  finalPrice    Int?
-  partsCost     Int? // part of the charge that is parts (Passport repair discounts exclude parts)
+  id             String    @id @default(cuid())
+  ref            String    @unique // PBR-1042
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id])
+  name           String
+  phone          String
+  email          String?
+  brand          String
+  model          String
+  imei           String? // IMEI or serial number, recorded at intake
+  category       String // SCREEN | BATTERY | CHARGING | CAMERA | WATER | SOFTWARE | SPEAKER_MIC | OTHER
+  description    String
+  photos         String    @default("[]") // JSON array of uploaded photo URLs
+  preferredAt    DateTime?
+  dropOff        String    @default("WALK_IN") // WALK_IN | APPOINTMENT | PICKUP
+  status         String    @default("NEW") // NEW | RECEIVED | DIAGNOSING | AWAITING | REPAIRING | READY | COMPLETED | CANCELLED
+  quote          Int?
+  finalPrice     Int?
+  partsCost      Int? // part of the charge that is parts (Passport repair discounts exclude parts)
   rewardDiscount Int? // Phone Passport discount applied to this repair
-  assignedToId  String?
-  assignedTo    Staff?    @relation("RepairAssignee", fields: [assignedToId], references: [id])
-  completedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  assignedToId   String?
+  assignedTo     Staff?    @relation("RepairAssignee", fields: [assignedToId], references: [id])
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  statusChanges   RepairStatusChange[]
-  notes           Note[]
-  loyaltyTx       LoyaltyTransaction[]
-  attachments     Attachment[]
+  statusChanges RepairStatusChange[]
+  notes         Note[]
+  loyaltyTx     LoyaltyTransaction[]
+  attachments   Attachment[]
 
   @@index([status, createdAt])
 }
@@ -451,17 +455,17 @@ model ContactMessage {
 }
 
 model ChatConversation {
-  id        String        @id @default(cuid())
-  visitorId String
-  name      String?
-  phone     String?
-  status    String        @default("OPEN") // OPEN | HANDED_OFF | CLOSED
+  id            String             @id @default(cuid())
+  visitorId     String
+  name          String?
+  phone         String?
+  status        String             @default("OPEN") // OPEN | HANDED_OFF | CLOSED
   visitorReadAt DateTime? // last time the customer saw the thread (read receipts)
   staffReadAt   DateTime? // last time staff opened the thread
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  messages  ChatMessage[]
-  pushSubs  PushSubscription[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  messages      ChatMessage[]
+  pushSubs      PushSubscription[]
 
   @@index([visitorId])
 }
@@ -559,30 +563,30 @@ model InstallmentListing {
 
 /// A new phone sold on installments in store (staff workflow). CNIC front + back are required.
 model InstallmentSale {
-  id              String              @id @default(cuid())
-  ref             String              @unique // PBI-1001
-  listingId       String?
-  listing         InstallmentListing? @relation(fields: [listingId], references: [id])
-  customerId      String?
-  customer        Customer?           @relation(fields: [customerId], references: [id])
-  customerName    String
-  customerPhone   String
-  cnicNumber      String
-  address         String?
-  phoneModel      String
-  imei            String?
-  totalPrice      Int
-  phoneValue      Int? // the phone's cash price — PB Points use the phone tiers on this (v4 §3)
-  downPayment     Int
-  monthlyPayment  Int
-  durationMonths  Int
-  status          String              @default("PENDING") // PENDING | APPROVED | ACTIVE | COMPLETED | CANCELLED
-  idConsentAt     DateTime? // customer agreed to the ID privacy notice (shown before the CNIC was taken)
-  notes           String?
-  staffId         String
-  staff           Staff               @relation(fields: [staffId], references: [id])
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id             String              @id @default(cuid())
+  ref            String              @unique // PBI-1001
+  listingId      String?
+  listing        InstallmentListing? @relation(fields: [listingId], references: [id])
+  customerId     String?
+  customer       Customer?           @relation(fields: [customerId], references: [id])
+  customerName   String
+  customerPhone  String
+  cnicNumber     String? // no longer taken: the financing company keeps the customer's ID (Nov 2026)
+  address        String?
+  phoneModel     String
+  imei           String?
+  totalPrice     Int
+  phoneValue     Int? // the phone's cash price — PB Points use the phone tiers on this (v4 §3)
+  downPayment    Int
+  monthlyPayment Int
+  durationMonths Int
+  status         String              @default("PENDING") // PENDING | APPROVED | ACTIVE | COMPLETED | CANCELLED
+  idConsentAt    DateTime? // customer agreed to the ID privacy notice (shown before the CNIC was taken)
+  notes          String?
+  staffId        String
+  staff          Staff               @relation(fields: [staffId], references: [id])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   attachments Attachment[]
   loyaltyTx   LoyaltyTransaction[]
@@ -592,8 +596,8 @@ model InstallmentSale {
 
 /// A person selling their used phone to PB Mobiles. CNIC front + back are required.
 model UsedPhonePurchase {
-  id            String   @id @default(cuid())
-  ref           String   @unique // PBU-1001
+  id            String    @id @default(cuid())
+  ref           String    @unique // PBU-1001
   sellerName    String
   sellerPhone   String
   sellerCnic    String
@@ -609,10 +613,10 @@ model UsedPhonePurchase {
   idConsentAt   DateTime? // seller agreed to the ID privacy notice
   notes         String?
   variantId     String? // SKU created in inventory for resale
-  variant       Variant? @relation(fields: [variantId], references: [id])
+  variant       Variant?  @relation(fields: [variantId], references: [id])
   staffId       String
-  staff         Staff    @relation(fields: [staffId], references: [id])
-  createdAt     DateTime @default(now())
+  staff         Staff     @relation(fields: [staffId], references: [id])
+  createdAt     DateTime  @default(now())
 
   attachments Attachment[]
 
@@ -662,6 +666,7 @@ model Attachment {
 /// Announcement shown in the dark bar at the top of the homepage while published and within its dates.
 model Broadcast {
   id          String    @id @default(cuid())
+  title       String? // announcement heading (shown in the top banner and the notification bell)
   message     String
   media       String    @default("[]") // JSON [{url, type: IMAGE | VIDEO}] — pictures / videos shown with the text (v6 §1–§2)
   ctaLabel    String?
@@ -678,15 +683,15 @@ model Broadcast {
 /// Public media (product photos, 3D source photos, GLB models) kept in the database when no object
 /// storage is configured and the server disk is read-only (e.g. the Vercel demo). Served by /api/media/[id].
 model MediaFile {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   folder    String
   fileName  String
   mimeType  String
   size      Int
   data      Bytes? // small files in one piece; large ones (videos) in MediaChunk rows
-  chunked   Boolean  @default(false)
-  complete  Boolean  @default(true) // false while a chunked upload is still arriving
-  createdAt DateTime @default(now())
+  chunked   Boolean      @default(false)
+  complete  Boolean      @default(true) // false while a chunked upload is still arriving
+  createdAt DateTime     @default(now())
   chunks    MediaChunk[]
 }
 
@@ -760,19 +765,19 @@ model SkinType {
 /// Admin-uploaded skin design. Customers can only preview enabled designs that are either available for
 /// all models (incl. models added later) or assigned to their model.
 model Skin {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  imageUrl    String
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  imageUrl     String
   fullImageUrl String? // optional full / uncut artwork customers can view (v6 §5); imageUrl is used when empty
-  focus       String       @default("xMidYMid") // which part of the artwork stays in view when cropped to fit
-  price       Int          @default(0) // Rs — optional extra charge for this design, on top of the skin type's price
-  allModels   Boolean      @default(false) // available for every phone model, including ones added later
-  active      Boolean      @default(true)
-  sortOrder   Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  models      PhoneModel[]
+  focus        String       @default("xMidYMid") // which part of the artwork stays in view when cropped to fit
+  price        Int          @default(0) // Rs — optional extra charge for this design, on top of the skin type's price
+  allModels    Boolean      @default(false) // available for every phone model, including ones added later
+  active       Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  models       PhoneModel[]
 }
 
 // ─────────────── Installment requests & appointments (v6 §7) ───────────────
@@ -780,8 +785,8 @@ model Skin {
 /// A customer's online installment request with a store appointment. The purchase itself is still completed
 /// in store with the original CNIC (no CNIC is collected online).
 model InstallmentRequest {
-  id             String    @id @default(cuid())
-  ref            String    @unique // PBA-1001
+  id             String   @id @default(cuid())
+  ref            String   @unique // PBA-1001
   name           String
   phone          String
   email          String?
@@ -793,11 +798,11 @@ model InstallmentRequest {
   terms          Int?
   perInstallment Int?
   appointmentAt  DateTime // the booked slot (UTC; shown in Pakistan time)
-  status         String    @default("NEW") // NEW | CONFIRMED | COMPLETED | NO_SHOW | CANCELLED
+  status         String   @default("NEW") // NEW | CONFIRMED | COMPLETED | NO_SHOW | CANCELLED
   notes          String?
   customerId     String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([appointmentAt])
   @@index([status, appointmentAt])
@@ -813,4 +818,21 @@ model SiteContent {
   draft       String? // JSON — unpublished change; {"$reset":true} = back to the built-in default
   updatedById String?
   updatedAt   DateTime @updatedAt
+}
+
+/// Shop running costs (Nov 2026): daily expenses and repair parts & tools bought for the lab.
+/// Any staff member records them; only the owner edits or deletes, and every change is in the audit log.
+model Expense {
+  id        String   @id @default(cuid())
+  kind      String   @default("DAILY") // DAILY (shop expenses) | REPAIR (repair parts & tools)
+  date      DateTime // the day of the expense (stored at noon PKT)
+  category  String
+  amount    Int // PKR
+  note      String?
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, date])
 }

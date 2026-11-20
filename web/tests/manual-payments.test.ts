@@ -58,7 +58,7 @@ describe("Erorex + Audionic accessories", () => {
 
 describe("Warranty (client request, 10 Oct 2026)", () => {
   it("is 3 days on used phones and 7 days on accessories", () => {
-    expect(USED_WARRANTY).toBe("3-day PB Lab warranty");
+    expect(USED_WARRANTY).toBe("3-day checking warranty");
     expect(ACCESSORY_WARRANTY).toBe("7-day warranty");
   });
 });

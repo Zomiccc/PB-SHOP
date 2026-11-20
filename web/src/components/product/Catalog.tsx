@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import type { CatalogItem } from "@/lib/catalog";
-import { ACCESSORY_TYPES, USED_GRADES, type AccessoryType } from "@/lib/constants";
+import { USED_GRADES, accessoryLabel } from "@/lib/constants";
 import { cn, pkr } from "@/lib/format";
 import { ProductCard } from "./ProductCard";
 import { Icon } from "../ui/Icon";
@@ -129,7 +129,7 @@ export function Catalog({ items, mode }: { items: CatalogItem[]; mode: Mode }) {
       {mode === "accessories" && facets.types.length > 0 && (
         <FilterGroup title="Category">
           {facets.types.map(([t, c]) => (
-            <Check key={t} label={ACCESSORY_TYPES[t as AccessoryType] ?? t} count={c} checked={types.includes(t)} onChange={() => toggle(types, setTypes, "type", t)} />
+            <Check key={t} label={accessoryLabel(t)} count={c} checked={types.includes(t)} onChange={() => toggle(types, setTypes, "type", t)} />
           ))}
         </FilterGroup>
       )}

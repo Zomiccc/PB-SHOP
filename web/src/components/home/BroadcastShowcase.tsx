@@ -98,6 +98,7 @@ function Card({ b, preview }: { b: LiveBroadcast; preview: boolean }) {
         </div>
       )}
       <div className="px-5 py-4">
+        {b.title && <p className="mb-1 text-center font-semibold text-gold">{b.title}</p>}
         <p className="flex items-center justify-center gap-2 text-[0.95rem] leading-snug text-white">
           <Icon name="megaphone" className="h-4 w-4 shrink-0 text-gold" />
           <span>{b.message}</span>

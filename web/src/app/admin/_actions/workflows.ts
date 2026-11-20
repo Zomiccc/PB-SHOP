@@ -11,7 +11,7 @@ import { nextRewardsId } from "@/lib/rewards-id";
 import { suggestCodes } from "@/lib/barcode";
 import { assertVariantGrade } from "@/lib/grade";
 import { assertImeiFree, receiveStock } from "@/lib/inventory";
-import { HANDED_OVER, awardInstallmentPoints, formatCnic, maskCnic, monthlyPayment, reverseInstallmentPoints } from "@/lib/installments";
+import { HANDED_OVER, awardInstallmentPoints, formatCnic, maskCnic, reverseInstallmentPoints } from "@/lib/installments";
 import { filesFrom, inspectUpload, MAX_FILES_PER_FORM, saveAttachment, type AttachmentKind } from "@/lib/attachments";
 import { slugify } from "@/lib/format";
 import type { FormState } from "./auth";
@@ -41,49 +41,42 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
   let createdId: string | null = null;
   const res = await run(async () => {
     const phone = normalizePhone(str(f, "customerPhone"));
-    const cnic = str(f, "cnicNumber");
-    if (str(f, "customerName").length < 2) throw new Error("Enter the customer's full name");
+    const name = str(f, "customerName");
+    const model = str(f, "phoneModel");
+    const imei = optStr(f, "imei")?.replace(/\s/g, "") ?? null;
+    if (name.length < 2) throw new Error("Enter the customer's full name");
     if (!PHONE_RX.test(phone)) throw new Error("Enter a valid mobile number, e.g. 0300 1234567");
-    if (!CNIC_RX.test(cnic)) throw new Error("Enter the 13-digit CNIC number, e.g. 35202-1234567-1");
-    const listing = optStr(f, "listingId") ? await db.installmentListing.findUnique({ where: { id: str(f, "listingId") } }) : null;
-    const plan = {
-      phoneModel: str(f, "phoneModel") || listing?.model || "",
-      totalPrice: int(f, "totalPrice") ?? listing?.installmentTotal ?? 0,
-      phoneValue: int(f, "phoneValue") ?? listing?.regularPrice ?? null,
-      downPayment: int(f, "downPayment") ?? listing?.downPayment ?? 0,
-      durationMonths: int(f, "durationMonths") ?? listing?.durationMonths ?? 0,
-    };
-    if (plan.phoneModel.length < 2) throw new Error("Enter the phone model");
-    if (plan.totalPrice <= 0 || plan.downPayment < 0 || plan.downPayment >= plan.totalPrice) throw new Error("Check the total and down payment");
-    if (plan.durationMonths < 1 || plan.durationMonths > 60) throw new Error("Duration must be 1–60 months");
-    if (plan.phoneValue != null && plan.phoneValue <= 0) throw new Error("Phone cash price must be more than 0");
-    const docs = await collectIdDocuments(f);
+    if (model.length < 2) throw new Error("Enter the phone model");
+    if (imei && !/^[A-Za-z0-9-]{6,20}$/.test(imei)) throw new Error("IMEI should be 6–20 digits");
+    // Short form (Nov 2026): the financing company keeps the plan and the customer's ID in its own app.
+    const listing = await db.installmentListing.findFirst({ where: { model } });
+    const price = int(f, "phoneValue") ?? listing?.regularPrice ?? null;
+    if (!price || price <= 0) throw new Error("Enter the phone's retail price");
 
     const sale = await db.$transaction(async (tx) => {
-      const customer = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "customerName"), phone, passportNo: await nextRewardsId(tx) } }));
+      const customer = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name, phone, passportNo: await nextRewardsId(tx) } }));
       const count = await tx.installmentSale.count();
       const s = await tx.installmentSale.create({
         data: {
           ref: `PBI-${1001 + count}`,
           listingId: listing?.id ?? null,
           customerId: customer.id,
-          customerName: str(f, "customerName"),
+          customerName: name,
           customerPhone: phone,
-          cnicNumber: formatCnic(cnic),
-          address: optStr(f, "address"),
-          imei: optStr(f, "imei"),
-          ...plan,
-          monthlyPayment: monthlyPayment({ installmentTotal: plan.totalPrice, downPayment: plan.downPayment, durationMonths: plan.durationMonths }),
-          notes: optStr(f, "notes"),
-          idConsentAt: new Date(),
+          phoneModel: model,
+          imei,
+          totalPrice: price,
+          phoneValue: price,
+          downPayment: 0,
+          monthlyPayment: 0,
+          durationMonths: 0,
+          // Handed over in store at the sale: PB Points now, by the same new-phone rule as a cash sale.
+          status: "ACTIVE",
           staffId: staff.id,
         },
       });
-      for (const d of docs) await saveAttachment(d.file, { kind: d.kind, installmentSaleId: s.id, uploadedById: staff.id }, tx);
-      await audit(
-        { staffId: staff.id, action: "INSTALLMENT_SALE_CREATED", entityType: "INSTALLMENT", entityId: s.id, recordLabel: `${s.ref} · ${s.phoneModel}`, after: { customer: s.customerName, cnic: maskCnic(s.cnicNumber), ...plan, documents: docs.length } },
-        tx,
-      );
+      await awardInstallmentPoints(tx, s.id, staff.id);
+      await audit({ staffId: staff.id, action: "INSTALLMENT_SALE_CREATED", entityType: "INSTALLMENT", entityId: s.id, recordLabel: `${s.ref} · ${s.phoneModel}`, after: { customer: name, phone, price, imei } }, tx);
       return s;
     });
     createdId = sale.id;

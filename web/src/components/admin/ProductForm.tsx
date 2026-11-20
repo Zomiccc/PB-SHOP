@@ -1,11 +1,12 @@
 import type { Product } from "@prisma/client";
-import { ACCESSORY_TYPES, PART_TYPES, PHONE_BRANDS } from "@/lib/constants";
+import { PART_TYPES, PHONE_BRANDS } from "@/lib/constants";
+import { CategorySelect } from "./CategorySelect";
 import { parseJson } from "@/lib/format";
 import { saveProductAction } from "@/app/admin/_actions/products";
 import { ActionForm, Submit } from "./ui";
 import { Field } from "./Primitives";
 
-export function ProductForm({ product }: { product?: Product }) {
+export function ProductForm({ product, categories }: { product?: Product; categories: { key: string; label: string }[] }) {
   const specs = Object.entries(parseJson<Record<string, string>>(product?.specs, {}))
     .map(([k, v]) => `${k}: ${v}`)
     .join("\n");
@@ -33,9 +34,7 @@ export function ProductForm({ product }: { product?: Product }) {
           </select>
         </Field>
         <Field label="Accessory category">
-          <select name="accessoryType" defaultValue={product?.accessoryType ?? "OTHER"} className="field">
-            {Object.entries(ACCESSORY_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          <CategorySelect name="accessoryType" options={categories} defaultValue={product?.accessoryType ?? "OTHER"} />
         </Field>
         <Field label="Spare-part type">
           <select name="partType" defaultValue={product?.partType ?? "OTHER"} className="field">

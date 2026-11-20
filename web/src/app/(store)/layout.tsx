@@ -7,10 +7,14 @@ import { SocialProof } from "@/components/SocialProof";
 import { NotificationsBar } from "@/components/layout/NotificationsBar";
 import { SiteContentProvider, Zone } from "@/components/site/Editable";
 import { getPublishedContent } from "@/lib/site-content";
+import { activeBroadcasts } from "@/lib/broadcasts";
+import { AnnouncementBanner, type Announcement } from "@/components/layout/Announcements";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   // Owner edits from the website editor (Admin → Edit website); built-in text everywhere else.
-  const content = await getPublishedContent();
+  const [content, live] = await Promise.all([getPublishedContent(), activeBroadcasts().catch(() => [])]);
+  // Announcements (Nov 2026): the top banner and the header bell.
+  const announcements: Announcement[] = live.map((b) => ({ id: b.id, title: b.title ?? null, message: b.message, ctaLabel: b.ctaLabel, ctaHref: b.ctaHref, image: b.media.find((m) => m.type === "IMAGE")?.url ?? null }));
   return (
     <SiteContentProvider published={content}>
       <StoreProviders>
@@ -18,8 +22,9 @@ export default async function StoreLayout({ children }: { children: React.ReactN
           Skip to content
         </a>
         {/* Top of the homepage: "Enable Notifications" (v6 §9). Broadcasts now sit beneath Shop Phones (v6 §1). */}
+        <AnnouncementBanner items={announcements} />
         <NotificationsBar />
-        <Header />
+        <Header announcements={announcements} />
         <main id="main">
           {children}
           {/* Owner-added sections shown on every page, just above the footer */}

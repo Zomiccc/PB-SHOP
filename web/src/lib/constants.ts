@@ -37,7 +37,20 @@ export const NAV = [
 ] as const;
 
 /** Shop warranty (client request, 10 Oct 2026): used phones 3 days, accessories 7 days. */
-export const USED_WARRANTY = "3-day PB Lab warranty";
+export const USED_WARRANTY = "3-day checking warranty";
+/** Used phones (Nov 2026): each device has either the 3-day checking warranty or none. */
+export const NO_CHECK_WARRANTY = "No checking warranty";
+export const USED_WARRANTY_OPTIONS = [USED_WARRANTY, NO_CHECK_WARRANTY] as const;
+/** The six sides photographed for every used phone (front, back, left, right, top, bottom). */
+export const DEVICE_SIDES = [
+  { key: "front", label: "Front" },
+  { key: "back", label: "Back" },
+  { key: "left", label: "Left side" },
+  { key: "right", label: "Right side" },
+  { key: "top", label: "Top" },
+  { key: "bottom", label: "Bottom" },
+] as const;
+export type DeviceSide = (typeof DEVICE_SIDES)[number]["key"];
 export const ACCESSORY_WARRANTY = "7-day warranty";
 
 export const ACCESSORY_TYPES = {
@@ -54,6 +67,8 @@ export const ACCESSORY_TYPES = {
   OTHER: "Other",
 } as const;
 export type AccessoryType = keyof typeof ACCESSORY_TYPES;
+/** Label for an accessory category: a built-in key, or a category the shop created (stored by its name). */
+export const accessoryLabel = (key: string | null | undefined) => (key ? ((ACCESSORY_TYPES as Record<string, string>)[key] ?? key) : ACCESSORY_TYPES.OTHER);
 
 /** Phone spare parts (master brief §10) — repair-lab stock, sellable at the till, not listed online. */
 export const PART_TYPES = {

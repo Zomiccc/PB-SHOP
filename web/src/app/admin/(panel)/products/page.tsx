@@ -22,7 +22,9 @@ export default async function ProductsPage(props: PageProps<"/admin/products">) 
     <>
       <PageTitle title="Products" sub={`${products.length} products`}>
         <Link href="/admin/labels" className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>Print barcode labels</span></Link>
-        <Link href="/admin/products/new" className="btn btn-red !py-2.5 !text-sm">Add product</Link>
+        <Link href="/admin/inventory/new?category=ACCESSORY" className="btn btn-gold !py-2.5 !text-sm">+ Accessories</Link>
+        <Link href="/admin/inventory/new?category=PHONE&condition=NEW" className="btn btn-gold !py-2.5 !text-sm">+ New phone</Link>
+        <Link href="/admin/inventory/new?category=PHONE&condition=USED" className="btn btn-red !py-2.5 !text-sm">+ Used phone</Link>
       </PageTitle>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {[

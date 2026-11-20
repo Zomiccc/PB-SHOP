@@ -65,7 +65,7 @@ export function TrackRepair({ initialRef }: { initialRef: string }) {
                   </span>
                   <div>
                     <p className={cn("font-medium", i === idx ? "text-gold" : reached ? "text-white" : "text-white/40")}>{s.label}</p>
-                    {at && <p className="text-xs text-white/50">{new Date(at).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" })}</p>}
+                    {at && <p className="text-xs text-white/50">{new Date(at).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Karachi" })}</p>}
                   </div>
                 </li>
               );
