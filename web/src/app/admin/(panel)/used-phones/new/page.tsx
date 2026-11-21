@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeskTabs } from "@/components/admin/DeskTabs";
 import { PHONE_BRANDS, USED_GRADES } from "@/lib/constants";
 import { Field, PageTitle, Panel } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
@@ -12,6 +13,7 @@ export const metadata = { title: "Buy a used phone" };
 export default function NewUsedPurchasePage() {
   return (
     <>
+      <DeskTabs tabs={[{ href: "/admin/used-phones/new", label: "Buy a used phone" }, { href: "/admin/used-phones", label: "Records" }]} active={0} />
       <PageTitle title="Buy a used phone" sub="Check the seller's original CNIC, test the phone, and record exactly one grade.">
         <Link href="/admin/used-phones" className="text-sm text-blue">← Used-phone buying</Link>
       </PageTitle>

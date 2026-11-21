@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeskTabs } from "@/components/admin/DeskTabs";
 import type { InstallmentListing } from "@prisma/client";
 import { db } from "@/lib/db";
 import { pkr } from "@/lib/format";
@@ -25,6 +26,7 @@ export default async function InstallmentsAdminPage() {
   ]);
   return (
     <>
+      <DeskTabs tabs={[{ href: "/admin/installments/sales/new", label: "New installment sale" }, { href: "/admin/installments", label: "Records" }]} active={1} />
       <PageTitle title="Installments" sub="Listings appear in the homepage “Phones on easy installments” section in this order. Customers complete purchases in store with their CNIC.">
         <Link href="/admin/installments/sales/new" className="btn btn-gold !py-2.5 !text-sm">+ New installment sale</Link>
         <Link href="/#installments" target="_blank" className="btn btn-ghost !py-2.5 !text-sm text-ink"><span>View on homepage</span></Link>

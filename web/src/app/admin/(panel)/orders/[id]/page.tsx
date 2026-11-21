@@ -81,7 +81,7 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
             ))}
           </Panel>
 
-          <Panel title="Sale notes (§17)">
+          <Panel title="Sale notes">
             <ActionForm action={addNoteAction} resetOnSuccess className="mb-4 space-y-2">
               <input type="hidden" name="kind" value="SALE" />
               <input type="hidden" name="orderId" value={o.id} />

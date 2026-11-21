@@ -48,6 +48,9 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
     if (!PHONE_RX.test(phone)) throw new Error("Enter a valid mobile number, e.g. 0300 1234567");
     if (model.length < 2) throw new Error("Enter the phone model");
     if (imei && !/^[A-Za-z0-9-]{6,20}$/.test(imei)) throw new Error("IMEI should be 6–20 digits");
+    const cnicDigits = (optStr(f, "cnicNumber") ?? "").replace(/\D/g, "");
+    if (cnicDigits && cnicDigits.length !== 13) throw new Error("CNIC number should be 13 digits");
+    const cnicNumber = cnicDigits ? `${cnicDigits.slice(0, 5)}-${cnicDigits.slice(5, 12)}-${cnicDigits.slice(12)}` : null;
     // Short form (Nov 2026): the financing company keeps the plan and the customer's ID in its own app.
     const listing = await db.installmentListing.findFirst({ where: { model } });
     const price = int(f, "phoneValue") ?? listing?.regularPrice ?? null;
@@ -65,6 +68,7 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
           customerPhone: phone,
           phoneModel: model,
           imei,
+          cnicNumber,
           totalPrice: price,
           phoneValue: price,
           downPayment: 0,

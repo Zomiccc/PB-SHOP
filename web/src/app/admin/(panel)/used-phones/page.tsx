@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeskTabs } from "@/components/admin/DeskTabs";
 import { db } from "@/lib/db";
 import { pkr } from "@/lib/format";
 import { maskCnic } from "@/lib/installments";
@@ -18,6 +19,7 @@ export default async function UsedPurchasesPage(props: PageProps<"/admin/used-ph
   });
   return (
     <>
+      <DeskTabs tabs={[{ href: "/admin/used-phones/new", label: "Buy a used phone" }, { href: "/admin/used-phones", label: "Records" }]} active={1} />
       <PageTitle title="Used-phone buying" sub="Every phone bought from a seller, with their ID documents, IMEI, grade and agreed price.">
         <form><input name="q" defaultValue={q} placeholder="IMEI, ref, phone…" className="field !w-56 !rounded-full !py-2" /></form>
         <Link href="/admin/used-phones/new" className="btn btn-gold !py-2.5 !text-sm">+ Buy a used phone</Link>

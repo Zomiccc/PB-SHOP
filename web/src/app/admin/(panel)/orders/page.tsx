@@ -24,9 +24,15 @@ export default async function OrdersPage(props: PageProps<"/admin/orders">) {
   const view = typeof sp.view === "string" && sp.view in VIEWS ? sp.view : "all";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const digits = q.replace(/\D/g, "");
+  // Date search (Part 2): one day, or a range, in Pakistan time.
+  const day = (k: string) => (typeof sp[k] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp[k] as string) ? (sp[k] as string) : "");
+  const from = day("from");
+  const to = day("to") || from;
+  const dateWhere: Prisma.OrderWhereInput = from ? { createdAt: { gte: new Date(`${from}T00:00:00+05:00`), lt: new Date(new Date(`${to}T00:00:00+05:00`).getTime() + 86_400_000) } } : {};
   const orders = await db.order.findMany({
     where: {
       ...VIEWS[view].where,
+      ...dateWhere,
       ...(q ? { OR: [{ number: { contains: q.toUpperCase() } }, { customerName: like(q) }, ...(digits.length >= 4 ? [{ customerPhone: { contains: digits } }] : [])] } : {}),
     },
     orderBy: { createdAt: "desc" },
@@ -35,14 +41,18 @@ export default async function OrdersPage(props: PageProps<"/admin/orders">) {
   });
   return (
     <>
-      <PageTitle title="Orders" sub="Online and in-store sales with payment and fulfilment status." />
+      <PageTitle title="Orders" sub={from ? `Sales ${from === to ? `on ${from}` : `from ${from} to ${to}`} · ${orders.length} found · ${pkr(orders.reduce((t, o) => t + o.total, 0))}` : "Online and in-store sales with payment and fulfilment status. Pick a day or a date range to find past sales."} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {Object.entries(VIEWS).map(([k, v]) => (
-          <FilterLink key={k} href={`/admin/orders?view=${k}`} active={view === k}>{v.label}</FilterLink>
+          <FilterLink key={k} href={`/admin/orders?view=${k}${from ? `&from=${from}&to=${to}` : ""}`} active={view === k}>{v.label}</FilterLink>
         ))}
-        <form className="ml-auto">
+        <form className="ml-auto flex flex-wrap items-center gap-2">
           <input type="hidden" name="view" value={view} />
           <input name="q" defaultValue={q} placeholder="Order no., phone, name…" className="field !w-60 !rounded-full !py-2" />
+          <label className="flex items-center gap-1 text-xs text-muted">From <input type="date" name="from" defaultValue={from} className="field !w-auto !py-2" /></label>
+          <label className="flex items-center gap-1 text-xs text-muted">To <input type="date" name="to" defaultValue={day("to")} className="field !w-auto !py-2" /></label>
+          <button className="btn btn-ghost !py-2 !text-sm">Search</button>
+          {(from || q) && <Link href={`/admin/orders?view=${view}`} className="text-xs text-blue">Clear</Link>}
         </form>
       </div>
       <Panel>

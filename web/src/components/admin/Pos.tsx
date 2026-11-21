@@ -27,7 +27,7 @@ export function Pos({ isSuper, rewards }: { isSuper: boolean; rewards: Reward[] 
   const [name, setName] = useState("");
   const [customerResult, setCustomer] = useState<Customer | null>(null);
   const [method, setMethod] = useState<keyof typeof METHODS>("CASH");
-  const [discount, setDiscount] = useState(0);
+  const [salePrice, setSalePrice] = useState("");
   const [note, setNote] = useState("");
   const [points, setPoints] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,7 +36,9 @@ export function Pos({ isSuper, rewards }: { isSuper: boolean; rewards: Reward[] 
   const scanRef = useRef<HTMLInputElement>(null);
 
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
-  const total = Math.max(0, subtotal - discount);
+  const agreed = salePrice.trim() === "" ? subtotal : Math.max(0, Math.round(Number(salePrice) || 0));
+  const discount = Math.max(0, subtotal - agreed);
+  const total = subtotal - discount;
   const shortfall = lines.filter((l) => l.qty > l.stock);
   // Only show a lookup result while the typed number is complete.
   const customer = phone.replace(/\D/g, "").length >= 11 ? customerResult : null;
@@ -137,7 +139,7 @@ export function Pos({ isSuper, rewards }: { isSuper: boolean; rewards: Reward[] 
     setPhone("");
     setName("");
     setCustomer(null);
-    setDiscount(0);
+    setSalePrice("");
     setNote("");
     setPoints("");
     setRewardId("");
@@ -285,7 +287,11 @@ export function Pos({ isSuper, rewards }: { isSuper: boolean; rewards: Reward[] 
               </button>
             ))}
           </div>
-          <label className="mt-3 block"><span className="label">Discount (PKR)</span><input type="number" min={0} value={discount || ""} onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))} className="field" /></label>
+          <label className="mt-3 block">
+            <span className="label">Sale price (PKR)</span>
+            <input type="number" min={0} value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder={subtotal ? String(subtotal) : "Final agreed price"} className="field" />
+            <span className="mt-1 block text-xs text-muted">{discount > 0 ? `Discount: ${pkr(discount)} (worked out automatically)` : "Type the final agreed price. Leave empty for the full price."}</span>
+          </label>
           {phone.trim() && (
             <label className="mt-3 block">
               <span className="label">PB Points to give</span>
@@ -293,7 +299,7 @@ export function Pos({ isSuper, rewards }: { isSuper: boolean; rewards: Reward[] 
               <span className="mt-1 block text-xs text-white/50">Leave empty for the automatic points, or type the number you want to give (0 = none). Recorded in the audit log.</span>
             </label>
           )}
-          <label className="mt-3 block"><span className="label">Sale note (§17)</span><textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="What was sold, special instructions…" className="field" /></label>
+          <label className="mt-3 block"><span className="label">Sale note</span><textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="What was sold, special instructions…" className="field" /></label>
         </div>
 
         <div className="rounded-2xl bg-navy-950 p-5 text-white">

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { cn } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
-type Item = { href: string; label: string; icon: string; badge?: number; superOnly?: boolean };
+type Item = { href: string; label: string; icon: string; badge?: number; superOnly?: boolean; match?: string };
 
 export function AdminNav({ role, name, counts, logout }: { role: string; name: string; counts: { lowStock: number; newRepairs: number; inbox: number; onHold: number; reviews: number; chats: number; installments: number }; logout: () => Promise<void> }) {
   const pathname = usePathname();
@@ -19,8 +19,8 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
       items: [
         { href: "/admin", label: "Dashboard", icon: "sparkle" },
         { href: "/admin/pos", label: "POS / Sell", icon: "card" },
-        { href: "/admin/installments/sales/new", label: "Installment sale", icon: "id-card" },
-        { href: "/admin/used-phones/new", label: "Buy a used phone", icon: "cash" },
+        { href: "/admin/installments/sales/new", label: "Installment sale", icon: "id-card", match: "/admin/installments", badge: counts.installments },
+        { href: "/admin/used-phones/new", label: "Buy a used phone", icon: "cash", match: "/admin/used-phones" },
         { href: "/admin/cards", label: "Rewards cards", icon: "id-card" },
       ],
     },
@@ -32,9 +32,7 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
         { href: "/admin/products", label: "Products", icon: "phone" },
         { href: "/admin/inventory", label: "Inventory & items", icon: "box", badge: counts.lowStock },
         { href: "/admin/accessory-prices", label: "Accessory prices & offers", icon: "tag" },
-        { href: "/admin/installments", label: "Installments", icon: "id-card", badge: counts.installments },
         { href: "/admin/skins", label: "Custom skins", icon: "phone" },
-        { href: "/admin/used-phones", label: "Used-phone buying", icon: "cash" },
         { href: "/admin/customers", label: "Customers & loyalty", icon: "user" },
         { href: "/admin/referrals", label: "Referrals", icon: "gift" },
         { href: "/admin/inbox", label: "Inbox & chat", icon: "chat", badge: counts.inbox + counts.chats },
@@ -67,7 +65,7 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
             <p className="mb-2 px-3 font-mono text-[0.6rem] uppercase tracking-[0.22em] text-white/35">{g.title}</p>
             <ul className="space-y-0.5">
               {items.map((i) => {
-                const active = i.href === "/admin" ? pathname === "/admin" : pathname.startsWith(i.href);
+                const active = i.href === "/admin" ? pathname === "/admin" : pathname.startsWith(i.match ?? i.href);
                 return (
                   <li key={i.href}>
                     <Link

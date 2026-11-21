@@ -97,18 +97,21 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             )}
           </Panel>
 
-          <Panel title="Repair notes (§17)">
+          <Panel title="Repair notes">
             <ActionForm action={addNoteAction} resetOnSuccess className="mb-5 space-y-3">
               <input type="hidden" name="kind" value="REPAIR" />
               <input type="hidden" name="repairId" value={r.id} />
               {r.customerId && <input type="hidden" name="customerId" value={r.customerId} />}
-              <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Note"><textarea name="body" rows={2} required placeholder="What was done, what the customer said…" className="field" /></Field>
+              <details className="text-sm">
+                <summary className="cursor-pointer text-muted">More detail (optional)</summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Field label="Reported issue"><input name="issue" className="field" /></Field>
                 <Field label="Inspection findings"><input name="findings" className="field" /></Field>
                 <Field label="Work completed"><input name="work" className="field" /></Field>
                 <Field label="Parts used"><input name="parts" className="field" /></Field>
               </div>
-              <Field label="Note"><textarea name="body" rows={2} required className="field" /></Field>
+              </details>
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="important" className="h-4 w-4" /> Important</label>
                 <Submit>Add note</Submit>
@@ -138,24 +141,26 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             {r.customer && <Link href={`/admin/customers/${r.customer.id}`} className="mt-3 inline-block text-sm text-blue">Rewards ID {r.customer.passportNo} · {r.customer.loyaltyPoints} pts →</Link>}
           </Panel>
 
-          <Panel title="Quote & assignment">
+          <Panel title="Price">
             <ActionForm action={repairDetailsAction} className="space-y-3">
               <input type="hidden" name="repairId" value={r.id} />
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Quote (PKR)"><input name="quote" type="number" defaultValue={r.quote ?? ""} className="field" /></Field>
-                <Field label="Final price"><input name="finalPrice" type="number" defaultValue={r.finalPrice ?? ""} className="field" /></Field>
-              </div>
-              <Field label="Of which parts (PKR)" hint="PB Rewards repair discounts exclude parts"><input name="partsCost" type="number" min={0} defaultValue={r.partsCost ?? ""} className="field" /></Field>
-              <Field label="IMEI / serial"><input name="imei" defaultValue={r.imei ?? ""} className="field" /></Field>
-              <Field label="Assigned technician">
-                <select name="assignedToId" defaultValue={r.assignedToId ?? ""} className="field">
-                  <option value="">Unassigned</option>
-                  {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </Field>
+              <Field label="Price (PKR)" hint="What the customer pays for this repair"><input name="finalPrice" type="number" inputMode="numeric" defaultValue={r.finalPrice ?? ""} className="field !py-3 text-base" /></Field>
+              <details className="rounded-xl bg-white/5 px-3 py-2 text-sm">
+                <summary className="cursor-pointer text-muted">More (quote, parts, IMEI, technician)</summary>
+                <div className="mt-3 space-y-3">
+                  <Field label="Quote (PKR)" hint="Shown to the customer on the tracking page"><input name="quote" type="number" defaultValue={r.quote ?? ""} className="field" /></Field>
+                  <Field label="Of which parts (PKR)" hint="PB Rewards repair discounts exclude parts"><input name="partsCost" type="number" min={0} defaultValue={r.partsCost ?? ""} className="field" /></Field>
+                  <Field label="IMEI / serial"><input name="imei" defaultValue={r.imei ?? ""} className="field" /></Field>
+                  <Field label="Assigned technician">
+                    <select name="assignedToId" defaultValue={r.assignedToId ?? ""} className="field">
+                      <option value="">Unassigned</option>
+                      {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </Field>
+                </div>
+              </details>
               <Submit>Save</Submit>
             </ActionForm>
-            {r.quote != null && <p className="mt-3 text-xs text-muted">Quote {pkr(r.quote)} is shown to the customer on the tracking page.</p>}
           </Panel>
 
           <Panel title="PB Rewards">
