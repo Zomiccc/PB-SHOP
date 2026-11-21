@@ -39,6 +39,7 @@ export function AdminNav({ role, name, counts, logout }: { role: string; name: s
         { href: "/admin/broadcasts", label: "Announcements", icon: "megaphone" },
         { href: "/admin/expenses", label: "Daily Expenses", icon: "cash" },
         { href: "/admin/repair-expenses", label: "Repair Parts & Tools Expenses", icon: "wrench" },
+        { href: "/admin/rewards-gifting", label: "Rewards Gifting", icon: "gift" },
         { href: "/admin/reviews", label: "Reviews", icon: "star", badge: counts.reviews },
         { href: "/admin/reports", label: "Reports", icon: "star" },
       ],

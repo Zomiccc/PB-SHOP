@@ -1,7 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { ACCESSORY_TYPES } from "./constants";
-import { getSetting, type SettingKey } from "./settings";
+import { SETTING_DEFAULTS, getSetting, type SettingKey } from "./settings";
+import type { ExpenseKind } from "./expenses";
 
 type Client = Prisma.TransactionClient | typeof db;
 
@@ -37,9 +38,9 @@ export async function resolveAccessoryCategory(f: FormData, client: Client = db)
 }
 
 /** Expense categories for a kind; a new one typed in the form is added to that list. */
-export async function resolveExpenseCategory(kind: "DAILY" | "REPAIR", picked: string, typed: string, client: Client = db) {
+export async function resolveExpenseCategory(kind: ExpenseKind, picked: string, typed: string, client: Client = db) {
   const cats = await getSetting("expenseCategories", client);
-  const list = cats[kind] ?? [];
+  const list = cats[kind] ?? SETTING_DEFAULTS.expenseCategories[kind] ?? [];
   const name = clean(picked === "__new__" ? typed : picked);
   if (name.length < 2) throw new Error(picked === "__new__" ? "Type the new category name" : "Choose a category");
   const existing = list.find((c) => c.toLowerCase() === name.toLowerCase());

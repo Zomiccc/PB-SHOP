@@ -39,6 +39,7 @@ export const SETTING_DEFAULTS = {
   expenseCategories: {
     DAILY: ["Rent", "Electricity", "Internet", "Staff salary", "Tea & food", "Transport", "Packing & bags", "Marketing", "Other"] as string[],
     REPAIR: ["Screens", "Batteries", "Charging ports", "Back glass", "Small parts", "Tools", "Glue & chemicals", "Other"] as string[],
+    GIFT: ["Reward redeemed", "Free accessory", "Festival / Eid gift", "Loyal customer gift", "Other"] as string[],
   },
   // Installment calculator — defaults match the partner (Palm) app's standard plan: 6% flat per month,
   // no extra fees. New key so older saved sample rates don't override these.

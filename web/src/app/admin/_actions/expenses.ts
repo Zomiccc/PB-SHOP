@@ -9,7 +9,8 @@ import { EXPENSE_KINDS, expenseDate, type ExpenseKind } from "@/lib/expenses";
 import type { FormState } from "./auth";
 import { diff, int, optStr, run, str } from "./util";
 
-const kindOf = (f: FormData): ExpenseKind => (str(f, "kind") === "REPAIR" ? "REPAIR" : "DAILY");
+const asKind = (k: string): ExpenseKind => (k === "REPAIR" || k === "GIFT" ? k : "DAILY");
+const kindOf = (f: FormData): ExpenseKind => asKind(str(f, "kind"));
 
 async function read(f: FormData, kind: ExpenseKind) {
   const day = str(f, "date");
@@ -39,7 +40,7 @@ export async function updateExpenseAction(_: FormState, f: FormData): Promise<Fo
   const staff = await requireStaff({ superAdmin: true });
   return run(async () => {
     const before = await db.expense.findUniqueOrThrow({ where: { id: str(f, "id") } });
-    const kind = before.kind === "REPAIR" ? "REPAIR" : "DAILY";
+    const kind = asKind(before.kind);
     const data = await read(f, kind);
     const d = diff(before as unknown as Record<string, unknown>, data);
     if (!d.changed) return "No changes";

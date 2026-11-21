@@ -119,3 +119,17 @@ describe("Used phones", () => {
     expect(list.map((p) => p.side)).toEqual(["front", "left", "bottom"]);
   });
 });
+
+describe("Part 2: Rewards Gifting", () => {
+  it("gifts are their own expense kind with their own categories, and count in the month's totals", async () => {
+    const { EXPENSE_KINDS, expenseTotals } = await import("@/lib/expenses");
+    expect(EXPENSE_KINDS.GIFT.href).toBe("/admin/rewards-gifting");
+    expect(await resolveExpenseCategory("GIFT", "Free accessory", "")).toBe("Free accessory");
+    const staff = await makeStaff();
+    const before = await expenseTotals();
+    await db.expense.create({ data: { kind: "GIFT", date: new Date(), category: "Free accessory", amount: 700, staffId: staff.id } });
+    const after = await expenseTotals();
+    expect(after.month.gift - before.month.gift).toBe(700);
+    expect(after.month.total - before.month.total).toBe(700);
+  });
+});

@@ -65,12 +65,13 @@ export default async function ReportsPage(props: PageProps<"/admin/reports">) {
       </div>
 
       {/* Daily and monthly expenses (Nov 2026): shop expenses + repair parts & tools, in Pakistan time. */}
-      <Panel title="Expenses" className="mt-6" action={<span className="flex gap-3 text-sm"><Link href="/admin/expenses" className="text-blue">Daily expenses →</Link><Link href="/admin/repair-expenses" className="text-blue">Repair parts & tools →</Link></span>}>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat label="Today" value={pkr(expenses.today.total)} hint={`Shop ${pkr(expenses.today.daily)} · repair ${pkr(expenses.today.repair)}`} />
+      <Panel title="Expenses" className="mt-6" action={<span className="flex gap-3 text-sm"><Link href="/admin/expenses" className="text-blue">Daily expenses →</Link><Link href="/admin/repair-expenses" className="text-blue">Repair parts & tools →</Link><Link href="/admin/rewards-gifting" className="text-blue">Rewards gifting →</Link></span>}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <Stat label="Today" value={pkr(expenses.today.total)} hint={`Shop ${pkr(expenses.today.daily)} · repair ${pkr(expenses.today.repair)} · gifts ${pkr(expenses.today.gift)}`} />
           <Stat label={`This month (${expenses.month.label})`} value={pkr(expenses.month.total)} />
           <Stat label="Daily expenses this month" value={pkr(expenses.month.daily)} />
           <Stat label="Repair parts & tools this month" value={pkr(expenses.month.repair)} />
+          <Stat label="Rewards gifting this month" value={pkr(expenses.month.gift)} />
         </div>
         {expenses.byCategory.length > 0 && (
           <ul className="mt-4 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-3">

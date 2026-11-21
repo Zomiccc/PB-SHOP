@@ -1,9 +1,11 @@
 import { db } from "./db";
 
-export type ExpenseKind = "DAILY" | "REPAIR";
+export type ExpenseKind = "DAILY" | "REPAIR" | "GIFT";
 export const EXPENSE_KINDS: Record<ExpenseKind, { title: string; short: string; href: string }> = {
   DAILY: { title: "Daily Expenses", short: "Daily expenses", href: "/admin/expenses" },
   REPAIR: { title: "Repair Parts & Tools Expenses", short: "Repair parts & tools", href: "/admin/repair-expenses" },
+  // Part 2: gifts handed to customers (rewards) — counted as an expense in Reports.
+  GIFT: { title: "Rewards Gifting", short: "Rewards gifting", href: "/admin/rewards-gifting" },
 };
 
 const PKT = 5 * 3600_000;
@@ -27,10 +29,11 @@ export async function expenseTotals(now = new Date()) {
   const sum = (list: typeof rows) => list.reduce((s, r) => s + r.amount, 0);
   const todays = rows.filter((r) => pktDay(r.date) === today);
   const byCategory = new Map<string, number>();
-  for (const r of rows) byCategory.set(`${r.kind === "REPAIR" ? "Repair · " : ""}${r.category}`, (byCategory.get(`${r.kind === "REPAIR" ? "Repair · " : ""}${r.category}`) ?? 0) + r.amount);
+  const prefix = (k: string) => (k === "REPAIR" ? "Repair · " : k === "GIFT" ? "Gift · " : "");
+  for (const r of rows) byCategory.set(`${prefix(r.kind)}${r.category}`, (byCategory.get(`${prefix(r.kind)}${r.category}`) ?? 0) + r.amount);
   return {
-    today: { total: sum(todays), daily: sum(todays.filter((r) => r.kind === "DAILY")), repair: sum(todays.filter((r) => r.kind === "REPAIR")) },
-    month: { label: month, total: sum(rows), daily: sum(rows.filter((r) => r.kind === "DAILY")), repair: sum(rows.filter((r) => r.kind === "REPAIR")) },
+    today: { total: sum(todays), daily: sum(todays.filter((r) => r.kind === "DAILY")), repair: sum(todays.filter((r) => r.kind === "REPAIR")), gift: sum(todays.filter((r) => r.kind === "GIFT")) },
+    month: { label: month, total: sum(rows), daily: sum(rows.filter((r) => r.kind === "DAILY")), repair: sum(rows.filter((r) => r.kind === "REPAIR")), gift: sum(rows.filter((r) => r.kind === "GIFT")) },
     byCategory: [...byCategory.entries()].sort((a, b) => b[1] - a[1]),
   };
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { pkr } from "@/lib/format";
-import { getSetting } from "@/lib/settings";
+import { SETTING_DEFAULTS, getSetting } from "@/lib/settings";
 import { requireStaffPage } from "@/lib/staff";
 import { EXPENSE_KINDS, pktDay, pktMonthStart, pktNextMonth, type ExpenseKind } from "@/lib/expenses";
 import { addExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/admin/_actions/expenses";
@@ -26,7 +26,7 @@ export async function ExpensesScreen({ kind, month: monthParam }: { kind: Expens
     db.expense.findMany({ where: { kind, date: { gte: pktMonthStart(month), lt: pktMonthStart(pktNextMonth(month)) } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }], include: { staff: { select: { name: true } } } }),
     getSetting("expenseCategories"),
   ]);
-  const options = (cats[kind] ?? []).map((c) => ({ key: c, label: c }));
+  const options = (cats[kind] ?? SETTING_DEFAULTS.expenseCategories[kind] ?? []).map((c) => ({ key: c, label: c }));
   const info = EXPENSE_KINDS[kind];
   const days = new Map<string, typeof rows>();
   for (const r of rows) days.set(pktDay(r.date), [...(days.get(pktDay(r.date)) ?? []), r]);
@@ -39,16 +39,16 @@ export async function ExpensesScreen({ kind, month: monthParam }: { kind: Expens
     <>
       <PageTitle title={info.title} sub={owner ? "Anyone can add an expense. You can edit or delete entries — every change is in the audit log." : "Add each expense as it happens. Only the owner can edit or delete entries."} />
       <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
-        <Panel title="Add an expense">
+        <Panel title={kind === "GIFT" ? "Record a gift" : "Add an expense"}>
           <ActionForm action={addExpenseAction} resetOnSuccess className="grid gap-4">
             <input type="hidden" name="kind" value={kind} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Date"><input name="date" type="date" required defaultValue={today} max={today} className="field !py-3" /></Field>
-              <Field label="Amount (Rs)"><input name="amount" type="number" inputMode="numeric" min={1} required className="field !py-3 text-lg" /></Field>
+              <Field label={kind === "GIFT" ? "Gift cost (Rs)" : "Amount (Rs)"}><input name="amount" type="number" inputMode="numeric" min={1} required className="field !py-3 text-lg" /></Field>
             </div>
             <Field label="Category"><CategorySelect name="category" options={options} className="field !py-3" /></Field>
-            <Field label="Note (optional)"><input name="note" maxLength={200} placeholder={kind === "REPAIR" ? "e.g. 2 × Infinix Hot 60 battery" : "e.g. October electricity bill"} className="field !py-3" /></Field>
-            <Submit variant="gold" className="!py-3.5 !text-base">Save expense</Submit>
+            <Field label="Note (optional)"><input name="note" maxLength={200} placeholder={kind === "REPAIR" ? "e.g. 2 × Infinix Hot 60 battery" : kind === "GIFT" ? "Customer name / phone and the gift, e.g. Ali 0300… · earbuds" : "e.g. October electricity bill"} className="field !py-3" /></Field>
+            <Submit variant="gold" className="!py-3.5 !text-base">{kind === "GIFT" ? "Save gift" : "Save expense"}</Submit>
           </ActionForm>
         </Panel>
 

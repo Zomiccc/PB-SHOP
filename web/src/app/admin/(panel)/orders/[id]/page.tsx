@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { requireStaffPage } from "@/lib/staff";
 import { pkr } from "@/lib/format";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
@@ -11,6 +12,7 @@ export const metadata = { title: "Order" };
 
 export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) {
   const { id } = await props.params;
+  const isOwner = (await requireStaffPage()).role === "SUPER_ADMIN";
   const o = await db.order.findUnique({
     where: { id },
     include: {
@@ -162,18 +164,19 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
           </Panel>
 
           {!closed && (
-            <Panel title="Cancel or return">
+            <Panel title={isOwner ? "Cancel, return or delete" : "Cancel or return"}>
               <ActionForm action={cancelOrReturnAction} className="space-y-3" confirm="Finalise this? Stock will be restored and points reversed.">
                 <input type="hidden" name="orderId" value={o.id} />
                 <Field label="Type">
                   <select name="kind" className="field">
                     <option value="RETURN">Return (item came back)</option>
                     <option value="CANCEL">Cancel (never fulfilled)</option>
+                    {isOwner && <option value="DELETE">Delete sale — entered by mistake (owner)</option>}
                   </select>
                 </Field>
                 <Field label="Reason"><input name="reason" required className="field" /></Field>
                 <Submit variant="red">Finalise</Submit>
-                <p className="text-xs text-muted">Refund the customer through the original payment method; stock and loyalty are updated automatically.</p>
+                <p className="text-xs text-muted">Refund the customer through the original payment method; stock, reports and PB Points are updated automatically.{isOwner ? " To correct a sale, delete it and ring it up again at the POS — both are in the audit log." : ""}</p>
               </ActionForm>
             </Panel>
           )}

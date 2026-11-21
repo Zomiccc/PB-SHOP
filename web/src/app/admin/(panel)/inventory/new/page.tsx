@@ -1,3 +1,4 @@
+import { ImeiInput } from "@/components/admin/ImeiInput";
 import Link from "next/link";
 import { suggestCodes } from "@/lib/barcode";
 import { requireStaffPage } from "@/lib/staff";
@@ -129,9 +130,10 @@ function PhoneFields({ used }: { used: boolean }) {
         <Field label="Storage"><input name="storage" placeholder="256GB" className="field" /></Field>
         <Field label="RAM"><input name="ram" placeholder="8GB" className="field" /></Field>
         <Field label="Colour"><input name="color" className="field" /></Field>
+        {!used && <Field label="IMEI (optional)" hint="Scan the barcode on the box — one phone is recorded in stock" className="sm:col-span-3"><ImeiInput /></Field>}
         {used && (
           <>
-            <Field label="IMEI" hint="Dial *#06#"><input name="imei" required inputMode="numeric" className="field font-mono" /></Field>
+            <Field label="IMEI" hint="Dial *#06#, or scan the box"><ImeiInput required /></Field>
             <Field label="Grade">
               <select name="grade" required defaultValue="" className="field">
                 <option value="" disabled>Choose</option>

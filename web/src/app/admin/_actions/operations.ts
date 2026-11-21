@@ -59,12 +59,22 @@ export async function markPaidAction(_: FormState, f: FormData): Promise<FormSta
 export async function cancelOrReturnAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
+    // Part 2: DELETE = owner only, for a sale entered by mistake — like a cancellation, and any points the customer
+    // spent on this bill are given back too. Saved in the audit log with the sale as it was.
+    const deleting = str(f, "kind") === "DELETE";
+    if (deleting && staff.role !== "SUPER_ADMIN") throw new Error("Only the owner can delete a sale");
     const kind = str(f, "kind") === "RETURN" ? "RETURN" : "CANCEL";
     const reason = str(f, "reason");
     if (reason.length < 3) throw new Error("Give a reason");
-    const o = await db.order.findUniqueOrThrow({ where: { id: str(f, "orderId") } });
+    const o = await db.order.findUniqueOrThrow({ where: { id: str(f, "orderId") }, include: { items: { select: { name: true, qty: true, unitPrice: true } } } });
     if (["CANCELLED", "RETURNED"].includes(o.fulfilmentStatus)) throw new Error("Order is already closed");
     await db.$transaction(async (tx) => {
+      if (deleting && o.customerId) {
+        const used = await tx.loyaltyTransaction.findMany({ where: { orderId: o.id, type: "REDEEM" } });
+        const back = -used.reduce((s, t) => s + t.points, 0);
+        if (back > 0) await earnPoints(tx, { customerId: o.customerId, points: back, source: "MANUAL", type: "ADJUST", reason: `Points given back — sale ${o.number} deleted`, orderId: o.id, staffId: staff.id });
+      }
+      if (deleting) await audit({ staffId: staff.id, action: "SALE_DELETED", entityType: "ORDER", entityId: o.id, recordLabel: `Sale ${o.number}`, before: { total: o.total, customer: o.customerName, phone: o.customerPhone, items: o.items, createdAt: o.createdAt }, after: { reason } }, tx);
       await restoreOrderStock(tx, o.id, staff.id, kind);
       // Reverse this order's points: unspent points on its own lots first, then from the rest of the balance.
       const lots = await tx.loyaltyTransaction.findMany({ where: { orderId: o.id, type: "EARN" } });
@@ -80,9 +90,10 @@ export async function cancelOrReturnAction(_: FormState, f: FormData): Promise<F
         where: { id: o.id },
         data: { fulfilmentStatus: kind === "RETURN" ? "RETURNED" : "CANCELLED", paymentStatus: o.paymentStatus === "PAID" ? "REFUNDED" : "CANCELLED" },
       });
-      await tx.note.create({ data: { kind: "SALE", body: `${kind === "RETURN" ? "Return" : "Cancellation"}: ${reason}`, important: true, authorId: staff.id, orderId: o.id } });
+      await tx.note.create({ data: { kind: "SALE", body: `${deleting ? "Deleted by the owner (entered by mistake)" : kind === "RETURN" ? "Return" : "Cancellation"}: ${reason}`, important: true, authorId: staff.id, orderId: o.id } });
     });
     revalidatePath(`/admin/orders/${o.id}`);
+    if (deleting) return "Sale deleted — stock, reports and points updated";
     return kind === "RETURN" ? "Return finalised — stock restored" : "Order cancelled — stock restored";
   });
 }
