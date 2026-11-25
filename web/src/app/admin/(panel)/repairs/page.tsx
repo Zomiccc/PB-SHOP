@@ -36,19 +36,34 @@ export default async function RepairsPage(props: PageProps<"/admin/repairs">) {
 
       <details className="mb-6 rounded-2xl bg-card shadow-[var(--shadow-card)]" open={sp.new === "1"}>
         <summary className="cursor-pointer p-5 font-semibold text-blue">+ Book a walk-in repair at the counter</summary>
+        {/* Follow-up (25 Nov): just the main fields — customer, phone, problem, price, status. */}
         <ActionForm action={createWalkInRepairAction} resetOnSuccess className="grid gap-3 border-t border-ink/10 p-5 md:grid-cols-3">
           <Field label="Customer name"><input name="name" required className="field" /></Field>
-          <Field label="Mobile number"><input name="phone" type="tel" required className="field" /></Field>
-          <Field label="Brand">
-            <select name="brand" required className="field">{PHONE_BRANDS.map((b) => <option key={b}>{b}</option>)}</select>
+          <Field label="Mobile number"><input name="phone" type="tel" inputMode="tel" required placeholder="0300 1234567" className="field" /></Field>
+          <Field label="Phone">
+            <span className="flex gap-2">
+              <select name="brand" required aria-label="Brand" className="field !w-auto">{PHONE_BRANDS.map((b) => <option key={b}>{b}</option>)}</select>
+              <input name="model" required aria-label="Model" placeholder="Model" className="field" />
+            </span>
           </Field>
-          <Field label="Model"><input name="model" required className="field" /></Field>
-          <Field label="IMEI / serial"><input name="imei" className="field" /></Field>
-          <Field label="Issue category">
-            <select name="category" required className="field">{Object.entries(REPAIR_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+          <Field label="Problem" className="md:col-span-3"><textarea name="description" rows={2} required placeholder="e.g. Screen broken, needs new display" className="field" /></Field>
+          <Field label="Price (PKR)" hint="What the customer pays — can be added later"><input name="finalPrice" type="number" inputMode="numeric" min={0} className="field" /></Field>
+          <Field label="Parts cost (PKR)" hint="What the parts cost the shop"><input name="partsCost" type="number" inputMode="numeric" min={0} className="field" /></Field>
+          <Field label="Status">
+            <select name="status" defaultValue="RECEIVED" className="field">
+              {REPAIR_STATUSES.filter((s) => s.key !== "NEW").map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
           </Field>
-          <Field label="Problem description" className="md:col-span-3"><textarea name="description" rows={2} required className="field" /></Field>
-          <div className="md:col-span-3"><Submit variant="red">Create repair (status: Received)</Submit></div>
+          <details className="text-sm md:col-span-3">
+            <summary className="cursor-pointer text-muted">More (IMEI, issue type)</summary>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <Field label="IMEI / serial"><input name="imei" className="field" /></Field>
+              <Field label="Issue type">
+                <select name="category" defaultValue="OTHER" className="field">{Object.entries(REPAIR_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+              </Field>
+            </div>
+          </details>
+          <div className="md:col-span-3"><Submit variant="red">Save repair</Submit></div>
         </ActionForm>
       </details>
 

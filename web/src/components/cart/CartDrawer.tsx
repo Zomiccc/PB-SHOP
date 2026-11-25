@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cartSubtotal, lineKey, useCart } from "@/store/cart";
 import { CartThumb, cartHref } from "./CartThumb";
-import { pkr } from "@/lib/format";
+import { percentOff, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
 export function CartDrawer() {
@@ -83,7 +83,12 @@ export function CartDrawer() {
                               <Icon name="plus" className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                          <span className="font-semibold">{pkr(item.price * item.qty)}</span>
+                          <span className="text-right">
+                            <span className="block font-semibold">{pkr(item.price * item.qty)}</span>
+                            {item.wasPrice != null && item.wasPrice > item.price && (
+                              <span className="block text-xs"><span className="text-muted line-through">{pkr(item.wasPrice * item.qty)}</span> <span className="font-semibold text-emerald-500">{percentOff(item.price, item.wasPrice)}% off</span></span>
+                            )}
+                          </span>
                         </div>
                       </div>
                       <button onClick={() => remove(lineKey(item))} aria-label={`Remove ${item.name}`} className="self-start text-muted hover:text-red">

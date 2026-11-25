@@ -80,6 +80,18 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
+/** Customer-facing words for an order's delivery status. */
+export const FULFILMENT_STATUS_LABEL: Record<string, string> = {
+  NEW: "Order received",
+  PROCESSING: "Being prepared",
+  READY: "Ready to collect",
+  SHIPPED: "On its way",
+  COMPLETED: "Delivered",
+  ON_HOLD: "On hold — we'll call you",
+  CANCELLED: "Cancelled",
+  RETURNED: "Returned",
+};
+
 /**
  * Link that opens the provider's app on the customer's phone (client request). Android browsers only open an app
  * through a link address the app registers, so: with a `link` the app itself opens (aimed at that app's package, so

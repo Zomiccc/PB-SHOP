@@ -85,7 +85,8 @@ export async function createInstallmentSaleAction(_: FormState, f: FormData): Pr
     });
     createdId = sale.id;
   });
-  if (createdId) redirect(`/admin/installments/sales/${createdId}?created=1`);
+  // Follow-up (25 Nov): after saving, straight back to the Dashboard.
+  if (createdId) redirect(`/admin?installment=${createdId}`);
   return res;
 }
 
@@ -95,7 +96,8 @@ export async function updateInstallmentSaleAction(_: FormState, f: FormData): Pr
   const staff = await requireStaff();
   return run(async () => {
     const s = await db.installmentSale.findUniqueOrThrow({ where: { id: str(f, "id") } });
-    const status = str(f, "status");
+    // The Status field was removed from the form (25 Nov) — a sale keeps its status unless one is sent.
+    const status = str(f, "status") || s.status;
     if (!SALE_STATUSES.includes(status)) throw new Error("Choose a status");
     const data = { status, imei: optStr(f, "imei"), notes: optStr(f, "notes") };
     let points = 0;

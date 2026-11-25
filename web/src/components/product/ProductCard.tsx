@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import type { CatalogItem } from "@/lib/catalog";
 import { accessoryLabel } from "@/lib/constants";
-import { cn, pkr } from "@/lib/format";
+import { cn, percentOff, pkr } from "@/lib/format";
 import { ProductArt } from "./ProductArt";
 import { Icon } from "../ui/Icon";
 
@@ -97,6 +97,12 @@ export function ProductCard({ item, dark = false }: { item: CatalogItem; dark?: 
               <div>
                 <p className={cn("text-[0.7rem]", dark ? "text-white/40" : "text-muted")}>{item.storages.length > 1 || item.colors.length > 1 ? "From" : "Price"}</p>
                 <p className={cn("text-lg font-bold", dark ? "text-white" : "text-ink")}>{pkr(item.fromPrice)}</p>
+                {item.wasPrice != null && (
+                  <p className="text-xs">
+                    <span className={cn("line-through", dark ? "text-white/40" : "text-muted")}>{pkr(item.wasPrice)}</span>{" "}
+                    <span className="font-semibold text-emerald-500">{percentOff(item.fromPrice, item.wasPrice)}% off</span>
+                  </p>
+                )}
               </div>
               <span
                 className={cn(

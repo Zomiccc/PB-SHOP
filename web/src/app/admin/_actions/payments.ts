@@ -19,17 +19,20 @@ import { run, str } from "./util";
  * customer upload a new receipt from their payment link. Both are audited and the customer is told.
  */
 
-async function reviewable(orderId: string) {
+async function reviewable(orderId: string, opts: { allowWithoutReceipt?: boolean } = {}) {
   const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } } });
   if (o.paymentStatus === "PAID") throw new Error("This order is already paid");
-  if (o.paymentStatus !== "UNDER_REVIEW" || !o.payments[0]) throw new Error("There's no receipt waiting on this order");
-  return { o, payment: o.payments[0] };
+  if (["CANCELLED", "RETURNED"].includes(o.fulfilmentStatus)) throw new Error("This order is cancelled");
+  // Follow-up (25 Nov): "Payment received" on the order also works when the customer paid without uploading a receipt.
+  const waiting = o.paymentStatus === "UNDER_REVIEW" || (opts.allowWithoutReceipt && o.paymentStatus === "PENDING");
+  if (!waiting) throw new Error("There's no receipt waiting on this order");
+  return { o, payment: o.payments[0] ?? null };
 }
 
 export async function confirmPaymentAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
-    const { o, payment } = await reviewable(str(f, "orderId"));
+    const { o, payment } = await reviewable(str(f, "orderId"), { allowWithoutReceipt: true });
     let onHold = false;
     try {
       await finalizeOrder(o.id, { markPaid: true, staffId: staff.id });
@@ -39,8 +42,9 @@ export async function confirmPaymentAction(_: FormState, f: FormData): Promise<F
       onHold = true;
       await db.order.update({ where: { id: o.id }, data: { paymentStatus: "PAID", fulfilmentStatus: "ON_HOLD" } });
     }
-    await db.payment.update({ where: { id: payment.id }, data: { status: "SUCCESS", verifiedAt: new Date(), reviewedAt: new Date(), reviewedById: staff.id, reviewNote: null } });
-    await audit({ staffId: staff.id, action: "PAYMENT_CONFIRMED", entityType: "ORDER", entityId: o.id, recordLabel: `Order ${o.number}`, after: { method: payment.provider, amount: payment.amount, ref: payment.providerRef, onHold } });
+    if (payment) await db.payment.update({ where: { id: payment.id }, data: { status: "SUCCESS", verifiedAt: new Date(), reviewedAt: new Date(), reviewedById: staff.id, reviewNote: null } });
+    else await db.payment.create({ data: { orderId: o.id, provider: "MANUAL", amount: o.total, status: "SUCCESS", verifiedAt: new Date(), reviewedAt: new Date(), reviewedById: staff.id } });
+    await audit({ staffId: staff.id, action: "PAYMENT_CONFIRMED", entityType: "ORDER", entityId: o.id, recordLabel: `Order ${o.number}`, after: { method: payment?.provider ?? "MANUAL", amount: payment?.amount ?? o.total, ref: payment?.providerRef, onHold } });
     await notify({
       to: { phone: o.customerPhone, email: o.customerEmail },
       subject: `Payment confirmed — ${o.number}`,
@@ -56,6 +60,7 @@ export async function rejectPaymentAction(_: FormState, f: FormData): Promise<Fo
   const staff = await requireStaff();
   return run(async () => {
     const { o, payment } = await reviewable(str(f, "orderId"));
+    if (!payment) throw new Error("There's no receipt on this order");
     const reason = str(f, "reason").slice(0, 300) || null;
     await db.$transaction([
       db.payment.update({ where: { id: payment.id }, data: { status: "REJECTED", reviewNote: reason, reviewedAt: new Date(), reviewedById: staff.id } }),

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cartSubtotal, lineKey, useCart } from "@/store/cart";
 import { CartThumb } from "./CartThumb";
 import { MANUAL_METHODS, PAYMENT_ACCOUNTS, type ManualMethod } from "@/lib/payment-accounts";
-import { cn, pkr } from "@/lib/format";
+import { cn, percentOff, pkr } from "@/lib/format";
 import { Icon } from "../ui/Icon";
 
 type Props = {
@@ -209,7 +209,10 @@ export function CheckoutForm({ shipping, pointsRules, defaults }: Props) {
                     <p className="truncate font-medium">{i.name}</p>
                     <p className="truncate text-xs text-white/50">{i.variantLabel}</p>
                   </div>
-                  <p className="text-sm font-semibold">{pkr(i.price * i.qty)}</p>
+                  <p className="text-right text-sm font-semibold">
+                    {pkr(i.price * i.qty)}
+                    {i.wasPrice != null && i.wasPrice > i.price && <span className="block text-xs font-normal"><span className="text-white/40 line-through">{pkr(i.wasPrice * i.qty)}</span> <span className="text-emerald-400">{percentOff(i.price, i.wasPrice)}% off</span></span>}
+                  </p>
                 </li>
               ))}
             </ul>

@@ -49,6 +49,8 @@ export type ProductDTO = {
   variants: VariantDTO[];
   // derived
   fromPrice: number;
+  /** The normal price, crossed out, when the cheapest option is on offer. */
+  wasPrice: number | null;
   totalStock: number;
 };
 
@@ -67,7 +69,8 @@ function toDTO(p: Row): ProductDTO {
     imageUrl: v.imageUrl,
     photos: devicePhotoList(v.photos),
     price: v.price,
-    salePrice: v.salePrice,
+    // Only a real offer (below the normal price) counts; removing the offer makes it disappear everywhere.
+    salePrice: v.salePrice != null && v.salePrice < v.price ? v.salePrice : null,
     stockQty: v.stockQty,
     lowStockThreshold: v.lowStockThreshold,
     grade: v.grade,
@@ -96,6 +99,10 @@ function toDTO(p: Row): ProductDTO {
     metaDescription: p.metaDescription,
     variants,
     fromPrice: variants.length ? Math.min(...variants.map((v) => v.salePrice ?? v.price)) : 0,
+    wasPrice: (() => {
+      const cheapest = [...variants].sort((a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price))[0];
+      return cheapest?.salePrice != null ? cheapest.price : null;
+    })(),
     totalStock: variants.reduce((s, v) => s + v.stockQty, 0),
   };
 }
@@ -129,7 +136,7 @@ export async function getRelated(p: ProductDTO, take = 4) {
 }
 
 /** Lightweight shape sent to client components (catalogue grid / filters). */
-export type CatalogItem = Pick<ProductDTO, "slug" | "name" | "brand" | "type" | "condition" | "accessoryType" | "finishHex" | "featured" | "fromPrice" | "totalStock"> & {
+export type CatalogItem = Pick<ProductDTO, "slug" | "name" | "brand" | "type" | "condition" | "accessoryType" | "finishHex" | "featured" | "fromPrice" | "wasPrice" | "totalStock"> & {
   /** Unique card key: product id, or product+variant for used devices. */
   id: string;
   /** Deep link to the product page (includes ?v= for a specific used device). */
@@ -190,6 +197,7 @@ export function toCatalogItems(products: ProductDTO[]): CatalogItem[] {
           href: `/product/${p.slug}?v=${v.id}`,
           finishHex: v.colorHex ?? p.finishHex,
           fromPrice: v.salePrice ?? v.price,
+          wasPrice: v.salePrice != null ? v.price : null,
           totalStock: v.stockQty,
           storages: uniq([v.storage]),
           rams: uniq([v.ram]),
@@ -208,6 +216,7 @@ export function toCatalogItems(products: ProductDTO[]): CatalogItem[] {
       id: p.id,
       href: `/product/${p.slug}`,
       fromPrice: p.fromPrice,
+      wasPrice: p.wasPrice,
       totalStock: p.totalStock,
       storages: uniq(p.variants.map((v) => v.storage)),
       rams: uniq(p.variants.map((v) => v.ram)),

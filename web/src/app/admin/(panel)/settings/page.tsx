@@ -36,22 +36,27 @@ export default async function SettingsPage() {
           <ActionForm action={saveSettingAction} className="space-y-4">
             <input type="hidden" name="key" value="installmentCalc" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Financing partner name"><input name="partnerName" defaultValue={financing.partnerName} className="field" /></Field>
-              <Field label="Min. down payment %"><input name="minDownPaymentPercent" type="number" step="0.01" min={0} max={100} defaultValue={financing.minDownPaymentPercent} className="field" /></Field>
-              <Field label="Down-payment choices %" hint="Comma-separated, e.g. 10,20,30,40,50"><input name="downPaymentOptions" defaultValue={financing.downPaymentOptions} className="field" /></Field>
+              <Field label="Company name" hint="The financing company"><input name="partnerName" defaultValue={financing.partnerName} className="field" /></Field>
+              <Field label="Down-payment choices %" hint="Comma-separated, e.g. 20,30,40 — the lowest is the minimum"><input name="downPaymentOptions" defaultValue={financing.downPaymentOptions} className="field" /></Field>
               <Field label="Plans (number of terms)" hint="Comma-separated, e.g. 3,6,9"><input name="termOptions" defaultValue={financing.termOptions} className="field" /></Field>
-              <Field label="Repayment period">
-                <select name="period" defaultValue={financing.period} className="field">
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="WEEKLY">Weekly</option>
-                </select>
-              </Field>
               <Field label="Markup % per month" hint="Flat, on the financed amount"><input name="markupPercentPerMonth" type="number" step="0.01" min={0} defaultValue={financing.markupPercentPerMonth} className="field" /></Field>
-              <Field label="Service fee %" hint="One-time, on financed amount"><input name="serviceFeePercent" type="number" step="0.01" min={0} defaultValue={financing.serviceFeePercent} className="field" /></Field>
-              <Field label="Risk management fee %" hint="One-time, on financed amount"><input name="riskFeePercent" type="number" step="0.01" min={0} defaultValue={financing.riskFeePercent} className="field" /></Field>
-              <Field label="Guarantee deposit (Rs)" hint="Fixed, paid upfront"><input name="guaranteeDeposit" type="number" min={0} defaultValue={financing.guaranteeDeposit} className="field" /></Field>
               <Field label="Lowest eligible price (Rs)"><input name="minPrice" type="number" min={0} defaultValue={financing.minPrice} className="field" /></Field>
             </div>
+            {/* Follow-up (25 Nov): the rarely used settings, closed by default. */}
+            <details className="rounded-xl bg-white/5 px-4 py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-muted">Advanced (repayment period, service fee, risk fee, guarantee deposit)</summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Field label="Repayment period">
+                  <select name="period" defaultValue={financing.period} className="field">
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="WEEKLY">Weekly</option>
+                  </select>
+                </Field>
+                <Field label="Service fee %" hint="One-time, on financed amount"><input name="serviceFeePercent" type="number" step="0.01" min={0} defaultValue={financing.serviceFeePercent} className="field" /></Field>
+                <Field label="Risk management fee %" hint="One-time, on financed amount"><input name="riskFeePercent" type="number" step="0.01" min={0} defaultValue={financing.riskFeePercent} className="field" /></Field>
+                <Field label="Guarantee deposit (Rs)" hint="Fixed, paid upfront"><input name="guaranteeDeposit" type="number" min={0} defaultValue={financing.guaranteeDeposit} className="field" /></Field>
+              </div>
+            </details>
             <Field label="Disclaimer shown under the calculator"><textarea name="disclaimer" rows={2} defaultValue={financing.disclaimer} className="field" /></Field>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={financing.enabled} className="h-4 w-4" /> Show installments on the website</label>
@@ -62,7 +67,7 @@ export default async function SettingsPage() {
 
         <Panel title="Installment policy per company" className="xl:col-span-2" id="company-policies">
           <p className="mb-4 text-sm text-muted">
-            Each company has its own down payment and markup. Fill only what differs from the main calculator above — an empty box uses the main setting. Down payments can start at 20%. The website&apos;s plans and calculator use these for that company&apos;s phones.
+            Each company has its own down payment and markup. Fill only what differs from the main calculator above — an empty box uses the main setting. The lowest down-payment choice is that company&apos;s minimum (it can start at 20%). The website&apos;s plans and calculator use these for that company&apos;s phones.
           </p>
           <ActionForm action={saveCompanyPoliciesAction} className="space-y-3">
             <input type="hidden" name="brands" value={companies.map((c) => c.slug).join(",")} />
@@ -71,7 +76,6 @@ export default async function SettingsPage() {
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wider text-muted">
                     <th className="py-2 pr-3">Company</th>
-                    <th className="py-2 pr-3">Min. down %</th>
                     <th className="py-2 pr-3">Down-payment choices %</th>
                     <th className="py-2 pr-3">Plans (months)</th>
                     <th className="py-2">Markup % / month</th>
@@ -83,7 +87,6 @@ export default async function SettingsPage() {
                     return (
                       <tr key={c.slug} className="border-t border-ink/10">
                         <td className="py-2 pr-3 font-semibold">{c.name}</td>
-                        <td className="py-2 pr-3"><input name={`${c.slug}.minDownPaymentPercent`} type="number" step="0.01" min={0} max={99} defaultValue={p.minDownPaymentPercent ?? ""} placeholder={String(financing.minDownPaymentPercent)} className="field !py-2" /></td>
                         <td className="py-2 pr-3"><input name={`${c.slug}.downPaymentOptions`} defaultValue={p.downPaymentOptions ?? ""} placeholder={financing.downPaymentOptions} className="field !py-2" /></td>
                         <td className="py-2 pr-3"><input name={`${c.slug}.termOptions`} defaultValue={p.termOptions ?? ""} placeholder={financing.termOptions} className="field !py-2" /></td>
                         <td className="py-2"><input name={`${c.slug}.markupPercentPerMonth`} type="number" step="0.01" min={0} max={99} defaultValue={p.markupPercentPerMonth ?? ""} placeholder={String(financing.markupPercentPerMonth)} className="field !py-2" /></td>

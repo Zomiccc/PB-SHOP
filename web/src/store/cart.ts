@@ -27,6 +27,8 @@ export type CartItem = {
   variantLabel: string;
   sku: string;
   price: number;
+  /** Normal price before the offer (shown crossed out in the bag). */
+  wasPrice?: number | null;
   qty: number;
   maxQty: number;
   colorHex?: string | null;

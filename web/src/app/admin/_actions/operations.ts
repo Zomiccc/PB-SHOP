@@ -9,7 +9,8 @@ import { requireStaff } from "@/lib/staff";
 import { awardOrderBenefits, nextRepairRef } from "@/lib/orders";
 import { restoreOrderStock } from "@/lib/inventory";
 import { changeRepairStatus } from "@/lib/repairs";
-import { earnPoints, repairDiscount, spendPoints, syncBalance } from "@/lib/loyalty";
+import { earnPoints, pointsForRepair, repairDiscount, spendPoints, syncBalance } from "@/lib/loyalty";
+import { getSetting } from "@/lib/settings";
 import { notify } from "@/lib/notify";
 import { nextRewardsId } from "@/lib/rewards-id";
 import { parseBirthday } from "@/lib/passport";
@@ -29,8 +30,8 @@ export async function setFulfilmentAction(_: FormState, f: FormData): Promise<Fo
     if (o.fulfilmentStatus === to) return "No change";
     await db.order.update({ where: { id: o.id }, data: { fulfilmentStatus: to } });
     await audit({ staffId: staff.id, action: "ORDER_STATUS_CHANGED", entityType: "ORDER", entityId: o.id, recordLabel: `Order ${o.number}`, before: { fulfilmentStatus: o.fulfilmentStatus }, after: { fulfilmentStatus: to } });
-    if (["READY", "SHIPPED"].includes(to)) {
-      await notify({ to: { phone: o.customerPhone, email: o.customerEmail }, subject: `Order ${o.number}`, text: `PB Mobiles: your order ${o.number} is ${to === "READY" ? "ready for collection" : "on its way"}.` });
+    if (["READY", "SHIPPED", "COMPLETED"].includes(to)) {
+      await notify({ to: { phone: o.customerPhone, email: o.customerEmail }, subject: `Order ${o.number}`, text: `PB Mobiles: your order ${o.number} ${to === "READY" ? "is ready for collection" : to === "SHIPPED" ? "is on its way" : "has been delivered. Thank you for shopping with us!"}` }).catch(() => {});
     }
     revalidatePath(`/admin/orders/${o.id}`);
     return "Status updated";
@@ -157,25 +158,58 @@ export async function repairDetailsAction(_: FormState, f: FormData): Promise<Fo
   });
 }
 
+/** Link a repair to the customer's PB Rewards account by the repair's mobile number (an account is made if needed). */
+export async function linkRepairRewardsAction(_: FormState, f: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return run(async () => {
+    const r = await db.repairRequest.findUniqueOrThrow({ where: { id: str(f, "repairId") } });
+    if (r.customerId) return "Already linked";
+    const phone = normalizePhone(r.phone);
+    if (!/^(\+92|0)?3\d{9}$/.test(phone)) throw new Error("This repair has no valid mobile number to link");
+    const c = await db.$transaction(async (tx) => {
+      const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: r.name, phone, passportNo: await nextRewardsId(tx) } }));
+      await tx.repairRequest.update({ where: { id: r.id }, data: { customerId: c.id } });
+      await audit({ staffId: staff.id, action: "REPAIR_LINKED_TO_REWARDS", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}`, after: { rewardsId: c.passportNo } }, tx);
+      // Already delivered: give the repair's points now (same rule as on completion, once).
+      if (r.status === "COMPLETED") {
+        const pts = pointsForRepair(r, await getSetting("passport", tx));
+        const already = await tx.loyaltyTransaction.findFirst({ where: { repairId: r.id, type: "EARN" } });
+        if (pts > 0 && !already) await earnPoints(tx, { customerId: c.id, points: pts, source: "REPAIR", reason: `Repair ${r.ref}`, repairId: r.id, staffId: staff.id });
+      }
+      return c;
+    });
+    revalidatePath(`/admin/repairs/${r.id}`);
+    return `Linked to PB Rewards ${c.passportNo}`;
+  });
+}
+
 /** Walk-in repair booked at the counter (links to the customer's Passport by phone). */
 export async function createWalkInRepairAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff();
   return run(async () => {
     const phone = normalizePhone(str(f, "phone"));
     if (!/^(\+92|0)?3\d{9}$/.test(phone)) throw new Error("Enter a valid mobile number");
-    for (const k of ["name", "brand", "model", "category", "description"]) if (!str(f, k)) throw new Error(`${k} is required`);
+    for (const [k, label] of [["name", "Customer name"], ["brand", "Brand"], ["model", "Phone model"], ["description", "Problem"]]) if (!str(f, k)) throw new Error(`${label} is required`);
+    const category = str(f, "category") || "OTHER";
+    const finalPrice = int(f, "finalPrice");
+    const partsCost = int(f, "partsCost");
+    if ((finalPrice ?? 0) < 0 || (partsCost ?? 0) < 0) throw new Error("Prices can't be negative");
+    const status = str(f, "status") || "RECEIVED";
     const r = await db.$transaction(async (tx) => {
       const c = (await tx.customer.findUnique({ where: { phone } })) ?? (await tx.customer.create({ data: { name: str(f, "name"), phone, passportNo: await nextRewardsId(tx) } }));
       const r = await tx.repairRequest.create({
-        data: { ref: await nextRepairRef(tx), customerId: c.id, name: str(f, "name"), phone, brand: str(f, "brand"), model: str(f, "model"), imei: optStr(f, "imei"), category: str(f, "category"), description: str(f, "description"), dropOff: "WALK_IN", status: "RECEIVED", assignedToId: staff.id },
+        data: { ref: await nextRepairRef(tx), customerId: c.id, name: str(f, "name"), phone, brand: str(f, "brand"), model: str(f, "model"), imei: optStr(f, "imei"), category, description: str(f, "description"), finalPrice, partsCost, dropOff: "WALK_IN", status: "RECEIVED", assignedToId: staff.id },
       });
       await tx.repairStatusChange.create({ data: { repairId: r.id, from: null, to: "RECEIVED", staffId: staff.id } });
       await audit({ staffId: staff.id, action: "REPAIR_CREATED", entityType: "REPAIR", entityId: r.id, recordLabel: `Repair ${r.ref}` }, tx);
       return r;
     });
     await notify({ to: { phone }, subject: `Repair ${r.ref}`, text: `PB Mobiles: we've received your ${r.brand} ${r.model}. Your repair reference is ${r.ref}.` });
+    // A status other than Received picked on the form (e.g. Completed for a quick fix): same path as the status buttons,
+    // so a completed repair gives its PB Points and counts in the Dashboard sales.
+    if (status !== "RECEIVED") await changeRepairStatus(r.id, status, staff.id);
     revalidatePath("/admin/repairs");
-    return `Repair ${r.ref} created`;
+    return `Repair ${r.ref} saved`;
   });
 }
 

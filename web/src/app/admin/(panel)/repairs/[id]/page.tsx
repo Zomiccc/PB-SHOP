@@ -6,7 +6,9 @@ import { DROP_OFF, REPAIR_CATEGORIES, REPAIR_STATUSES } from "@/lib/constants";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
-import { addNoteAction, redeemRewardAction, repairDetailsAction, repairStatusAction } from "../../../_actions/operations";
+import { getSetting } from "@/lib/settings";
+import { pointsForRepair } from "@/lib/loyalty";
+import { addNoteAction, linkRepairRewardsAction, redeemRewardAction, repairDetailsAction, repairStatusAction } from "../../../_actions/operations";
 import { Attachments } from "@/components/admin/Attachments";
 import { requireStaffPage } from "@/lib/staff";
 
@@ -26,10 +28,13 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
     },
   });
   if (!r) notFound();
-  const [staff, repairRewards] = await Promise.all([
+  const [staff, repairRewards, rules, earnedTx] = await Promise.all([
     db.staff.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     db.reward.findMany({ where: { active: true, kind: "REPAIR_DISCOUNT" }, orderBy: { pointsCost: "asc" } }),
+    getSetting("passport"),
+    db.loyaltyTransaction.findMany({ where: { repairId: id, type: "EARN" }, select: { points: true } }),
   ]);
+  const earned = earnedTx.reduce((s, t) => s + t.points, 0);
   const charge = r.finalPrice ?? r.quote;
   const photos = parseJson<string[]>(r.photos, []);
   const idx = REPAIR_STATUSES.findIndex((s) => s.key === r.status);
@@ -138,18 +143,25 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
             <p className="text-sm">{r.phone}{r.email ? ` · ${r.email}` : ""}</p>
             {r.imei && <p className="mt-1 font-mono text-xs text-muted">IMEI/serial: {r.imei}</p>}
             <p className="mt-2 text-xs text-muted">{DROP_OFF[r.dropOff as keyof typeof DROP_OFF]}{r.preferredAt ? ` · preferred ${dt(r.preferredAt)}` : ""}</p>
-            {r.customer && <Link href={`/admin/customers/${r.customer.id}`} className="mt-3 inline-block text-sm text-blue">Rewards ID {r.customer.passportNo} · {r.customer.loyaltyPoints} pts →</Link>}
           </Panel>
 
           <Panel title="Price">
             <ActionForm action={repairDetailsAction} className="space-y-3">
               <input type="hidden" name="repairId" value={r.id} />
-              <Field label="Price (PKR)" hint="What the customer pays for this repair"><input name="finalPrice" type="number" inputMode="numeric" defaultValue={r.finalPrice ?? ""} className="field !py-3 text-base" /></Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Price (PKR)" hint="What the customer pays"><input name="finalPrice" type="number" inputMode="numeric" defaultValue={r.finalPrice ?? ""} className="field !py-3 text-base" /></Field>
+                <Field label="Parts cost (PKR)" hint="What the parts cost the shop"><input name="partsCost" type="number" inputMode="numeric" min={0} defaultValue={r.partsCost ?? ""} className="field !py-3 text-base" /></Field>
+              </div>
+              {charge != null && (
+                <p className="rounded-lg bg-emerald-600/10 px-3 py-2 text-sm">
+                  Profit: <b className="text-emerald-400">{pkr(charge - (r.rewardDiscount ?? 0) - (r.partsCost ?? 0))}</b>
+                  <span className="text-xs text-muted"> = price {pkr(charge)}{r.rewardDiscount ? ` − rewards discount ${pkr(r.rewardDiscount)}` : ""} − parts {pkr(r.partsCost ?? 0)}</span>
+                </p>
+              )}
               <details className="rounded-xl bg-white/5 px-3 py-2 text-sm">
-                <summary className="cursor-pointer text-muted">More (quote, parts, IMEI, technician)</summary>
+                <summary className="cursor-pointer text-muted">More (quote, IMEI, technician)</summary>
                 <div className="mt-3 space-y-3">
                   <Field label="Quote (PKR)" hint="Shown to the customer on the tracking page"><input name="quote" type="number" defaultValue={r.quote ?? ""} className="field" /></Field>
-                  <Field label="Of which parts (PKR)" hint="PB Rewards repair discounts exclude parts"><input name="partsCost" type="number" min={0} defaultValue={r.partsCost ?? ""} className="field" /></Field>
                   <Field label="IMEI / serial"><input name="imei" defaultValue={r.imei ?? ""} className="field" /></Field>
                   <Field label="Assigned technician">
                     <select name="assignedToId" defaultValue={r.assignedToId ?? ""} className="field">
@@ -164,13 +176,28 @@ export default async function RepairPage(props: PageProps<"/admin/repairs/[id]">
           </Panel>
 
           <Panel title="PB Rewards">
+            {/* Follow-up (25 Nov): the repair is linked to the customer's account and earns points when delivered. */}
+            {r.customer ? (
+              <div className="mb-3 text-sm">
+                <Link href={`/admin/customers/${r.customer.id}`} className="font-semibold text-blue">Rewards ID {r.customer.passportNo} · {r.customer.loyaltyPoints} points →</Link>
+                <p className="mt-1 text-muted">
+                  {earned > 0
+                    ? `+${earned} PB Points given for this repair.`
+                    : r.status === "COMPLETED"
+                      ? "No points — this repair has no price."
+                      : `Earns ${pointsForRepair(r, rules)} PB Points when delivered (1 point per Rs ${rules.rupeesPerPoint} of the price).`}
+                </p>
+              </div>
+            ) : (
+              <ActionForm action={linkRepairRewardsAction} className="mb-3 space-y-2">
+                <input type="hidden" name="repairId" value={r.id} />
+                <p className="text-sm text-muted">Not linked to a PB Rewards account yet. Linking uses the mobile number {r.phone} (a new account is made if needed).</p>
+                <Submit variant="gold">Link to PB Rewards</Submit>
+              </ActionForm>
+            )}
             {r.rewardDiscount ? (
               <p className="text-sm"><Badge tone="green">Applied</Badge> Rs {r.rewardDiscount.toLocaleString("en-PK")} off labour{charge != null ? ` · customer pays ${pkr(charge - r.rewardDiscount)}` : ""}</p>
-            ) : !r.customer ? (
-              <p className="text-sm text-muted">Link this repair to a PB Rewards account (customer phone) to use points.</p>
-            ) : repairRewards.length === 0 ? (
-              <p className="text-sm text-muted">No repair rewards are switched on.</p>
-            ) : (
+            ) : !r.customer || repairRewards.length === 0 ? null : (
               <ActionForm action={redeemRewardAction} className="space-y-2">
                 <input type="hidden" name="customerId" value={r.customer.id} />
                 <input type="hidden" name="repairId" value={r.id} />

@@ -133,3 +133,13 @@ describe("Part 2: Rewards Gifting", () => {
     expect(after.month.total - before.month.total).toBe(700);
   });
 });
+
+describe("Follow-up (25 Nov): offers on the website", () => {
+  it("% off matches the admin list, and there's no label without a real offer", async () => {
+    const { percentOff } = await import("@/lib/format");
+    expect(percentOff(2810, 4020)).toBe(30);
+    expect(percentOff(2450, 10220)).toBe(76);
+    expect(percentOff(3000, null)).toBe(0);
+    expect(percentOff(3000, 2500)).toBe(0);
+  });
+});

@@ -13,7 +13,7 @@ import { availablePoints } from "@/lib/loyalty";
 import { getSetting } from "@/lib/settings";
 import { formatCardExpiry } from "@/lib/passport-rules";
 import { redirect } from "next/navigation";
-import { PAYMENT_STATUS_LABEL } from "@/lib/payment-accounts";
+import { PAYMENT_STATUS_LABEL, FULFILMENT_STATUS_LABEL } from "@/lib/payment-accounts";
 import { orderToken } from "@/lib/order-token";
 
 /** Only same-site paths may be returned to after logging in. */
@@ -177,7 +177,7 @@ export default async function AccountPage(props: PageProps<"/account">) {
                   </div>
                   <p className="truncate text-muted">{o.items.map((i) => i.name).join(", ")}</p>
                   <p className="text-xs text-muted">
-                    {o.createdAt.toLocaleDateString("en-PK")} · {PAYMENT_STATUS_LABEL[o.paymentStatus] ?? o.paymentStatus.toLowerCase()} · {o.fulfilmentStatus.toLowerCase().replace("_", " ")}
+                    {o.createdAt.toLocaleDateString("en-PK")} · {PAYMENT_STATUS_LABEL[o.paymentStatus] ?? o.paymentStatus.toLowerCase()} · {FULFILMENT_STATUS_LABEL[o.fulfilmentStatus] ?? o.fulfilmentStatus.toLowerCase().replace("_", " ")}
                   </p>
                   {o.channel === "ONLINE" && (o.paymentStatus === "PENDING" || o.paymentStatus === "UNDER_REVIEW") && o.fulfilmentStatus !== "CANCELLED" && (
                     <Link href={`/checkout/pay?order=${o.number}&t=${orderToken(o.number)}`} className="mt-1 inline-block text-xs font-semibold text-gold hover:underline">

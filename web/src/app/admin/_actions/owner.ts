@@ -14,12 +14,24 @@ import { bool, diff, int, run, str } from "./util";
 
 /** Super-admin-only configuration. Every change is audited with before/after values (master brief §14). */
 
+/** The smallest number in "20,30,40" (0–99), or null. */
+function lowestChoice(v: string) {
+  const nums = v.split(/[,\s]+/).filter(Boolean).map(Number).filter((n) => Number.isFinite(n) && n >= 0 && n < 100);
+  return nums.length ? Math.min(...nums) : null;
+}
+
 export async function saveSettingAction(_: FormState, f: FormData): Promise<FormState> {
   const staff = await requireStaff({ superAdmin: true });
   return run(async () => {
     const key = str(f, "key") as SettingKey;
     if (!(key in SETTING_DEFAULTS)) throw new Error("Unknown setting");
     const before = await getSetting(key);
+    // Follow-up (25 Nov): no separate "Min. down payment" box — the lowest down-payment choice is the minimum.
+    if (key === "installmentCalc") {
+      const low = lowestChoice(str(f, "downPaymentOptions"));
+      if (low == null) throw new Error("Enter the down-payment choices, e.g. 20,30,40");
+      f.set("minDownPaymentPercent", String(low));
+    }
     const next: Record<string, unknown> = {};
     for (const [k, def] of Object.entries(SETTING_DEFAULTS[key])) {
       // Structured values (e.g. per-company installment policies) have their own form: keep them as they are.
@@ -153,9 +165,11 @@ export async function saveCompanyPoliciesAction(_: FormState, f: FormData): Prom
         if (!Number.isFinite(n) || n < 0 || n >= 100) throw new Error(`${slug}: ${k} must be a number from 0 to 99`);
         return Math.round(n * 100) / 100;
       };
+      const options = list(str(f, `${slug}.downPaymentOptions`), `${slug} down payments`);
       const p: CompanyPolicy = {
-        minDownPaymentPercent: num("minDownPaymentPercent"),
-        downPaymentOptions: list(str(f, `${slug}.downPaymentOptions`), `${slug} down payments`),
+        // The lowest down-payment choice is that company's minimum (no separate box).
+        minDownPaymentPercent: options ? lowestChoice(options) ?? undefined : undefined,
+        downPaymentOptions: options,
         termOptions: list(str(f, `${slug}.termOptions`), `${slug} plans`),
         markupPercentPerMonth: num("markupPercentPerMonth"),
       };

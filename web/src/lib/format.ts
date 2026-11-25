@@ -11,6 +11,11 @@ export function parseJson<T>(value: string | null | undefined, fallback: T): T {
   }
 }
 
+/** "% off" for an offer (old price → new price), rounded; 0 when there's no real offer. */
+export function percentOff(price: number, was: number | null | undefined) {
+  return was && was > price ? Math.round((1 - price / was) * 100) : 0;
+}
+
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }

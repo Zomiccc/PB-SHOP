@@ -6,6 +6,7 @@ import { pkr } from "@/lib/format";
 import { Badge, Field, PageTitle, Panel, dt, statusTone } from "@/components/admin/Primitives";
 import { ActionForm, Submit } from "@/components/admin/ui";
 import { NotesList } from "@/components/admin/NotesList";
+import { confirmPaymentAction, rejectPaymentAction } from "../../../_actions/payments";
 import { addNoteAction, cancelOrReturnAction, givePointsForOrderAction, markPaidAction, setFulfilmentAction } from "../../../_actions/operations";
 
 export const metadata = { title: "Order" };
@@ -19,7 +20,7 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
       items: { include: { variant: true } },
       payments: { orderBy: { createdAt: "desc" } },
       notes: { orderBy: { createdAt: "desc" }, include: { author: true } },
-      attachments: { orderBy: { createdAt: "asc" }, select: { id: true, fileName: true, mimeType: true } },
+      attachments: { orderBy: { createdAt: "asc" }, select: { id: true, fileName: true, mimeType: true, kind: true } },
       movements: { orderBy: { createdAt: "asc" }, include: { staff: true, variant: true } },
       loyaltyTx: true,
       customer: true,
@@ -28,6 +29,9 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
   });
   if (!o) notFound();
   const closed = ["CANCELLED", "RETURNED"].includes(o.fulfilmentStatus);
+  const designs = o.attachments.filter((a) => a.kind !== "PAYMENT_PROOF");
+  const receipt = o.attachments.filter((a) => a.kind === "PAYMENT_PROOF").at(-1);
+  const lastPayment = o.payments[0];
   const audit = await db.auditLog.findMany({ where: { entityType: "ORDER", entityId: o.id }, orderBy: { createdAt: "asc" }, include: { staff: true } });
 
   return (
@@ -56,11 +60,11 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
             </dl>
           </Panel>
 
-          {o.attachments.length > 0 && (
+          {designs.length > 0 && (
             <Panel title="Customer's own skin design">
               <p className="mb-3 text-sm text-muted">Uploaded by the customer on the Custom Skins page — print this for their skin.</p>
               <div className="flex flex-wrap gap-3">
-                {o.attachments.map((a) => (
+                {designs.map((a) => (
                   <a key={a.id} href={`/api/files/${a.id}`} target="_blank" rel="noreferrer" className="block w-32 overflow-hidden rounded-xl ring-1 ring-white/10 hover:ring-gold/60">
                     {/* eslint-disable-next-line @next/next/no-img-element -- permission-checked private file */}
                     <img src={`/api/files/${a.id}`} alt={a.fileName} className="aspect-[3/5] w-full object-cover" />
@@ -115,30 +119,64 @@ export default async function OrderPage(props: PageProps<"/admin/orders/[id]">) 
               <Badge tone={statusTone(o.paymentStatus)}>Payment: {o.paymentStatus.replace("_", " ")}</Badge>
               <Badge tone={statusTone(o.fulfilmentStatus)}>Fulfilment: {o.fulfilmentStatus.replace("_", " ")}</Badge>
             </div>
-            {o.paymentStatus === "UNDER_REVIEW" && (
-              <div className="mb-4 rounded-xl bg-gold/10 p-3 text-sm">
-                <p className="font-semibold">The customer uploaded a payment receipt.</p>
-                <p className="mt-1 text-muted">Check it and confirm or reject it in the Payments inbox.</p>
-                <Link href="/admin/inbox?tab=payments" className="btn btn-gold mt-3 !py-2 !text-sm">Review the receipt</Link>
+            {/* Follow-up (25 Nov): confirm or reject the payment right here, then deliver. */}
+            {!closed && o.paymentStatus === "UNDER_REVIEW" && (
+              <div className="mb-4 space-y-3 rounded-xl bg-gold/10 p-3 text-sm">
+                <p className="font-semibold">The customer says they paid {pkr(o.total)}{lastPayment?.provider ? ` by ${lastPayment.provider}` : ""}.</p>
+                {lastPayment?.providerRef && <p className="text-muted">Transaction ID: <span className="font-mono">{lastPayment.providerRef}</span></p>}
+                {receipt && (
+                  <a href={`/api/files/${receipt.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg bg-black/40 ring-1 ring-white/10">
+                    {receipt.mimeType.startsWith("image/") && receipt.mimeType !== "image/heic" ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- private file served by /api/files (staff only)
+                      <img src={`/api/files/${receipt.id}`} alt={`Payment receipt for ${o.number}`} className="max-h-72 w-full object-contain" />
+                    ) : (
+                      <span className="block p-3 text-gold">Open receipt ({receipt.fileName})</span>
+                    )}
+                  </a>
+                )}
+                <p className="text-xs text-muted">Check that {pkr(o.total)} actually arrived in the account first.</p>
+                <ActionForm action={confirmPaymentAction} confirm={`Confirm that ${pkr(o.total)} for ${o.number} has been received?`}>
+                  <input type="hidden" name="orderId" value={o.id} />
+                  <Submit variant="gold">Payment received ✓</Submit>
+                </ActionForm>
+                <ActionForm action={rejectPaymentAction} confirm={`Reject this payment for ${o.number}? The customer will be asked to send it again.`} className="flex flex-wrap gap-2">
+                  <input type="hidden" name="orderId" value={o.id} />
+                  <input name="reason" maxLength={300} placeholder="Reason (optional) — e.g. amount not received" aria-label="Reason" className="field min-w-0 flex-1 !py-2" />
+                  <Submit variant="red">Reject / not received</Submit>
+                </ActionForm>
               </div>
+            )}
+            {!closed && o.paymentStatus === "PAID" && o.fulfilmentStatus !== "COMPLETED" && (
+              <ActionForm action={setFulfilmentAction} className="mb-4 rounded-xl bg-emerald-600/10 p-3" confirm={`Mark ${o.number} as delivered? The customer is told.`}>
+                <p className="mb-2 text-sm font-semibold">Paid — ready to hand over</p>
+                <input type="hidden" name="orderId" value={o.id} />
+                <input type="hidden" name="status" value="COMPLETED" />
+                <Submit variant="gold">Mark as delivered ✓</Submit>
+              </ActionForm>
             )}
             {!closed && (
               <ActionForm action={setFulfilmentAction} className="flex gap-2">
                 <input type="hidden" name="orderId" value={o.id} />
-                <select name="status" defaultValue={o.fulfilmentStatus} aria-label="Fulfilment status" className="field">
+                <select key={o.fulfilmentStatus} name="status" defaultValue={o.fulfilmentStatus} aria-label="Fulfilment status" className="field">
                   {["NEW", "PROCESSING", "READY", "SHIPPED", "COMPLETED", "ON_HOLD"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
                 </select>
                 <Submit>Update</Submit>
               </ActionForm>
             )}
-            {o.paymentStatus !== "PAID" && o.stockCommitted && !closed && (
+            {o.paymentStatus !== "PAID" && o.paymentStatus !== "UNDER_REVIEW" && !closed && (o.stockCommitted ? (
               <ActionForm action={markPaidAction} className="mt-4 space-y-2 rounded-xl bg-gold/10 p-3" confirm="Confirm payment was received?">
-                <p className="text-sm font-semibold">Payment received (COD / manual)</p>
+                <p className="text-sm font-semibold">Payment received (cash on delivery / manual)</p>
                 <input type="hidden" name="orderId" value={o.id} />
                 <input name="ref" placeholder="Receipt / reference (optional)" className="field" />
-                <Submit variant="gold">Mark as paid</Submit>
+                <Submit variant="gold">Payment received ✓</Submit>
               </ActionForm>
-            )}
+            ) : o.paymentStatus === "PENDING" ? (
+              <ActionForm action={confirmPaymentAction} className="mt-4 space-y-2 rounded-xl bg-gold/10 p-3" confirm={`Confirm that ${pkr(o.total)} for ${o.number} has been received?`}>
+                <p className="text-sm font-semibold">Customer paid but sent no receipt?</p>
+                <input type="hidden" name="orderId" value={o.id} />
+                <Submit variant="gold">Payment received ✓</Submit>
+              </ActionForm>
+            ) : null)}
           </Panel>
 
           <Panel title="Customer">

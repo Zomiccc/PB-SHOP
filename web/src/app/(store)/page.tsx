@@ -10,7 +10,7 @@ import { ReviewCard, ReviewForm, Stars } from "@/components/reviews/Reviews";
 import { cardPhoto, listProducts, toCatalogItems } from "@/lib/catalog";
 import { approvedReviews, reviewStats } from "@/lib/reviews";
 import { getSetting } from "@/lib/settings";
-import { pkr } from "@/lib/format";
+import { percentOff, pkr } from "@/lib/format";
 import { activeListings } from "@/lib/installments";
 import { brandsWithListings } from "@/lib/brands";
 import { InstallmentPhones } from "@/components/home/InstallmentPhones";
@@ -108,7 +108,7 @@ export default async function HomePage() {
       {featuredPhones.length > 0 && (
         <Row k="home.row.newPhones" title="Featured Phones" href="/new-phones">
           {featuredPhones.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={cardPhoto(p) ? <RowPhoto src={cardPhoto(p)!} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} was={p.wasPrice} art={cardPhoto(p) ? <RowPhoto src={cardPhoto(p)!} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -117,7 +117,7 @@ export default async function HomePage() {
       {usedPhones.length > 0 && (
         <Row k="home.row.usedPhones" title="Used Phones" href="/used-phones">
           {usedPhones.map((p) => (
-            <MiniCard key={p.id} href={p.href} name={`${p.name}${p.grade ? ` · Grade ${p.grade}` : ""}`} price={p.fromPrice} art={p.image ? <RowPhoto src={p.image} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={p.href} name={`${p.name}${p.grade ? ` · Grade ${p.grade}` : ""}`} price={p.fromPrice} was={p.wasPrice} art={p.image ? <RowPhoto src={p.image} /> : <ProductArt kind="PHONE" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -141,7 +141,7 @@ export default async function HomePage() {
       {featuredTablets.length > 0 && (
         <Row k="home.row.tablets" title="Tablets" href="/tablets">
           {featuredTablets.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="TABLET" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={`${p.name}${p.condition === "USED" ? " (Used)" : ""}`} price={p.fromPrice} was={p.wasPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="TABLET" colorHex={p.finishHex} brand={p.brand} name={p.name} compact />} />
           ))}
         </Row>
       )}
@@ -150,7 +150,7 @@ export default async function HomePage() {
       {featuredAcc.length > 0 && (
         <Row k="home.row.accessories" title="Accessories" href="/accessories">
           {featuredAcc.map((p) => (
-            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
+            <MiniCard key={p.id} href={`/product/${p.slug}`} name={p.name} price={p.fromPrice} was={p.wasPrice} art={p.images[0] ? <RowPhoto src={p.images[0]} /> : <ProductArt kind="ACCESSORY" accessoryType={p.accessoryType} colorHex={p.finishHex} />} />
           ))}
         </Row>
       )}
@@ -348,7 +348,7 @@ function Row({ k, title, href, children }: { k: string; title: string; href: str
   );
 }
 
-function MiniCard({ href, name, price, art }: { href: string; name: string; price: number; art: React.ReactNode }) {
+function MiniCard({ href, name, price, was, art }: { href: string; name: string; price: number; was?: number | null; art: React.ReactNode }) {
   return (
     <Link href={href} className="group flex flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-white/8 transition hover:ring-gold/60">
       <div className="relative aspect-square bg-gradient-to-b from-[#12161e] to-black p-2">
@@ -358,6 +358,7 @@ function MiniCard({ href, name, price, art }: { href: string; name: string; pric
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{name}</p>
           <p className="text-xs text-muted">From <b className="text-gold">{pkr(price)}</b></p>
+          {was != null && was > price && <p className="text-[0.7rem]"><span className="text-muted line-through">{pkr(was)}</span> <span className="font-semibold text-emerald-400">{percentOff(price, was)}% off</span></p>}
         </div>
         <Icon name="arrow-right" className="h-4 w-4 shrink-0 text-white/60" />
       </div>

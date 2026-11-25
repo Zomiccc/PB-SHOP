@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { isDevice, type ProductDTO } from "@/lib/catalog";
 import { BRAND, USED_GRADES, accessoryLabel } from "@/lib/constants";
-import { cn, pkr } from "@/lib/format";
+import { cn, percentOff, pkr } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { ProductArt } from "./ProductArt";
@@ -78,6 +78,7 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
       variantLabel: label,
       sku: variant.sku,
       price,
+      wasPrice: variant.salePrice != null ? variant.price : null,
       qty,
       maxQty: variant.stockQty,
       colorHex: variant.colorHex ?? product.finishHex,
@@ -169,7 +170,12 @@ export function ProductDetail({ product, pointsRules, financing, initialVariantI
 
         <div className="mt-6 flex items-end gap-3">
           <p className="display text-4xl text-ink">{pkr(price)}</p>
-          {variant.salePrice && <p className="pb-1 text-lg text-muted line-through">{pkr(variant.price)}</p>}
+          {variant.salePrice != null && (
+            <>
+              <p className="pb-1 text-lg text-muted line-through">{pkr(variant.price)}</p>
+              <span className="mb-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">{percentOff(variant.salePrice, variant.price)}% off</span>
+            </>
+          )}
         </div>
         <p className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">SKU {variant.sku}</p>
         {used && variant.warrantyInfo && (
